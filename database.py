@@ -206,34 +206,191 @@ def get_session() -> Session:
     return SessionLocal()
 
 
+# Connection pool recovery for handling database endpoint suspensions
+_last_pool_reset = 0.0
+_pool_reset_cooldown = 30.0  # Minimum seconds between pool resets
+
+
+async def _async_dispose():
+    """Async helper to dispose async engine"""
+    try:
+        await async_engine.dispose()
+        logger.info("✅ Async connection pool disposed")
+    except Exception as e:
+        logger.warning(f"⚠️ Async pool disposal warning: {e}")
+
+
+def reset_connection_pools():
+    """
+    Reset all database connection pools to recover from endpoint suspension.
+    
+    Called when OperationalError indicates the database endpoint is disabled.
+    This clears stale connections and allows fresh connections to be established.
+    """
+    global _last_pool_reset
+    import time
+    
+    current_time = time.time()
+    if current_time - _last_pool_reset < _pool_reset_cooldown:
+        logger.debug("🔄 Pool reset skipped - cooldown active")
+        return False
+    
+    try:
+        logger.warning("🔄 DATABASE_RECOVERY: Resetting connection pools due to endpoint error...")
+        
+        # Dispose sync engine pool
+        engine.dispose()
+        logger.info("✅ Sync connection pool reset")
+        
+        # Dispose async engine pool (synchronously - this is safe)
+        # Note: async_engine.dispose() is sync-safe in SQLAlchemy 2.0
+        try:
+            import asyncio
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                # Schedule async disposal
+                asyncio.create_task(_async_dispose())
+            else:
+                asyncio.run(_async_dispose())
+        except RuntimeError:
+            # No event loop - try sync disposal which works for most cases
+            pass
+        
+        logger.info("✅ Async connection pool reset scheduled")
+        
+        _last_pool_reset = current_time
+        logger.warning("✅ DATABASE_RECOVERY: Connection pools reset - next connection will establish fresh")
+        return True
+        
+    except Exception as e:
+        logger.error(f"❌ DATABASE_RECOVERY: Pool reset failed: {e}")
+        return False
+
+
+def handle_database_error(error: Exception) -> bool:
+    """
+    Handle database errors and attempt recovery if appropriate.
+    
+    Returns True if recovery was attempted (caller should retry),
+    False if error is not recoverable through pool reset.
+    """
+    error_str = str(error).lower()
+    
+    # Check for endpoint suspension errors (Neon, Railway, etc.)
+    recoverable_patterns = [
+        "endpoint has been disabled",
+        "endpoint is disabled",
+        "connection refused",
+        "could not connect to server",
+        "connection timed out",
+        "server closed the connection unexpectedly",
+        "terminating connection due to administrator command",
+        "the database system is starting up",
+        "the database system is shutting down",
+    ]
+    
+    for pattern in recoverable_patterns:
+        if pattern in error_str:
+            logger.warning(f"🔄 Detected recoverable database error: {pattern}")
+            return reset_connection_pools()
+    
+    return False
+
+
 @contextmanager
 def managed_session():
-    """Sync context manager for database sessions"""
-    session = SessionLocal()
-    try:
-        yield session
-        session.commit()
-    except Exception as e:
-        session.rollback()
-        logger.error(f"Database session error: {e}")
-        raise
-    finally:
-        session.close()
+    """
+    Sync context manager for database sessions with automatic recovery.
+    
+    If the database endpoint is suspended (Neon, Railway), this will reset
+    the connection pool and retry, avoiding the need for a full bot restart.
+    """
+    import time
+    max_retries = 2
+    last_error = None
+    
+    for attempt in range(max_retries + 1):
+        session = None
+        try:
+            session = SessionLocal()
+            yield session
+            session.commit()
+            return  # Success
+        except OperationalError as e:
+            if session:
+                try:
+                    session.rollback()
+                except Exception:
+                    pass
+            last_error = e
+            if attempt < max_retries and handle_database_error(e):
+                logger.info(f"🔄 Retrying database operation (attempt {attempt + 2}/{max_retries + 1})...")
+                time.sleep(1)
+                continue
+            logger.error(f"Database connection error: {e}")
+            raise
+        except Exception as e:
+            if session:
+                session.rollback()
+            logger.error(f"Database session error: {e}")
+            raise
+        finally:
+            if session:
+                try:
+                    session.close()
+                except Exception:
+                    pass
+    
+    if last_error:
+        raise last_error
 
 
 @asynccontextmanager
 async def async_managed_session():
-    """Async context manager for database sessions"""
-    session = AsyncSessionLocal()
-    try:
-        yield session
-        await session.commit()
-    except Exception as e:
-        logger.error(f"Database session error: {e}")
-        await session.rollback()
-        raise
-    finally:
-        await session.close()
+    """
+    Async context manager for database sessions with automatic recovery.
+    
+    If the database endpoint is suspended (Neon, Railway), this will reset
+    the connection pool and retry, avoiding the need for a full bot restart.
+    """
+    import asyncio
+    max_retries = 2
+    last_error = None
+    
+    for attempt in range(max_retries + 1):
+        session = None
+        try:
+            session = AsyncSessionLocal()
+            yield session
+            await session.commit()
+            return  # Success
+        except OperationalError as e:
+            if session:
+                try:
+                    await session.rollback()
+                except Exception:
+                    pass
+            last_error = e
+            if attempt < max_retries and handle_database_error(e):
+                logger.info(f"🔄 Retrying async database operation (attempt {attempt + 2}/{max_retries + 1})...")
+                await asyncio.sleep(1)
+                continue
+            logger.error(f"Database connection error: {e}")
+            raise
+        except Exception as e:
+            if session:
+                await session.rollback()
+            logger.error(f"Database session error: {e}")
+            raise
+        finally:
+            if session:
+                try:
+                    await session.close()
+                except Exception:
+                    pass
+    
+    if last_error:
+        raise last_error
 
 
 # Alias for compatibility
