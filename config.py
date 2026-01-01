@@ -1559,7 +1559,7 @@ Available tokens:
 
     # Determine base URL for webhooks based on environment detection
     manual_webhook_url = os.getenv("WEBHOOK_URL", "")
-    production_url = "https://lockbay.replit.app/webhook"
+    production_url = "https://lockbayescrow-production.up.railway.app/webhook"
     
     if manual_webhook_url:
         # Manual override takes highest priority
@@ -1639,7 +1639,7 @@ Available tokens:
         logger.info(f"🔄 Admin Action: Using webhook base URL: {ADMIN_ACTION_BASE_URL}")
     else:
         # Last resort fallback (should rarely happen)
-        ADMIN_ACTION_BASE_URL = "https://lockbay.replit.app"
+        ADMIN_ACTION_BASE_URL = "https://lockbayescrow-production.up.railway.app"
         logger.warning(f"⚠️  Admin Action: Using hardcoded fallback: {ADMIN_ACTION_BASE_URL}")
     
     # Validation: Ensure URL is properly configured
@@ -1823,7 +1823,7 @@ Available tokens:
                         f"🚨 CRITICAL: WEBHOOK_URL uses branded domain 'lockbay.io': {Config.BASE_WEBHOOK_URL}\n"
                         f"   → This is for customer-facing links, NOT webhooks!\n"
                         f"   → Crypto payment webhooks will NEVER arrive!\n"
-                        f"   → Set WEBHOOK_URL=https://lockbay.replit.app/webhook"
+                        f"   → Set WEBHOOK_URL=https://lockbayescrow-production.up.railway.app/webhook"
                     )
                 
                 # Check for ephemeral domains
@@ -1832,7 +1832,7 @@ Available tokens:
                         issues.append(
                             f"🚨 CRITICAL: WEBHOOK_URL uses ephemeral domain '{wrong_domain}': {Config.BASE_WEBHOOK_URL}\n"
                             f"   → Webhooks will break after restart!\n"
-                            f"   → Set WEBHOOK_URL=https://lockbay.replit.app/webhook"
+                            f"   → Set WEBHOOK_URL=https://lockbayescrow-production.up.railway.app/webhook"
                         )
             
             # ADMIN_ACTION_BASE_URL: Must use actual server domain (for email action buttons)
@@ -1843,7 +1843,7 @@ Available tokens:
                         f"🚨 CRITICAL: ADMIN_ACTION_BASE_URL uses branded domain 'lockbay.io': {Config.ADMIN_ACTION_BASE_URL}\n"
                         f"   → This is for customer-facing links, NOT admin webhooks!\n"
                         f"   → Email action buttons will break!\n"
-                        f"   → Set ADMIN_ACTION_BASE_URL=https://lockbay.replit.app"
+                        f"   → Set ADMIN_ACTION_BASE_URL=https://lockbayescrow-production.up.railway.app"
                     )
                 
                 # Check for ephemeral domains
@@ -1852,7 +1852,7 @@ Available tokens:
                         issues.append(
                             f"🚨 CRITICAL: ADMIN_ACTION_BASE_URL uses ephemeral domain '{wrong_domain}': {Config.ADMIN_ACTION_BASE_URL}\n"
                             f"   → Email action buttons will break after restart!\n"
-                            f"   → Set ADMIN_ACTION_BASE_URL=https://lockbay.replit.app"
+                            f"   → Set ADMIN_ACTION_BASE_URL=https://lockbayescrow-production.up.railway.app"
                         )
             
             # PUBLIC_PROFILE_BASE_URL: Check configuration and DNS requirements
@@ -1868,7 +1868,7 @@ Available tokens:
                         f"   → PUBLIC_PROFILE_BASE_URL: {Config.PUBLIC_PROFILE_BASE_URL}\n"
                         f"   → Bot server: {Config.ADMIN_ACTION_BASE_URL}\n"
                         "   \n"
-                        "   ✅ Ensure DNS routes lockbay.io → lockbay.replit.app:\n"
+                        "   ✅ Ensure DNS routes lockbay.io → lockbayescrow-production.up.railway.app:\n"
                         "      Option 1: DNS CNAME record\n"
                         "      Option 2: Reverse proxy (Cloudflare/Nginx)\n"
                         "   \n"
@@ -1890,7 +1890,7 @@ Available tokens:
                 issues.append(
                     "🚨 CRITICAL: WEBHOOK_URL is not configured!\n"
                     "   → Crypto payments cannot be processed\n"
-                    "   → Set WEBHOOK_URL=https://lockbay.replit.app/webhook"
+                    "   → Set WEBHOOK_URL=https://lockbayescrow-production.up.railway.app/webhook"
                 )
         
         # 2. Check webhook security secrets
@@ -2014,14 +2014,14 @@ Available tokens:
                 warnings.append(
                     "ℹ️  INFO: WEBHOOK_URL not set explicitly\n"
                     f"   → Using fallback: {Config.BASE_WEBHOOK_URL}\n"
-                    "   → Recommended: Set WEBHOOK_URL=https://lockbay.replit.app/webhook explicitly"
+                    "   → Recommended: Set WEBHOOK_URL=https://lockbayescrow-production.up.railway.app/webhook explicitly"
                 )
             
             if not os.getenv("ADMIN_ACTION_BASE_URL"):
                 warnings.append(
                     "ℹ️  INFO: ADMIN_ACTION_BASE_URL not set explicitly\n"
                     f"   → Using fallback: {Config.ADMIN_ACTION_BASE_URL}\n"
-                    "   → Recommended: Set ADMIN_ACTION_BASE_URL=https://lockbay.replit.app explicitly"
+                    "   → Recommended: Set ADMIN_ACTION_BASE_URL=https://lockbayescrow-production.up.railway.app explicitly"
                 )
         
         # Print all issues and warnings
