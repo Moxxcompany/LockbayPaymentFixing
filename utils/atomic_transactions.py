@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError, OperationalError, IntegrityError
 from sqlalchemy import text
-from database import managed_session, SessionLocal
+from database import managed_session, SessionLocal, handle_database_error
 
 
 # DEPRECATED: AsyncSessionAdapter removed due to thread safety issues
@@ -80,23 +80,54 @@ def atomic_transaction(session: Optional[Session] = None) -> Generator[Session, 
     
     This is the SYNC version for use with regular `with` statements.
     For async code, use `async with async_atomic_transaction()`.
+    
+    Includes automatic recovery for database connection errors (Neon/Railway).
     """
     session_provided = session is not None
     if not session_provided:
-        # Create new sync session
-        session = SessionLocal()
-        try:
-            logger.debug("Created new sync session for atomic transaction")
+        # Create new sync session with retry logic for connection errors
+        max_retries = 2
+        last_error = None
+        
+        for attempt in range(max_retries + 1):
+            session = None
             try:
-                yield session
-                session.commit()
-                logger.debug("Sync atomic transaction committed successfully")
-            except Exception as e:
-                session.rollback()
+                session = SessionLocal()
+                logger.debug("Created new sync session for atomic transaction")
+                try:
+                    yield session
+                    session.commit()
+                    logger.debug("Sync atomic transaction committed successfully")
+                    return  # Success
+                except OperationalError as e:
+                    if session:
+                        try:
+                            session.rollback()
+                        except Exception:
+                            pass
+                    raise
+                except Exception as e:
+                    if session:
+                        session.rollback()
+                    logger.error(f"Sync transaction rolled back due to error: {e}")
+                    raise
+            except OperationalError as e:
+                last_error = e
+                if attempt < max_retries and handle_database_error(e):
+                    logger.info(f"🔄 Retrying atomic transaction (attempt {attempt + 2}/{max_retries + 1})...")
+                    time.sleep(1)
+                    continue
                 logger.error(f"Sync transaction rolled back due to error: {e}")
                 raise
-        finally:
-            session.close()
+            finally:
+                if session:
+                    try:
+                        session.close()
+                    except Exception:
+                        pass
+        
+        if last_error:
+            raise last_error
     else:
         logger.debug("Using provided sync session for atomic transaction")
         # Initialize transaction_depth before try block to avoid unbound variable
