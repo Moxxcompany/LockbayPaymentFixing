@@ -1,0 +1,34 @@
+<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <!-- Official Lockbay Favicon - Simplified for Small Sizes -->
+  
+  <!-- Lock/Dollar Icon (Simplified) -->
+  <g transform="translate(4, 2)">
+    <!-- Padlock body -->
+    <path d="M 18 10 L 18 16 C 18 18 16 20 14 20 L 6 20 C 4 20 2 18 2 16 L 2 10 Z" 
+          fill="none" 
+          stroke="#3BB5C8" 
+          stroke-width="2.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"/>
+    
+    <!-- Top shackle -->
+    <path d="M 6 10 L 6 7 C 6 4 14 4 14 7 L 14 10" 
+          fill="none" 
+          stroke="#3BB5C8" 
+          stroke-width="2.5"
+          stroke-linecap="round"/>
+    
+    <!-- $ vertical line -->
+    <line x1="10" y1="3" x2="10" y2="24" 
+          stroke="#3BB5C8" 
+          stroke-width="2.5"
+          stroke-linecap="round"/>
+    
+    <!-- $ curves (simplified) -->
+    <path d="M 13 8 C 13 6 7 6 7 8 C 7 10 12 11 12 14 C 12 16 9 16 9 14" 
+          fill="none" 
+          stroke="#3BB5C8" 
+          stroke-width="2.5"
+          stroke-linecap="round"/>
+  </g>
+</svg>

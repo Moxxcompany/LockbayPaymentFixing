@@ -1,0 +1,33 @@
+<svg width="120" height="120" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+  <!-- Official Lockbay Icon Only - For Profile Pictures -->
+  
+  <g transform="translate(20, 10)">
+    <!-- Padlock body formed by $ shape -->
+    <path d="M 70 40 L 70 65 C 70 72 63 80 55 80 L 25 80 C 17 80 10 72 10 65 L 10 40 Z" 
+          fill="none" 
+          stroke="#3BB5C8" 
+          stroke-width="12"
+          stroke-linecap="round"
+          stroke-linejoin="round"/>
+    
+    <!-- Top shackle of lock -->
+    <path d="M 25 40 L 25 25 C 25 10 55 10 55 25 L 55 40" 
+          fill="none" 
+          stroke="#3BB5C8" 
+          stroke-width="12"
+          stroke-linecap="round"/>
+    
+    <!-- S vertical line through lock -->
+    <line x1="40" y1="15" x2="40" y2="95" 
+          stroke="#3BB5C8" 
+          stroke-width="12"
+          stroke-linecap="round"/>
+    
+    <!-- S curves forming dollar sign -->
+    <path d="M 52 30 C 52 23 28 23 28 30 C 28 38 48 42 48 52 C 48 60 35 60 35 54" 
+          fill="none" 
+          stroke="#3BB5C8" 
+          stroke-width="12"
+          stroke-linecap="round"/>
+  </g>
+</svg>

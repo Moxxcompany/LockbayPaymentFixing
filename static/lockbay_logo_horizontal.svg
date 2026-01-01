@@ -1,0 +1,42 @@
+<svg width="600" height="180" viewBox="0 0 600 180" xmlns="http://www.w3.org/2000/svg">
+  <!-- Official Lockbay Logo - Horizontal Layout -->
+  
+  <!-- Lock/Dollar Icon -->
+  <g transform="translate(30, 30)">
+    <!-- Padlock body formed by $ shape -->
+    <path d="M 60 30 L 60 50 C 60 55 55 60 50 60 L 20 60 C 15 60 10 55 10 50 L 10 30 Z" 
+          fill="none" 
+          stroke="#3BB5C8" 
+          stroke-width="10"
+          stroke-linecap="round"
+          stroke-linejoin="round"/>
+    
+    <!-- Top shackle of lock -->
+    <path d="M 20 30 L 20 20 C 20 10 50 10 50 20 L 50 30" 
+          fill="none" 
+          stroke="#3BB5C8" 
+          stroke-width="10"
+          stroke-linecap="round"/>
+    
+    <!-- S vertical line through lock -->
+    <line x1="35" y1="15" x2="35" y2="75" 
+          stroke="#3BB5C8" 
+          stroke-width="10"
+          stroke-linecap="round"/>
+    
+    <!-- S curves forming dollar sign -->
+    <path d="M 45 25 C 45 20 25 20 25 25 C 25 30 40 32 40 38 C 40 44 30 44 30 40" 
+          fill="none" 
+          stroke="#3BB5C8" 
+          stroke-width="10"
+          stroke-linecap="round"/>
+  </g>
+  
+  <!-- Text: LOCKBAY -->
+  <text x="150" y="110" 
+        font-family="'Arial', 'Helvetica', sans-serif" 
+        font-size="72" 
+        font-weight="300" 
+        fill="#2C3E50"
+        letter-spacing="8">LOCKBAY</text>
+</svg>

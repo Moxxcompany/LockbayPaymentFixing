@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy - Lockbay</title>
+    <link rel="icon" href="/static/lockbay_icon.svg" type="image/svg+xml">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: linear-gradient(135deg, #3BB5C8 0%, #2C9DA2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #3BB5C8 0%, #2C9DA2 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+            border-bottom: 4px solid #3BB5C8;
+        }
+        
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 40px 30px;
+            line-height: 1.8;
+            color: #2C3E50;
+        }
+        
+        .content h2 {
+            color: #2C3E50;
+            font-size: 24px;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #3BB5C8;
+        }
+        
+        .content h3 {
+            color: #3BB5C8;
+            font-size: 18px;
+            margin-top: 25px;
+            margin-bottom: 12px;
+        }
+        
+        .content p {
+            margin-bottom: 15px;
+            font-size: 15px;
+            color: #4a5568;
+        }
+        
+        .content ul {
+            margin: 15px 0;
+            padding-left: 25px;
+        }
+        
+        .content li {
+            margin-bottom: 10px;
+            font-size: 15px;
+            color: #4a5568;
+        }
+        
+        .highlight-box {
+            background: linear-gradient(135deg, #e8f7f8 0%, #d4f1f4 100%);
+            border-left: 4px solid #3BB5C8;
+            padding: 20px;
+            margin: 25px 0;
+            border-radius: 6px;
+        }
+        
+        .highlight-box strong {
+            color: #2C3E50;
+            display: block;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        
+        .back-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #3BB5C8 0%, #2C9DA2 100%);
+            color: white;
+            padding: 12px 30px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            margin-top: 30px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(59, 181, 200, 0.3);
+        }
+        
+        .back-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 181, 200, 0.4);
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 32px 20px 24px 20px;
+            background: linear-gradient(135deg, #2C3E50 0%, #34495E 100%);
+            color: #ecf0f1;
+            font-size: 13px;
+            border-top: 3px solid #3BB5C8;
+        }
+        
+        .social-media-links {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .social-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            background: rgba(59, 181, 200, 0.1);
+            border: 2px solid #3BB5C8;
+            border-radius: 50%;
+            color: #3BB5C8;
+            text-decoration: none;
+            font-size: 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .social-link:hover {
+            background: #3BB5C8;
+            color: white;
+            transform: translateY(-3px);
+            box-shadow: 0 6px 16px rgba(59, 181, 200, 0.4);
+        }
+        
+        .footer-divider {
+            width: 60px;
+            height: 2px;
+            background: #3BB5C8;
+            margin: 20px auto;
+        }
+        
+        .footer-links {
+            margin-top: 16px;
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+        
+        .footer-link {
+            color: #3BB5C8;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 13px;
+            transition: all 0.3s ease;
+        }
+        
+        .footer-link:hover {
+            color: white;
+            text-decoration: underline;
+        }
+        
+        .footer-copyright {
+            margin-top: 16px;
+            font-size: 12px;
+            color: #95a5a6;
+        }
+        
+        .contact-email {
+            color: #3BB5C8;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        .contact-email:hover {
+            text-decoration: underline;
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 0;
+            }
+            
+            .container {
+                border-radius: 0;
+            }
+            
+            .header {
+                padding: 30px 20px;
+            }
+            
+            .header h1 {
+                font-size: 26px;
+            }
+            
+            .content {
+                padding: 30px 20px;
+            }
+            
+            .content h2 {
+                font-size: 20px;
+            }
+            
+            .content h3 {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Privacy Policy</h1>
+            <p>Last Updated: November 7, 2025</p>
+        </div>
+        
+        <div class="content">
+            <div class="highlight-box">
+                <strong>Your Privacy Matters</strong>
+                <p>Lockbay is committed to protecting your privacy and ensuring the security of your personal information. This Privacy Policy explains how we collect, use, store, and protect your data when you use our peer-to-peer marketplace with cryptocurrency escrow services.</p>
+            </div>
+            
+            <h2>1. Information We Collect</h2>
+            
+            <h3>1.1 Information You Provide</h3>
+            <ul>
+                <li><strong>Account Information:</strong> Telegram user ID, username, and profile information</li>
+                <li><strong>Contact Information:</strong> Email address, phone number (for verification and notifications)</li>
+                <li><strong>Transaction Information:</strong> Details about trades, escrow transactions, payment amounts, and cryptocurrency addresses</li>
+                <li><strong>Banking Information:</strong> Bank account details for fiat withdrawals (encrypted and securely stored)</li>
+                <li><strong>Communications:</strong> Messages exchanged through our platform for dispute resolution and support</li>
+            </ul>
+            
+            <h3>1.2 Information We Collect Automatically</h3>
+            <ul>
+                <li><strong>Usage Data:</strong> Platform interactions, feature usage, and transaction history</li>
+                <li><strong>Device Information:</strong> IP address, device type, operating system, and browser type</li>
+                <li><strong>Transaction Metadata:</strong> Timestamps, transaction status, and payment confirmations</li>
+                <li><strong>Cookies and Tracking:</strong> Session cookies for authentication and platform functionality</li>
+            </ul>
+            
+            <h2>2. How We Use Your Information</h2>
+            
+            <p>We use your information for the following purposes:</p>
+            
+            <ul>
+                <li><strong>Platform Operations:</strong> To operate, maintain, and improve our peer-to-peer marketplace and escrow services</li>
+                <li><strong>Transaction Processing:</strong> To facilitate cryptocurrency escrow transactions, payment processing, and fund releases</li>
+                <li><strong>User Verification:</strong> To verify user identity and prevent fraud, money laundering, and other illegal activities</li>
+                <li><strong>Notifications:</strong> To send transaction updates, escrow status changes, and important platform announcements via email, SMS, and Telegram</li>
+                <li><strong>Customer Support:</strong> To respond to your inquiries, resolve disputes, and provide technical assistance</li>
+                <li><strong>Security:</strong> To detect, prevent, and investigate fraudulent transactions and security threats</li>
+                <li><strong>Compliance:</strong> To comply with legal obligations, including anti-money laundering (AML) and know-your-customer (KYC) requirements</li>
+                <li><strong>Analytics:</strong> To analyze platform usage, improve user experience, and develop new features</li>
+            </ul>
+            
+            <h2>3. Data Storage and Security</h2>
+            
+            <h3>3.1 Security Measures</h3>
+            <p>We implement industry-standard security measures to protect your data:</p>
+            <ul>
+                <li><strong>Encryption:</strong> All sensitive data is encrypted using 256-bit AES encryption at rest and TLS 1.3 in transit</li>
+                <li><strong>Secure Storage:</strong> Data is stored on secure servers with restricted access controls</li>
+                <li><strong>Access Controls:</strong> Role-based access control (RBAC) limits employee access to user data</li>
+                <li><strong>Regular Audits:</strong> Security audits and vulnerability assessments are conducted regularly</li>
+                <li><strong>Cryptocurrency Security:</strong> Private keys for escrow wallets are stored in cold storage with multi-signature protection</li>
+            </ul>
+            
+            <h3>3.2 Data Retention</h3>
+            <p>We retain your information for as long as necessary to provide our services and comply with legal obligations. Transaction records are kept for a minimum of 7 years for regulatory compliance.</p>
+            
+            <h2>4. Third-Party Services</h2>
+            
+            <p>We work with trusted third-party service providers to deliver our services:</p>
+            
+            <ul>
+                <li><strong>Telegram:</strong> Our platform integrates with Telegram for user authentication and messaging</li>
+                <li><strong>Cryptocurrency Payment Processors:</strong> For cryptocurrency payment processing and wallet services</li>
+                <li><strong>Email Service:</strong> For transactional emails and notifications</li>
+                <li><strong>SMS Service:</strong> For SMS verification and notifications</li>
+                <li><strong>Banking Partners:</strong> For fiat currency withdrawals and payment processing</li>
+                <li><strong>Cloud Hosting:</strong> Secure cloud infrastructure for platform hosting and data storage</li>
+            </ul>
+            
+            <p>These third parties are contractually obligated to protect your data and use it only for the purposes we specify.</p>
+            
+            <h2>5. Cookies and Tracking Technologies</h2>
+            
+            <p>We use cookies and similar tracking technologies to:</p>
+            <ul>
+                <li>Maintain your login session and authentication state</li>
+                <li>Remember your preferences and settings</li>
+                <li>Analyze platform usage and performance</li>
+                <li>Prevent fraud and enhance security</li>
+            </ul>
+            
+            <p>You can control cookie settings through your browser, but disabling cookies may affect platform functionality.</p>
+            
+            <h2>6. Your Rights and Choices</h2>
+            
+            <p>You have the following rights regarding your personal information:</p>
+            
+            <ul>
+                <li><strong>Access:</strong> Request a copy of the personal information we hold about you</li>
+                <li><strong>Correction:</strong> Request correction of inaccurate or incomplete information</li>
+                <li><strong>Deletion:</strong> Request deletion of your account and personal data (subject to legal retention requirements)</li>
+                <li><strong>Data Portability:</strong> Request a copy of your data in a machine-readable format</li>
+                <li><strong>Opt-Out:</strong> Unsubscribe from marketing communications at any time</li>
+                <li><strong>Objection:</strong> Object to certain processing activities, such as analytics</li>
+            </ul>
+            
+            <p>To exercise these rights, please contact us at <a href="mailto:{{ admin_email }}" class="contact-email">{{ admin_email }}</a>.</p>
+            
+            <h2>7. International Data Transfers</h2>
+            
+            <p>Your information may be transferred to and processed in countries other than your country of residence. We ensure appropriate safeguards are in place to protect your data in accordance with this Privacy Policy and applicable laws.</p>
+            
+            <h2>8. Children's Privacy</h2>
+            
+            <p>Our services are not intended for users under the age of 18. We do not knowingly collect personal information from children. If you believe a child has provided us with personal information, please contact us immediately.</p>
+            
+            <h2>9. Changes to This Privacy Policy</h2>
+            
+            <p>We may update this Privacy Policy from time to time to reflect changes in our practices or legal requirements. We will notify you of material changes via email or platform notification. Your continued use of our services after such changes constitutes acceptance of the updated Privacy Policy.</p>
+            
+            <h2>10. Contact Us</h2>
+            
+            <p>If you have any questions, concerns, or requests regarding this Privacy Policy or your personal information, please contact us:</p>
+            
+            <div class="highlight-box">
+                <strong>Contact Information</strong>
+                <p>Email: <a href="mailto:{{ admin_email }}" class="contact-email">{{ admin_email }}</a></p>
+                <p>Telegram: <a href="https://t.me/lockbaybot" class="contact-email">@lockbaybot</a></p>
+                <p>Response Time: We aim to respond to all inquiries within 48 hours</p>
+            </div>
+            
+            <div style="text-align: center;">
+                <a href="/" class="back-button">← Back to Home</a>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <div class="social-media-links">
+                <a href="https://x.com/Lockbay360" target="_blank" rel="noopener noreferrer" class="social-link" aria-label="Follow us on X (Twitter)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                    </svg>
+                </a>
+                <a href="https://instagram.com/Lockbay360" target="_blank" rel="noopener noreferrer" class="social-link" aria-label="Follow us on Instagram">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
+                    </svg>
+                </a>
+                <a href="https://facebook.com/Lockbay360" target="_blank" rel="noopener noreferrer" class="social-link" aria-label="Follow us on Facebook">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                    </svg>
+                </a>
+            </div>
+            <div class="footer-divider"></div>
+            <div class="footer-links">
+                <a href="/features" class="footer-link">Features</a>
+                <a href="/partners/apply" class="footer-link">Partner Program</a>
+                <a href="/privacy" class="footer-link">Privacy Policy</a>
+                <a href="/terms" class="footer-link">Terms of Service</a>
+                <a href="https://t.me/lockbaybot" class="footer-link">Support</a>
+            </div>
+            <div class="footer-copyright">
+                © 2025 Lockbay. Secure peer-to-peer trading platform.
+            </div>
+        </div>
+    </div>
+</body>
+</html>

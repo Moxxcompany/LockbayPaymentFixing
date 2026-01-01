@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Features - Lockbay Bot</title>
+    <meta name="description" content="Explore Lockbay bot's powerful features for secure crypto trading">
+    <link rel="icon" href="/static/lockbay_icon.svg" type="image/svg+xml">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
+            background: linear-gradient(135deg, #3BB5C8 0%, #2C9DA2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #3BB5C8 0%, #2C9DA2 100%);
+            color: white;
+            padding: 50px 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 36px;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        
+        .header p {
+            font-size: 18px;
+            opacity: 0.95;
+            margin-bottom: 25px;
+        }
+        
+        .cta-button {
+            display: inline-block;
+            background: white;
+            color: #3BB5C8;
+            padding: 14px 32px;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .content {
+            padding: 50px 40px;
+        }
+        
+        .section-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #2C3E50;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+            margin-bottom: 50px;
+        }
+        
+        .feature-card {
+            text-align: center;
+            padding: 30px 20px;
+            border-radius: 12px;
+            background: #f8f9fa;
+            transition: all 0.3s ease;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 24px rgba(59, 181, 200, 0.15);
+            background: linear-gradient(135deg, #e8f7f8 0%, #d4f1f4 100%);
+        }
+        
+        .feature-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+        
+        .feature-card h3 {
+            font-size: 18px;
+            margin-bottom: 10px;
+            color: #2C3E50;
+        }
+        
+        .feature-card p {
+            font-size: 14px;
+            color: #6B7280;
+            line-height: 1.6;
+        }
+        
+        .commands {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .command-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .command-item:last-child {
+            border-bottom: none;
+        }
+        
+        .command-name {
+            font-family: 'Courier New', monospace;
+            color: #3BB5C8;
+            font-weight: 600;
+            font-size: 14px;
+            min-width: 100px;
+        }
+        
+        .command-desc {
+            font-size: 14px;
+            color: #6B7280;
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 30px 20px;
+            background: #f8f9fa;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .footer a {
+            color: #3BB5C8;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 28px;
+            }
+            
+            .content {
+                padding: 40px 25px;
+            }
+            
+            .features-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .command-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Lockbay Bot Features</h1>
+            <p>Secure peer-to-peer trading on Telegram</p>
+            <a href="https://t.me/lockbaybot?start=ref_FE22A9" class="cta-button">Try Bot Now →</a>
+        </div>
+        
+        <div class="content">
+            <h2 class="section-title">What You Can Do</h2>
+            
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🔐</div>
+                    <h3>Crypto Escrow</h3>
+                    <p>Secure trades with automatic escrow protection and multi-currency support</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">💰</div>
+                    <h3>Wallet Management</h3>
+                    <p>Track balances, manage funds, and cash out instantly</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">⭐</div>
+                    <h3>Build Reputation</h3>
+                    <p>Earn ratings and reviews to grow your trading profile</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">🎁</div>
+                    <h3>Earn Rewards</h3>
+                    <p>Get bonuses for referrals and successful trades</p>
+                </div>
+            </div>
+            
+            <h2 class="section-title">Bot Commands</h2>
+            
+            <div class="commands">
+                <div class="command-item">
+                    <span class="command-name">/start</span>
+                    <span class="command-desc">Begin using the bot</span>
+                </div>
+                <div class="command-item">
+                    <span class="command-name">/create</span>
+                    <span class="command-desc">Create a new escrow trade</span>
+                </div>
+                <div class="command-item">
+                    <span class="command-name">/wallet</span>
+                    <span class="command-desc">View your balance and transactions</span>
+                </div>
+                <div class="command-item">
+                    <span class="command-name">/trades</span>
+                    <span class="command-desc">See all your trades</span>
+                </div>
+                <div class="command-item">
+                    <span class="command-name">/profile</span>
+                    <span class="command-desc">View your ratings and reputation</span>
+                </div>
+                <div class="command-item">
+                    <span class="command-name">/referral</span>
+                    <span class="command-desc">Get your referral link and earnings</span>
+                </div>
+                <div class="command-item">
+                    <span class="command-name">/settings</span>
+                    <span class="command-desc">Configure your preferences</span>
+                </div>
+            </div>
+            
+            <div style="text-align: center;">
+                <a href="https://t.me/lockbaybot?start=ref_FE22A9" class="cta-button" style="font-size: 17px; padding: 16px 36px;">
+                    Start Trading Now →
+                </a>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p><a href="/">← Back to Home</a></p>
+            <p style="margin-top: 15px; font-size: 13px; color: #6B7280;">© 2025 Lockbay. Secure trading platform.</p>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,32 @@
+[run]
+source = handlers,services,utils,models
+parallel = True
+branch = True
+omit = 
+    tests/*
+    */site-packages/*
+    */venv/*
+    */env/*
+    */__pycache__/*
+    */migrations/*
+    setup.py
+    */node_modules/*
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    if self.debug:
+    if settings.DEBUG
+    raise AssertionError
+    raise NotImplementedError
+    if 0:
+    if __name__ == .__main__.:
+    class .*\bProtocol\):
+    @(abc\.)?abstractmethod
+
+[html]
+directory = htmlcov
+
+[xml]
+output = coverage.xml

@@ -1,0 +1,474 @@
+"""
+Financial Operation Locker
+Provides SELECT FOR UPDATE and optimistic locking for critical financial operations
+Ensures atomic operations and prevents race conditions in money-related transactions
+"""
+
+import logging
+import time
+import asyncio
+from typing import Any, Optional, Dict, Type, Union, List, Tuple
+from datetime import datetime, timedelta
+from contextlib import asynccontextmanager
+from decimal import Decimal
+from enum import Enum
+
+from sqlalchemy import select, update, func, text
+from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
+from database import engine, SessionLocal
+from models import (
+    Base, User, Wallet, Transaction, Escrow, Cashout, ExchangeOrder, 
+    CashoutStatus, EscrowStatus, TransactionType
+)
+from utils.optimistic_locking import OptimisticLockManager, OptimisticLockingError
+from services.state_manager import state_manager
+from services.atomic_lock_manager import atomic_lock_manager, LockOperationType
+
+logger = logging.getLogger(__name__)
+
+
+class FinancialLockType(Enum):
+    """Types of financial locks"""
+    WALLET_BALANCE = "wallet_balance"
+    ESCROW_TRANSITION = "escrow_transition"
+    CASHOUT_PROCESSING = "cashout_processing"
+    EXCHANGE_ORDER = "exchange_order"
+    USER_TRANSACTION = "user_transaction"
+    ACCOUNT_FREEZE = "account_freeze"
+
+
+class FinancialOperationLocker:
+    """
+    Comprehensive financial operation locker with SELECT FOR UPDATE and optimistic locking
+    Ensures atomic financial operations and prevents race conditions
+    """
+    
+    def __init__(self):
+        self.session_factory = SessionLocal
+        # Track active locks for debugging
+        self.active_locks = {}
+        # Performance metrics
+        self.lock_metrics = {
+            'total_locks': 0,
+            'successful_locks': 0,
+            'failed_locks': 0,
+            'lock_timeouts': 0,
+            'optimistic_conflicts': 0
+        }
+    
+    @asynccontextmanager
+    async def atomic_financial_operation(
+        self, 
+        operation_id: str,
+        lock_type: FinancialLockType,
+        timeout_seconds: int = 30
+    ):
+        """
+        Context manager for atomic financial operations with ATOMIC distributed locking
+        
+        UPDATED: Now uses database-backed atomic locking instead of vulnerable 
+        key-value store locking that has race conditions.
+        
+        Args:
+            operation_id: Unique identifier for the operation
+            lock_type: Type of financial lock
+            timeout_seconds: Maximum time to wait for lock
+        """
+        session = self.session_factory()
+        lock_key = f"financial_lock:{lock_type.value}:{operation_id}"
+        
+        # Map FinancialLockType to LockOperationType
+        operation_type_mapping = {
+            FinancialLockType.WALLET_BALANCE: LockOperationType.WALLET_BALANCE_UPDATE,
+            FinancialLockType.ESCROW_TRANSITION: LockOperationType.ESCROW_STATUS_CHANGE,
+            FinancialLockType.CASHOUT_PROCESSING: LockOperationType.CASHOUT_PROCESSING,
+            FinancialLockType.EXCHANGE_ORDER: LockOperationType.TRANSACTION_PROCESSING,
+            FinancialLockType.USER_TRANSACTION: LockOperationType.TRANSACTION_PROCESSING,
+            FinancialLockType.ACCOUNT_FREEZE: LockOperationType.FINANCIAL_OPERATION,
+        }
+        
+        lock_operation_type = operation_type_mapping.get(
+            lock_type, LockOperationType.FINANCIAL_OPERATION
+        )
+        
+        # Use atomic lock manager instead of vulnerable key-value store locking
+        try:
+            async with atomic_lock_manager.atomic_lock_context(
+                lock_name=lock_key,
+                operation_type=lock_operation_type,
+                resource_id=operation_id,
+                timeout_seconds=timeout_seconds,
+                metadata={
+                    'lock_type': lock_type.value,
+                    'operation_id': operation_id,
+                    'process': 'financial_operation_locker'
+                }
+            ) as lock_token:
+                if not lock_token:
+                    self.lock_metrics['failed_locks'] += 1
+                    raise TimeoutError(f"Failed to acquire ATOMIC lock: {lock_key}")
+                
+                self.lock_metrics['successful_locks'] += 1
+                self.active_locks[lock_key] = {
+                    'acquired_at': datetime.utcnow(),
+                    'lock_type': lock_type,
+                    'operation_id': operation_id,
+                    'atomic_token': lock_token[:8] + "..."  # Partial for security
+                }
+                
+                logger.info(f"🔒 ATOMIC_FINANCIAL_LOCK_ACQUIRED: {lock_key}")
+                
+                try:
+                    # Begin database transaction
+                    session.begin()
+                    yield session
+                    
+                    # Commit if no exceptions
+                    session.commit()
+                    logger.info(f"✅ ATOMIC_FINANCIAL_OPERATION_COMMITTED: {operation_id}")
+                    
+                except Exception as e:
+                    # Rollback on any error
+                    session.rollback()
+                    logger.error(f"❌ ATOMIC_FINANCIAL_OPERATION_FAILED: {operation_id} - {e}")
+                    raise
+                    
+                finally:
+                    # Context manager will automatically release the atomic lock
+                    if lock_key in self.active_locks:
+                        del self.active_locks[lock_key]
+                    
+                    session.close()
+                    self.lock_metrics['total_locks'] += 1
+                    
+        except Exception as e:
+            self.lock_metrics['failed_locks'] += 1
+            logger.error(f"❌ ATOMIC_FINANCIAL_OPERATION_ERROR: {operation_id} - {e}")
+            
+            # Clean up session if not cleaned up
+            if session:
+                try:
+                    session.close()
+                except:
+                    pass
+            
+            raise
+    
+    async def lock_wallet_for_update(
+        self, 
+        session: Session, 
+        user_id: int, 
+        currency: str
+    ) -> Optional[Tuple[User, Wallet]]:
+        """
+        Lock wallet for update with SELECT FOR UPDATE
+        
+        Args:
+            session: Database session
+            user_id: User ID
+            currency: Currency to lock
+            
+        Returns:
+            Tuple of (User, Wallet) if successful, None if not found
+        """
+        try:
+            # SELECT FOR UPDATE on user and wallet
+            user_query = (
+                session.query(User)
+                .filter(User.telegram_id == str(user_id))
+                .with_for_update()
+            )
+            
+            user = user_query.first()
+            if not user:
+                logger.warning(f"User {user_id} not found for wallet lock")
+                return None
+            
+            wallet_query = (
+                session.query(Wallet)
+                .filter(
+                    Wallet.user_id == user.id,
+                    Wallet.currency == currency
+                )
+                .with_for_update()
+            )
+            
+            wallet = wallet_query.first()
+            if not wallet:
+                logger.warning(f"Wallet {currency} not found for user {user_id}")
+                return None
+            
+            logger.debug(f"🔒 Locked wallet {currency} for user {user_id} (balance: {wallet.balance})")
+            return user, wallet
+            
+        except SQLAlchemyError as e:
+            logger.error(f"❌ Error locking wallet for user {user_id}, currency {currency}: {e}")
+            raise
+    
+    async def lock_escrow_for_transition(
+        self, 
+        session: Session, 
+        escrow_id: str
+    ) -> Optional[Escrow]:
+        """
+        Lock escrow for status transition with SELECT FOR UPDATE and version check
+        
+        Args:
+            session: Database session
+            escrow_id: Escrow ID to lock
+            
+        Returns:
+            Escrow object if successful, None if not found
+        """
+        try:
+            # SELECT FOR UPDATE with version checking
+            escrow = (
+                session.query(Escrow)
+                .filter(Escrow.id == escrow_id)
+                .with_for_update()
+                .first()
+            )
+            
+            if not escrow:
+                logger.warning(f"Escrow {escrow_id} not found for locking")
+                return None
+            
+            logger.info(f"🔒 Locked escrow {escrow_id} for transition (status: {escrow.status}, version: {getattr(escrow, 'version', 'N/A')})")
+            return escrow
+            
+        except SQLAlchemyError as e:
+            logger.error(f"❌ Error locking escrow {escrow_id}: {e}")
+            raise
+    
+    async def lock_cashout_for_processing(
+        self, 
+        session: Session, 
+        cashout_id: str
+    ) -> Optional[Cashout]:
+        """
+        Lock cashout for processing with SELECT FOR UPDATE
+        
+        Args:
+            session: Database session
+            cashout_id: Cashout ID to lock
+            
+        Returns:
+            Cashout object if successful, None if not found
+        """
+        try:
+            # SELECT FOR UPDATE on cashout
+            cashout = (
+                session.query(Cashout)
+                .filter(Cashout.id == cashout_id)
+                .with_for_update()
+                .first()
+            )
+            
+            if not cashout:
+                logger.warning(f"Cashout {cashout_id} not found for locking")
+                return None
+            
+            logger.info(f"🔒 Locked cashout {cashout_id} for processing (status: {cashout.status})")
+            return cashout
+            
+        except SQLAlchemyError as e:
+            logger.error(f"❌ Error locking cashout {cashout_id}: {e}")
+            raise
+    
+    async def update_wallet_balance_atomically(
+        self,
+        session: Session,
+        user: User,
+        wallet: Wallet,
+        amount_change: Decimal,
+        operation_type: str,
+        reference_id: str = None
+    ) -> bool:
+        """
+        Update wallet balance atomically with optimistic locking
+        
+        Args:
+            session: Database session (must have wallet locked)
+            user: User object
+            wallet: Wallet object (must be locked)
+            amount_change: Amount to add/subtract (negative for debit)
+            operation_type: Type of operation for audit trail
+            reference_id: Reference ID for transaction
+            
+        Returns:
+            bool: True if successful
+        """
+        try:
+            original_balance = wallet.balance
+            new_balance = original_balance + amount_change
+            
+            # Prevent negative balances for credits
+            if new_balance < 0:
+                logger.error(
+                    f"❌ Insufficient balance: User {user.telegram_id}, "
+                    f"Wallet {wallet.currency}, Current: {original_balance}, "
+                    f"Change: {amount_change}, New: {new_balance}"
+                )
+                return False
+            
+            # Use optimistic locking if version column exists
+            if hasattr(wallet, 'version'):
+                lock_manager = OptimisticLockManager(session)
+                try:
+                    success = lock_manager.versioned_update(
+                        Wallet,
+                        wallet.id,
+                        {'balance': new_balance},
+                        wallet.version
+                    )
+                    if not success:
+                        self.lock_metrics['optimistic_conflicts'] += 1
+                        return False
+                        
+                except OptimisticLockingError:
+                    self.lock_metrics['optimistic_conflicts'] += 1
+                    logger.warning(f"⚠️ Optimistic lock conflict for wallet {wallet.id}")
+                    return False
+            else:
+                # Fallback to direct update (already locked with SELECT FOR UPDATE)
+                wallet.balance = new_balance
+                wallet.updated_at = datetime.utcnow()
+            
+            # Create audit transaction record
+            transaction = Transaction(
+                user_id=user.id,
+                type=TransactionType.CREDIT if amount_change > 0 else TransactionType.DEBIT,
+                currency=wallet.currency,
+                amount=abs(amount_change),
+                description=f"{operation_type} - {reference_id or 'N/A'}",
+                reference_id=reference_id,
+                created_at=datetime.utcnow()
+            )
+            session.add(transaction)
+            
+            logger.info(
+                f"💰 Wallet balance updated: User {user.telegram_id}, "
+                f"Currency {wallet.currency}, {original_balance} → {new_balance} "
+                f"({amount_change:+}) [{operation_type}]"
+            )
+            
+            return True
+            
+        except SQLAlchemyError as e:
+            logger.error(f"❌ Error updating wallet balance: {e}")
+            raise
+    
+    async def transition_escrow_status_atomically(
+        self,
+        session: Session,
+        escrow: Escrow,
+        new_status: EscrowStatus,
+        operation_notes: str = None
+    ) -> bool:
+        """
+        Transition escrow status atomically with optimistic locking
+        
+        Args:
+            session: Database session (must have escrow locked)
+            escrow: Escrow object (must be locked)
+            new_status: New status to transition to
+            operation_notes: Notes about the transition
+            
+        Returns:
+            bool: True if successful
+        """
+        try:
+            old_status = escrow.status
+            
+            # Validate status transition (implement business rules here)
+            valid_transitions = self._get_valid_escrow_transitions(old_status)
+            if new_status not in valid_transitions:
+                logger.error(
+                    f"❌ Invalid escrow status transition: {old_status} → {new_status} "
+                    f"for escrow {escrow.id}"
+                )
+                return False
+            
+            # Use optimistic locking if version column exists
+            if hasattr(escrow, 'version'):
+                lock_manager = OptimisticLockManager(session)
+                try:
+                    success = lock_manager.versioned_update(
+                        Escrow,
+                        escrow.id,
+                        {
+                            'status': new_status,
+                            'updated_at': datetime.utcnow()
+                        },
+                        escrow.version
+                    )
+                    if not success:
+                        self.lock_metrics['optimistic_conflicts'] += 1
+                        return False
+                        
+                except OptimisticLockingError:
+                    self.lock_metrics['optimistic_conflicts'] += 1
+                    logger.warning(f"⚠️ Optimistic lock conflict for escrow {escrow.id}")
+                    return False
+            else:
+                # Fallback to direct update (already locked with SELECT FOR UPDATE)
+                escrow.status = new_status
+                escrow.updated_at = datetime.utcnow()
+            
+            logger.info(
+                f"🔄 Escrow status transition: {escrow.id} {old_status} → {new_status}"
+                + (f" ({operation_notes})" if operation_notes else "")
+            )
+            
+            return True
+            
+        except SQLAlchemyError as e:
+            logger.error(f"❌ Error transitioning escrow status: {e}")
+            raise
+    
+    def _get_valid_escrow_transitions(self, current_status: EscrowStatus) -> List[EscrowStatus]:
+        """Get valid escrow status transitions for business rule validation"""
+        transitions = {
+            EscrowStatus.PENDING_PAYMENT: [
+                EscrowStatus.PAYMENT_RECEIVED,
+                EscrowStatus.CANCELLED
+            ],
+            EscrowStatus.PAYMENT_RECEIVED: [
+                EscrowStatus.DELIVERED,
+                EscrowStatus.DISPUTE_OPENED,
+                EscrowStatus.CANCELLED
+            ],
+            EscrowStatus.DELIVERED: [
+                EscrowStatus.COMPLETED,
+                EscrowStatus.DISPUTE_OPENED
+            ],
+            EscrowStatus.DISPUTE_OPENED: [
+                EscrowStatus.DISPUTE_RESOLVED,
+                EscrowStatus.COMPLETED,
+                EscrowStatus.CANCELLED
+            ],
+            EscrowStatus.DISPUTE_RESOLVED: [
+                EscrowStatus.COMPLETED
+            ]
+        }
+        return transitions.get(current_status, [])
+    
+    def get_lock_metrics(self) -> Dict[str, Any]:
+        """Get performance metrics for financial locking"""
+        return {
+            **self.lock_metrics,
+            'active_locks': len(self.active_locks),
+            'active_lock_details': {
+                lock_key: {
+                    'duration_seconds': (datetime.utcnow() - info['acquired_at']).total_seconds(),
+                    'lock_type': info['lock_type'].value,
+                    'operation_id': info['operation_id']
+                }
+                for lock_key, info in self.active_locks.items()
+            }
+        }
+
+
+# Global financial operation locker instance
+financial_locker = FinancialOperationLocker()

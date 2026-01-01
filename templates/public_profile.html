@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- Primary Meta Tags -->
+    <title>{{ display_name }} - {{ trust_level }} Trader on Lockbay | ⭐{{ overall_rating }}/5.0</title>
+    <meta name="title" content="{{ display_name }} - {{ trust_level }} Trader on Lockbay">
+    <meta name="description" content="⭐ {{ overall_rating }}/5.0 rating • {{ total_trades }} completed trades • {{ success_rate }}% success rate. View {{ display_name }}'s verified trading profile on Lockbay.">
+    
+    <!-- Open Graph / Facebook / WhatsApp -->
+    <meta property="og:type" content="profile">
+    <meta property="og:url" content="{{ profile_url }}">
+    <meta property="og:title" content="{{ display_name }} - {{ trust_level }} Trader on Lockbay">
+    <meta property="og:description" content="⭐ {{ overall_rating }}/5.0 • {{ total_trades }} trades • {{ success_rate }}% success rate">
+    <meta property="og:image" content="{{ og_image_url }}">
+    <meta property="og:site_name" content="Lockbay">
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="{{ profile_url }}">
+    <meta name="twitter:title" content="{{ display_name }} - {{ trust_level }} Trader">
+    <meta name="twitter:description" content="⭐ {{ overall_rating }}/5.0 • {{ total_trades }} completed trades">
+    <meta name="twitter:image" content="{{ og_image_url }}">
+    
+    <!-- SEO Keywords -->
+    <meta name="keywords" content="{{ username }}, lockbay, crypto escrow, trusted trader, peer to peer trading, {{ trust_level }} member">
+    <meta name="robots" content="index, follow">
+    <meta name="author" content="Lockbay">
+    
+    <!-- Favicon -->
+    <link rel="icon" href="/static/favicons/favicon.png" type="image/png">
+    
+    <!-- Structured Data (JSON-LD) for SEO -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Person",
+        "name": "{{ display_name }}",
+        "url": "{{ profile_url }}",
+        "description": "{{ trust_level }} trader on Lockbay",
+        "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "{{ overall_rating }}",
+            "reviewCount": "{{ total_reviews }}",
+            "bestRating": "5",
+            "worstRating": "1"
+        },
+        "memberOf": {
+            "@type": "Organization",
+            "name": "Lockbay",
+            "url": "https://lockbay.com"
+        }
+    }
+    </script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            color: #202124;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+        
+        /* Header */
+        .header {
+            background: #1E3A8A;
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .logo img {
+            height: 32px;
+            width: auto;
+        }
+        
+        .cta-header {
+            background: white;
+            color: #1E3A8A;
+            padding: 0.5rem 1.5rem;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+        
+        .cta-header:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        /* Container */
+        .container {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        
+        /* Profile Card */
+        .profile-card {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            margin-bottom: 1.5rem;
+        }
+        
+        .profile-header {
+            display: flex;
+            gap: 1.5rem;
+            align-items: flex-start;
+            margin-bottom: 2rem;
+        }
+        
+        .avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            flex-shrink: 0;
+        }
+        
+        .profile-info {
+            flex: 1;
+        }
+        
+        .display-name {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #1E3A8A;
+            margin-bottom: 0.25rem;
+        }
+        
+        .username {
+            color: #6B7280;
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .trust-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .member-since {
+            color: #6B7280;
+            font-size: 0.9rem;
+        }
+        
+        /* Stats Hero */
+        .stats-hero {
+            background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1rem;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+        
+        .stat-label {
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+        
+        /* CTA Buttons */
+        .cta-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+        
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            text-align: center;
+            transition: all 0.2s;
+            display: inline-block;
+        }
+        
+        .btn-primary {
+            background: #059669;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #047857;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(5,150,105,0.3);
+        }
+        
+        .btn-secondary {
+            background: #3B82F6;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #2563EB;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59,130,246,0.3);
+        }
+        
+        /* Section Headers */
+        .section-header {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #1E3A8A;
+            margin: 2rem 0 1rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        /* Trading Stats */
+        .trading-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .stat-card {
+            background: #f8f9fa;
+            padding: 1.25rem;
+            border-radius: 8px;
+            border-left: 4px solid #3B82F6;
+        }
+        
+        .stat-card h4 {
+            color: #1E3A8A;
+            margin-bottom: 0.75rem;
+            font-size: 1rem;
+        }
+        
+        .stat-card-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1E3A8A;
+        }
+        
+        .stat-subtext {
+            color: #6B7280;
+            font-size: 0.85rem;
+            margin-top: 0.25rem;
+        }
+        
+        /* Trust Indicators */
+        .trust-indicators {
+            display: grid;
+            gap: 0.75rem;
+        }
+        
+        .indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        
+        .indicator-icon {
+            font-size: 1.5rem;
+        }
+        
+        .indicator-text {
+            font-size: 0.95rem;
+            color: #202124;
+        }
+        
+        /* Reviews */
+        .reviews-container {
+            display: grid;
+            gap: 1rem;
+        }
+        
+        .review-card {
+            background: #f8f9fa;
+            padding: 1.25rem;
+            border-radius: 8px;
+            border-left: 4px solid #059669;
+        }
+        
+        .review-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+        
+        .review-rating {
+            color: #D97706;
+            font-weight: 600;
+        }
+        
+        .review-date {
+            color: #6B7280;
+            font-size: 0.85rem;
+        }
+        
+        .review-text {
+            color: #202124;
+            line-height: 1.6;
+            margin-bottom: 0.5rem;
+        }
+        
+        .review-author {
+            color: #6B7280;
+            font-size: 0.85rem;
+        }
+        
+        .no-reviews {
+            text-align: center;
+            padding: 2rem;
+            color: #6B7280;
+        }
+        
+        /* Badges */
+        .badges-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+        
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: #f8f9fa;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        
+        /* Footer */
+        .footer {
+            background: #1E3A8A;
+            color: white;
+            text-align: center;
+            padding: 2rem 1rem;
+            margin-top: 3rem;
+        }
+        
+        .footer a {
+            color: white;
+            text-decoration: none;
+            margin: 0 1rem;
+        }
+        
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+            
+            .profile-header {
+                flex-direction: column;
+                text-align: center;
+                align-items: center;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            
+            .cta-buttons {
+                grid-template-columns: 1fr;
+            }
+            
+            .trading-stats {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-content">
+            <div class="logo">
+                <img src="/static/images/lockbay-logo-white.png" alt="Lockbay">
+            </div>
+            <a href="{{ bot_link }}" class="cta-header">Open Lockbay Bot</a>
+        </div>
+    </div>
+    
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Profile Card -->
+        <div class="profile-card">
+            <div class="profile-header">
+                <div class="avatar">{{ avatar_emoji }}</div>
+                <div class="profile-info">
+                    <h1 class="display-name">{{ display_name }}</h1>
+                    <div class="username">@{{ username }}</div>
+                    <div class="trust-badge" style="background: {{ trust_color }}; color: white;">
+                        {{ trust_icon }} {{ trust_level }} Member
+                    </div>
+                    <div class="member-since">📅 Member since {{ member_since }}</div>
+                </div>
+            </div>
+            
+            <!-- Stats Hero -->
+            <div class="stats-hero">
+                <h2 style="margin-bottom: 0.5rem;">Trading Reputation</h2>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value">⭐ {{ overall_rating }}/5.0</div>
+                        <div class="stat-label">Overall Rating</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">{{ total_trades }}</div>
+                        <div class="stat-label">Total Trades</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">{{ success_rate }}%</div>
+                        <div class="stat-label">Success Rate</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">{{ trust_score }}/100</div>
+                        <div class="stat-label">Trust Score</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- CTA Buttons -->
+            <div class="cta-buttons">
+                <a href="{{ trade_link }}" class="btn btn-primary">
+                    🛡️ Start Trade with {{ first_name }}
+                </a>
+                <a href="{{ contact_link }}" class="btn btn-secondary">
+                    📨 Contact on Telegram
+                </a>
+            </div>
+        </div>
+        
+        <!-- Trading Statistics -->
+        <div class="profile-card">
+            <h3 class="section-header">📊 Trading Statistics</h3>
+            <div class="trading-stats">
+                <div class="stat-card">
+                    <h4>As Buyer</h4>
+                    <div class="stat-card-content">
+                        <div>
+                            <div class="stat-number">{{ buyer_trades }}</div>
+                            <div class="stat-subtext">⭐ {{ buyer_rating }}/5.0 avg</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <h4>As Seller</h4>
+                    <div class="stat-card-content">
+                        <div>
+                            <div class="stat-number">{{ seller_trades }}</div>
+                            <div class="stat-subtext">⭐ {{ seller_rating }}/5.0 avg</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <h4>Response Time</h4>
+                    <div class="stat-card-content">
+                        <div>
+                            <div class="stat-number">{{ response_time }}</div>
+                            <div class="stat-subtext">Average response</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Trust Indicators -->
+        <div class="profile-card">
+            <h3 class="section-header">✅ Trust Indicators</h3>
+            <div class="trust-indicators">
+                {% for indicator in trust_indicators %}
+                <div class="indicator">
+                    <span class="indicator-icon">{{ indicator.icon }}</span>
+                    <span class="indicator-text">{{ indicator.text }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <!-- Recent Reviews -->
+        <div class="profile-card">
+            <h3 class="section-header">💬 Recent Reviews ({{ total_reviews }})</h3>
+            {% if reviews %}
+            <div class="reviews-container">
+                {% for review in reviews %}
+                <div class="review-card">
+                    <div class="review-header">
+                        <div class="review-rating">{{ review.stars }} {{ review.rating }}/5</div>
+                        <div class="review-date">{{ review.date }}</div>
+                    </div>
+                    <div class="review-text">"{{ review.comment }}"</div>
+                    <div class="review-author">— @{{ review.author }} • Trade #{{ review.trade_id }}</div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="no-reviews">
+                <p>No reviews yet. Be the first to trade with {{ first_name }}!</p>
+            </div>
+            {% endif %}
+            
+            {% if total_reviews > 5 %}
+            <div style="text-align: center; margin-top: 1.5rem;">
+                <a href="{{ bot_link }}" class="btn btn-secondary">View All {{ total_reviews }} Reviews</a>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Achievements -->
+        {% if badges %}
+        <div class="profile-card">
+            <h3 class="section-header">🏆 Achievements</h3>
+            <div class="badges-container">
+                {% for badge in badges %}
+                <div class="badge">
+                    <span>{{ badge.icon }}</span>
+                    <span>{{ badge.name }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Footer -->
+    <div class="footer">
+        <p style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+            Powered by <img src="/static/images/lockbay-logo-white.png" alt="Lockbay" style="height: 24px; vertical-align: middle;"> - Secure Crypto Trades & Instant Cashouts
+        </p>
+        <p style="margin-top: 0.5rem;">
+            <a href="{{ bot_link }}">Get Started</a> •
+            <a href="https://t.me/lockbay">Support</a> •
+            <a href="{{ bot_link }}">Terms</a> •
+            <a href="{{ bot_link }}">Privacy</a>
+        </p>
+        <p style="margin-top: 1rem; font-size: 0.85rem; opacity: 0.8;">
+            © 2025 Lockbay. All rights reserved.
+        </p>
+    </div>
+</body>
+</html>

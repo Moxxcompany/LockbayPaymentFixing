@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lockbay Partner Program - Apply Now</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #3DBCC0 0%, #2C9DA2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container {
+            background: white;
+            max-width: 600px;
+            width: 100%;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            position: relative;
+        }
+        
+        /* Progress Bar */
+        .progress-bar {
+            height: 5px;
+            background: #e0e0e0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3DBCC0 0%, #2C9DA2 100%);
+            width: 100%;
+            animation: progressLoad 1.5s ease-out;
+        }
+        
+        @keyframes progressLoad {
+            from {
+                width: 0%;
+            }
+            to {
+                width: 100%;
+            }
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #3DBCC0 0%, #2C9DA2 100%);
+            color: white;
+            padding: 30px 20px 25px 20px;
+            text-align: center;
+            position: relative;
+        }
+        
+        .logo {
+            display: block;
+            margin: 0 auto 15px auto;
+            width: 140px;
+            height: auto;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 12px;
+            border-radius: 8px;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        
+        .header p {
+            opacity: 0.95;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+        
+        /* Social Proof */
+        .social-proof {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            margin-top: 5px;
+            font-weight: 500;
+        }
+        
+        .time-badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.25);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            margin-top: 8px;
+            font-weight: 500;
+        }
+        
+        .form-content {
+            padding: 30px 25px 40px 25px;
+        }
+        
+        /* Benefit Reminder */
+        .benefit-reminder {
+            background: linear-gradient(135deg, #e8f7f8 0%, #d4f1f4 100%);
+            border-left: 4px solid #3DBCC0;
+            padding: 15px;
+            margin-bottom: 25px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 600;
+            color: #2C9DA2;
+            animation: slideIn 0.5s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Testimonial */
+        .testimonial {
+            background: #fff9e6;
+            border-left: 4px solid #f39c12;
+            padding: 12px 15px;
+            margin-bottom: 20px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-style: italic;
+            color: #666;
+        }
+        
+        .testimonial .stars {
+            color: #f39c12;
+            margin-bottom: 4px;
+        }
+        
+        .section {
+            margin-bottom: 25px;
+        }
+        
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #3DBCC0;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+            position: relative;
+        }
+        
+        label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 6px;
+        }
+        
+        label .required {
+            color: #e74c3c;
+        }
+        
+        /* Tooltip */
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            cursor: help;
+            color: #3DBCC0;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 220px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 8px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -110px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 12px;
+            font-weight: normal;
+        }
+        
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        /* Field Icon */
+        .field-icon {
+            margin-right: 4px;
+        }
+        
+        /* Validation Checkmark */
+        .validation-check {
+            position: absolute;
+            right: 16px;
+            top: 40px;
+            color: #27ae60;
+            font-size: 20px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .validation-check.show {
+            opacity: 1;
+        }
+        
+        /* Field Hint */
+        .field-hint {
+            font-size: 12px;
+            color: #3DBCC0;
+            margin-top: 4px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .field-hint.show {
+            opacity: 1;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+        
+        input.valid {
+            border-color: #27ae60;
+            background: #f0fff4;
+        }
+        
+        select {
+            background: white;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 16px center;
+            padding-right: 45px;
+            cursor: pointer;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+        }
+        
+        input, textarea {
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #3DBCC0;
+            box-shadow: 0 0 0 3px rgba(61, 188, 192, 0.1);
+        }
+        
+        input::placeholder, textarea::placeholder {
+            color: #aaa;
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        /* Earnings Calculator */
+        .earnings-calculator {
+            background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+            text-align: center;
+            font-weight: 600;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .earnings-calculator.show {
+            opacity: 1;
+        }
+        
+        .earnings-calculator .amount {
+            font-size: 24px;
+            margin: 5px 0;
+        }
+        
+        .earnings-calculator .subtitle {
+            font-size: 12px;
+            opacity: 0.9;
+            font-weight: normal;
+        }
+        
+        .tier-info {
+            background: #f0f9fa;
+            border-left: 4px solid #3DBCC0;
+            padding: 12px 16px;
+            margin-bottom: 15px;
+            border-radius: 6px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .tier-info p {
+            margin: 0;
+        }
+        
+        /* Visual Commission Comparison */
+        .tier-options {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .tier-option {
+            flex: 1;
+            min-width: 120px;
+            position: relative;
+        }
+        
+        .tier-option input[type="radio"] {
+            display: none;
+        }
+        
+        .tier-label {
+            display: block;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+        
+        .tier-option input[type="radio"]:checked + .tier-label {
+            border-color: #3DBCC0;
+            background: #e8f7f8;
+            box-shadow: 0 4px 12px rgba(61, 188, 192, 0.2);
+        }
+        
+        /* Popular Badge */
+        .popular-badge {
+            position: absolute;
+            top: -10px;
+            right: -5px;
+            background: #f39c12;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        
+        /* Visual Progress Bar in Tier */
+        .tier-progress {
+            width: 100%;
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            margin-top: 6px;
+            overflow: hidden;
+        }
+        
+        .tier-progress-fill {
+            height: 100%;
+            background: #3DBCC0;
+            transition: width 0.3s;
+        }
+        
+        .tier-label strong {
+            display: block;
+            font-size: 16px;
+            margin-bottom: 4px;
+        }
+        
+        .tier-label small {
+            display: block;
+            color: #666;
+            font-weight: 600;
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+        
+        .tier-label .tier-desc {
+            display: block;
+            font-size: 11px;
+            color: #888;
+            font-style: italic;
+            margin-top: 4px;
+        }
+        
+        .agreement {
+            display: flex;
+            align-items: start;
+            gap: 10px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        
+        .agreement input[type="checkbox"] {
+            width: auto;
+            margin-top: 2px;
+        }
+        
+        .agreement label {
+            margin: 0;
+            font-size: 13px;
+            color: #666;
+            font-weight: normal;
+        }
+        
+        .agreement a {
+            color: #3DBCC0;
+            text-decoration: underline;
+        }
+        
+        .submit-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #3DBCC0 0%, #2C9DA2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 20px;
+            position: relative;
+        }
+        
+        .submit-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(61, 188, 192, 0.3);
+        }
+        
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+        
+        .submit-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+        
+        /* Loading Spinner */
+        .spinner {
+            display: none;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 0.8s linear infinite;
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        
+        .submit-btn.loading .btn-text {
+            opacity: 0;
+        }
+        
+        .submit-btn.loading .spinner {
+            display: block;
+        }
+        
+        .error-message {
+            background: #fee;
+            border-left: 4px solid #e74c3c;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #c0392b;
+        }
+        
+        /* Autosave Indicator */
+        .autosave-indicator {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            background: #27ae60;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 1000;
+        }
+        
+        .autosave-indicator.show {
+            opacity: 1;
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 0;
+                display: block;
+            }
+            
+            .container {
+                border-radius: 0;
+                min-height: 100vh;
+                box-shadow: none;
+            }
+            
+            .header {
+                padding: 20px 15px 20px 15px;
+            }
+            
+            .header h1 {
+                font-size: 20px;
+            }
+            
+            .header p {
+                font-size: 14px;
+            }
+            
+            .logo {
+                width: 100px;
+                padding: 8px;
+            }
+            
+            .time-badge, .social-proof {
+                font-size: 13px;
+                padding: 6px 12px;
+            }
+            
+            .form-content {
+                padding: 20px 15px 35px 15px;
+            }
+            
+            .section {
+                margin-bottom: 20px;
+            }
+            
+            .section-title {
+                font-size: 13px;
+                margin-bottom: 10px;
+            }
+            
+            label {
+                font-size: 13px;
+            }
+            
+            input, select, textarea {
+                padding: 13px 14px;
+                font-size: 16px;
+            }
+            
+            select {
+                background-position: right 14px center;
+                padding-right: 40px;
+            }
+            
+            .tier-options {
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            .tier-label {
+                padding: 14px;
+            }
+            
+            .tier-label strong {
+                font-size: 15px;
+            }
+            
+            .tier-info {
+                font-size: 13px;
+                padding: 10px 12px;
+            }
+            
+            .benefit-reminder {
+                font-size: 13px;
+                padding: 12px;
+            }
+            
+            .testimonial {
+                font-size: 12px;
+                padding: 10px 12px;
+            }
+            
+            .agreement {
+                padding: 12px;
+                font-size: 12px;
+            }
+            
+            .submit-btn {
+                padding: 15px;
+                font-size: 15px;
+                position: sticky;
+                bottom: 0;
+                border-radius: 0;
+                margin-top: 15px;
+            }
+            
+            .tooltip .tooltiptext {
+                width: 180px;
+                margin-left: -90px;
+            }
+            
+            .autosave-indicator {
+                bottom: 60px;
+                right: 10px;
+                font-size: 11px;
+                padding: 6px 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Progress Bar -->
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        
+        <div class="header">
+            <img src="/static/lockbay-logo.png" alt="Lockbay Logo" class="logo">
+            <h1>Partner Program</h1>
+            <p>Join our whitelabel partnership program</p>
+            
+            <!-- Social Proof -->
+            <div class="social-proof">🎉 Join 247+ partners already earning commissions</div>
+            <div class="time-badge">⏱️ Takes 90 seconds</div>
+        </div>
+        
+        <div class="form-content">
+            {% if error %}
+            <div class="error-message">
+                {{ error }}
+            </div>
+            {% endif %}
+            
+            <!-- Testimonial -->
+            <div class="testimonial">
+                <div class="stars">⭐⭐⭐⭐⭐</div>
+                "Made $12K in my first month! The whitelabel setup was incredibly easy." - @cryptoking
+            </div>
+            
+            <form method="POST" action="/partners/apply" id="partnerForm">
+                <!-- Contact Information -->
+                <div class="section" data-section="1">
+                    <div class="section-title">
+                        <span>👤 CONTACT INFORMATION</span>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <span class="field-icon">👤</span> Your Name <span class="required">*</span>
+                        </label>
+                        <input type="text" name="name" id="name" placeholder="John Doe" required autocapitalize="words">
+                        <span class="validation-check">✓</span>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <span class="field-icon">📱</span> Telegram Handle <span class="required">*</span>
+                            <span class="tooltip">ℹ️
+                                <span class="tooltiptext">This is how we'll contact you. Must start with @</span>
+                            </span>
+                        </label>
+                        <input type="text" name="telegram_handle" id="telegram" placeholder="@yourusername" required>
+                        <span class="validation-check">✓</span>
+                        <div class="field-hint">We'll contact you within 24-48 hours</div>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <span class="field-icon">📧</span> Email Address
+                            <span class="tooltip">ℹ️
+                                <span class="tooltiptext">Optional - for important updates only</span>
+                            </span>
+                        </label>
+                        <input type="email" name="email" id="email" placeholder="your@email.com">
+                        <span class="validation-check">✓</span>
+                    </div>
+                </div>
+                
+                <!-- Benefit Reminder -->
+                <div class="benefit-reminder">
+                    💰 Reminder: Partners earn 30-50% of ALL transaction fees (Lockbay charges 5% platform fee on transactions)
+                </div>
+                
+                <!-- Community Details -->
+                <div class="section" data-section="2">
+                    <div class="section-title">
+                        <span>🏢 COMMUNITY DETAILS</span>
+                    </div>
+                    <div class="form-group">
+                        <label>Community Type <span class="required">*</span></label>
+                        <select name="community_type" id="communityType" required>
+                            <option value="">Select type...</option>
+                            <option value="crypto_trading">Crypto Trading Group</option>
+                            <option value="nft_community">NFT Community</option>
+                            <option value="gaming">Gaming Channel</option>
+                            <option value="marketplace">Freelance Marketplace</option>
+                            <option value="other">Other</option>
+                        </select>
+                        <span class="validation-check">✓</span>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            Audience Size <span class="required">*</span>
+                            <span class="tooltip">ℹ️
+                                <span class="tooltiptext">Don't worry if you're just starting - we accept all sizes!</span>
+                            </span>
+                        </label>
+                        <select name="audience_size" id="audienceSize" required>
+                            <option value="">Select size...</option>
+                            <option value="<500">Under 500 members</option>
+                            <option value="500-2K">500 - 2,000 members</option>
+                            <option value="2K-10K">2,000 - 10,000 members</option>
+                            <option value="10K-50K">10,000 - 50,000 members</option>
+                            <option value="50K+">50,000+ members</option>
+                        </select>
+                        <span class="validation-check">✓</span>
+                        <div class="field-hint" id="audienceHint"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Primary Region</label>
+                        <select name="primary_region" id="region">
+                            <option value="">Select region...</option>
+                            <option value="Europe">Europe</option>
+                            <option value="Asia">Asia</option>
+                            <option value="Africa">Africa</option>
+                            <option value="America">America</option>
+                            <option value="Global">Global</option>
+                            <option value="Others">Others</option>
+                        </select>
+                        <span class="validation-check">✓</span>
+                    </div>
+                </div>
+                
+                <!-- Business Expectations -->
+                <div class="section" data-section="3">
+                    <div class="section-title">
+                        <span>💼 BUSINESS EXPECTATIONS</span>
+                    </div>
+                    <div class="form-group">
+                        <label>Expected Monthly Volume <span class="required">*</span></label>
+                        <select name="monthly_volume" id="monthlyVolume" required>
+                            <option value="">Select volume...</option>
+                            <option value="<$10K">Under $10,000</option>
+                            <option value="$10-50K">$10,000 - $50,000</option>
+                            <option value="$50-100K">$50,000 - $100,000</option>
+                            <option value="$100-500K">$100,000 - $500,000</option>
+                            <option value="$500K+">$500,000+</option>
+                        </select>
+                        <span class="validation-check">✓</span>
+                        <!-- Earnings Calculator -->
+                        <div class="earnings-calculator" id="earningsCalc">
+                            <div>💰 Your Estimated Monthly Earnings</div>
+                            <div class="amount" id="earningsAmount">$0</div>
+                            <div class="subtitle">Based on your expected volume and commission tier</div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Preferred Commission Tier <span class="required">*</span></label>
+                        <div class="tier-info">
+                            <p>💡 <strong>What is this?</strong> You'll earn a percentage of all transaction fees from your community members. Higher tiers = more earnings!</p>
+                            <p style="margin-top: 8px; font-size: 13px; opacity: 0.8;">Choose based on your expected volume. Your tier can be adjusted after review.</p>
+                        </div>
+                        <div class="tier-options">
+                            <div class="tier-option">
+                                <input type="radio" name="commission_tier" value="bronze" id="bronze" checked>
+                                <label for="bronze" class="tier-label">
+                                    <strong>🥉 Bronze</strong>
+                                    <small>30% commission</small>
+                                    <div class="tier-progress">
+                                        <div class="tier-progress-fill" style="width: 30%"></div>
+                                    </div>
+                                    <span class="tier-desc">Good for starting out</span>
+                                </label>
+                            </div>
+                            <div class="tier-option">
+                                <input type="radio" name="commission_tier" value="silver" id="silver">
+                                <label for="silver" class="tier-label">
+                                    <span class="popular-badge">⭐ Popular</span>
+                                    <strong>🥈 Silver</strong>
+                                    <small>40% commission</small>
+                                    <div class="tier-progress">
+                                        <div class="tier-progress-fill" style="width: 40%"></div>
+                                    </div>
+                                    <span class="tier-desc">Best for growing communities</span>
+                                </label>
+                            </div>
+                            <div class="tier-option">
+                                <input type="radio" name="commission_tier" value="gold" id="gold">
+                                <label for="gold" class="tier-label">
+                                    <strong>🥇 Gold</strong>
+                                    <small>50% commission</small>
+                                    <div class="tier-progress">
+                                        <div class="tier-progress-fill" style="width: 50%"></div>
+                                    </div>
+                                    <span class="tier-desc">For high-volume partners</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Partnership Goals -->
+                <div class="section" data-section="4">
+                    <div class="section-title">
+                        <span>🎯 PARTNERSHIP GOALS</span>
+                    </div>
+                    <div class="form-group">
+                        <label>What do you want to achieve? (1-2 sentences) <span class="required">*</span></label>
+                        <textarea name="goals" id="goals" placeholder="e.g., I want to provide secure escrow services to my 5K member crypto trading group and earn passive income while building trust." required maxlength="500"></textarea>
+                        <div class="field-hint" id="goalsHint">Great! Clear goals help us support you better 🎯</div>
+                    </div>
+                </div>
+                
+                <!-- Referral Program Callout -->
+                <div class="tier-info" style="margin-top: 25px; margin-bottom: 20px;">
+                    <p style="margin-bottom: 10px;">🎁 <strong>Try Lockbay First:</strong> Want to experience the platform before partnering? <a href="https://t.me/LockbayBot?start=ref_FE22A9" target="_blank" style="color: #3DBCC0; text-decoration: underline; font-weight: 600;">Start your first trade with our referral link (ref_FE22A9)</a> and see how seamless the escrow process is!</p>
+                </div>
+                
+                <!-- Support Contact -->
+                <div class="tier-info" style="margin-bottom: 20px;">
+                    <p>📧 <strong>Questions?</strong> Contact us at <a href="mailto:hello@lockbay.io" style="color: #3DBCC0; text-decoration: underline; font-weight: 600;">hello@lockbay.io</a> - We typically respond within 24 hours.</p>
+                </div>
+                
+                <div class="agreement">
+                    <input type="checkbox" name="agree_terms" id="agree_terms" required>
+                    <label for="agree_terms">
+                        I agree to <a href="#" target="_blank">Lockbay's Partner Terms</a> and consent to marketing follow-ups (We'll contact you within 24-48 hours)
+                    </label>
+                </div>
+                
+                <button type="submit" class="submit-btn" id="submitBtn">
+                    <span class="btn-text">Start Earning Commissions →</span>
+                    <span class="spinner"></span>
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Autosave Indicator -->
+    <div class="autosave-indicator" id="autosaveIndicator">
+        ✓ Progress saved
+    </div>
+    
+    <script>
+        // Autosave functionality
+        const AUTOSAVE_KEY = 'lockbay_partner_application';
+        const form = document.getElementById('partnerForm');
+        let autosaveTimeout;
+        
+        // Load saved data
+        function loadSavedData() {
+            const saved = localStorage.getItem(AUTOSAVE_KEY);
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    Object.keys(data).forEach(key => {
+                        const field = form.elements[key];
+                        if (field) {
+                            if (field.type === 'radio') {
+                                const radio = form.querySelector(`input[name="${key}"][value="${data[key]}"]`);
+                                if (radio) radio.checked = true;
+                            } else if (field.type === 'checkbox') {
+                                field.checked = data[key];
+                            } else {
+                                field.value = data[key];
+                            }
+                        }
+                    });
+                    updateProgress();
+                    calculateEarnings();
+                } catch (e) {
+                    // Silently fail if saved data is corrupted
+                }
+            }
+        }
+        
+        // Save form data
+        function saveFormData() {
+            const formData = {};
+            const elements = form.elements;
+            for (let i = 0; i < elements.length; i++) {
+                const field = elements[i];
+                if (field.name) {
+                    if (field.type === 'radio') {
+                        if (field.checked) formData[field.name] = field.value;
+                    } else if (field.type === 'checkbox') {
+                        formData[field.name] = field.checked;
+                    } else {
+                        formData[field.name] = field.value;
+                    }
+                }
+            }
+            localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(formData));
+            showAutosaveIndicator();
+        }
+        
+        // Show autosave indicator
+        function showAutosaveIndicator() {
+            const indicator = document.getElementById('autosaveIndicator');
+            indicator.classList.add('show');
+            setTimeout(() => {
+                indicator.classList.remove('show');
+            }, 2000);
+        }
+        
+        // Autosave on input
+        form.addEventListener('input', function() {
+            clearTimeout(autosaveTimeout);
+            autosaveTimeout = setTimeout(saveFormData, 1000);
+            updateProgress();
+        });
+        
+        form.addEventListener('change', function() {
+            saveFormData();
+            updateProgress();
+            calculateEarnings();
+        });
+        
+        // Progress bar
+        function updateProgress() {
+            const totalFields = 8; // Required fields
+            let filledFields = 0;
+            
+            const fields = ['name', 'telegram_handle', 'community_type', 'audience_size', 'monthly_volume', 'commission_tier', 'goals', 'agree_terms'];
+            
+            fields.forEach(fieldName => {
+                const field = form.elements[fieldName];
+                if (field) {
+                    if (field.type === 'radio') {
+                        const checked = form.querySelector(`input[name="${fieldName}"]:checked`);
+                        if (checked) filledFields++;
+                    } else if (field.type === 'checkbox') {
+                        if (field.checked) filledFields++;
+                    } else if (field.value.trim()) {
+                        filledFields++;
+                    }
+                }
+            });
+            
+            const progress = (filledFields / totalFields) * 100;
+            document.getElementById('progressFill').style.width = progress + '%';
+        }
+        
+        // Real-time validation with checkmarks
+        const validationFields = {
+            'name': (val) => val.trim().length >= 2,
+            'telegram': (val) => val.trim().startsWith('@') && val.trim().length > 1,
+            'email': (val) => !val || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val),
+            'communityType': (val) => val !== '',
+            'audienceSize': (val) => val !== '',
+            'region': (val) => true, // Optional
+            'monthlyVolume': (val) => val !== '',
+            'goals': (val) => val.trim().length >= 20
+        };
+        
+        Object.keys(validationFields).forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            if (field) {
+                field.addEventListener('input', function() {
+                    validateField(field, validationFields[fieldId]);
+                });
+                field.addEventListener('blur', function() {
+                    validateField(field, validationFields[fieldId]);
+                });
+            }
+        });
+        
+        function validateField(field, validator) {
+            const isValid = validator(field.value);
+            const checkmark = field.parentElement.querySelector('.validation-check');
+            
+            if (isValid && field.value) {
+                field.classList.add('valid');
+                if (checkmark) checkmark.classList.add('show');
+            } else {
+                field.classList.remove('valid');
+                if (checkmark) checkmark.classList.remove('show');
+            }
+        }
+        
+        // Auto-format Telegram handle
+        document.getElementById('telegram').addEventListener('blur', function() {
+            let value = this.value.trim();
+            if (value && !value.startsWith('@')) {
+                this.value = '@' + value;
+            }
+        });
+        
+        // Show hint when telegram is filled
+        document.getElementById('telegram').addEventListener('input', function() {
+            const hint = this.parentElement.querySelector('.field-hint');
+            if (this.value.trim()) {
+                hint.classList.add('show');
+            }
+        });
+        
+        // Audience size hints
+        const audienceHints = {
+            '<500': 'Perfect for starting out! Many successful partners began here.',
+            '500-2K': 'Great community size! You could earn $500-$2K/month.',
+            '2K-10K': 'Impressive! Communities this size typically earn $2K-$8K/month.',
+            '10K-50K': 'Wow! You could earn $8K-$25K/month with this audience.',
+            '50K+': 'Amazing! Top partners with this reach earn $25K+/month.'
+        };
+        
+        document.getElementById('audienceSize').addEventListener('change', function() {
+            const hint = document.getElementById('audienceHint');
+            if (this.value && audienceHints[this.value]) {
+                hint.textContent = audienceHints[this.value];
+                hint.classList.add('show');
+            }
+        });
+        
+        // Goals character count encouragement
+        document.getElementById('goals').addEventListener('input', function() {
+            const hint = document.getElementById('goalsHint');
+            if (this.value.trim().length >= 20) {
+                hint.classList.add('show');
+            }
+        });
+        
+        // Earnings Calculator
+        function calculateEarnings() {
+            const volume = document.getElementById('monthlyVolume').value;
+            const tier = form.querySelector('input[name="commission_tier"]:checked');
+            
+            if (!volume || !tier) {
+                document.getElementById('earningsCalc').classList.remove('show');
+                return;
+            }
+            
+            // Fee assumptions: 5% average transaction fee
+            const volumeMap = {
+                '<$10K': 5000,
+                '$10-50K': 30000,
+                '$50-100K': 75000,
+                '$100-500K': 300000,
+                '$500K+': 750000
+            };
+            
+            const tierMap = {
+                'bronze': 0.30,
+                'silver': 0.40,
+                'gold': 0.50
+            };
+            
+            const avgVolume = volumeMap[volume] || 0;
+            const commission = tierMap[tier.value] || 0;
+            const transactionFeeRate = 0.05; // 5% average
+            
+            const monthlyFees = avgVolume * transactionFeeRate;
+            const earnings = monthlyFees * commission;
+            
+            const earningsLow = Math.round(earnings * 0.7);
+            const earningsHigh = Math.round(earnings * 1.3);
+            
+            document.getElementById('earningsAmount').textContent = 
+                `$${earningsLow.toLocaleString()} - $${earningsHigh.toLocaleString()}`;
+            document.getElementById('earningsCalc').classList.add('show');
+        }
+        
+        // Auto-capitalize name
+        document.getElementById('name').addEventListener('input', function() {
+            const words = this.value.split(' ');
+            const capitalized = words.map(word => {
+                if (word.length > 0) {
+                    return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+                }
+                return word;
+            });
+            const cursorPos = this.selectionStart;
+            this.value = capitalized.join(' ');
+            this.setSelectionRange(cursorPos, cursorPos);
+        });
+        
+        // Form submission with loading state
+        form.addEventListener('submit', function(e) {
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.classList.add('loading');
+            submitBtn.disabled = true;
+            
+            // Clear saved data on successful submit
+            setTimeout(() => {
+                localStorage.removeItem(AUTOSAVE_KEY);
+            }, 1000);
+        });
+        
+        // Load saved data on page load
+        window.addEventListener('load', function() {
+            loadSavedData();
+            updateProgress();
+        });
+        
+        // Update earnings when tier changes
+        document.querySelectorAll('input[name="commission_tier"]').forEach(radio => {
+            radio.addEventListener('change', calculateEarnings);
+        });
+        
+        document.getElementById('monthlyVolume').addEventListener('change', calculateEarnings);
+    </script>
+</body>
+</html>

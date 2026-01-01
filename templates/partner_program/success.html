@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Application Submitted - Lockbay Partner Program</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #3DBCC0 0%, #2C9DA2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container {
+            background: white;
+            max-width: 500px;
+            width: 100%;
+            padding: 40px 30px;
+            text-align: center;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        
+        .success-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            animation: scaleIn 0.5s ease-out;
+        }
+        
+        @keyframes scaleIn {
+            from {
+                transform: scale(0);
+            }
+            to {
+                transform: scale(1);
+            }
+        }
+        
+        h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 15px;
+        }
+        
+        .message {
+            color: #666;
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+        
+        .details {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            text-align: left;
+        }
+        
+        .details-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .details-item:last-child {
+            border-bottom: none;
+        }
+        
+        .details-label {
+            font-weight: 600;
+            color: #3DBCC0;
+        }
+        
+        .details-value {
+            color: #333;
+        }
+        
+        .next-steps {
+            background: #e8f4fd;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 25px;
+            text-align: left;
+        }
+        
+        .next-steps h3 {
+            color: #2c3e50;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+        
+        .next-steps ul {
+            margin-left: 20px;
+            color: #555;
+            font-size: 14px;
+        }
+        
+        .next-steps li {
+            margin-bottom: 8px;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 14px 30px;
+            background: linear-gradient(135deg, #3DBCC0 0%, #2C9DA2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 0;
+                display: block;
+            }
+            
+            .container {
+                padding: 30px 20px;
+                border-radius: 0;
+                box-shadow: none;
+                min-height: 100vh;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+            
+            .message {
+                font-size: 15px;
+            }
+            
+            .details {
+                padding: 15px;
+            }
+            
+            .details-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 5px;
+                padding: 12px 0;
+            }
+            
+            .next-steps {
+                padding: 12px;
+                font-size: 13px;
+            }
+            
+            .next-steps ul {
+                margin-left: 15px;
+            }
+            
+            .btn {
+                padding: 16px 20px;
+                font-size: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="success-icon">✅</div>
+        <h1>Application Submitted!</h1>
+        <p class="message">
+            Thank you for your interest in the Lockbay Partner Program. 
+            Your application has been received and is being reviewed.
+        </p>
+        
+        <div class="details">
+            <div class="details-item">
+                <span class="details-label">Name:</span>
+                <span class="details-value">{{ name }}</span>
+            </div>
+            <div class="details-item">
+                <span class="details-label">Email:</span>
+                <span class="details-value">{{ email }}</span>
+            </div>
+            <div class="details-item">
+                <span class="details-label">Commission Tier:</span>
+                <span class="details-value">{{ commission_tier.upper() }}</span>
+            </div>
+            <div class="details-item">
+                <span class="details-label">Submitted:</span>
+                <span class="details-value">{{ submitted_at }}</span>
+            </div>
+        </div>
+        
+        <div class="next-steps">
+            <h3>📋 What's Next?</h3>
+            <ul>
+                <li>Our team will review your application within 24-48 hours</li>
+                <li>We'll contact you via Telegram ({{ telegram_handle }}) or email</li>
+                <li>If approved, we'll schedule an onboarding call</li>
+                <li>You'll receive partner dashboard access and setup instructions</li>
+            </ul>
+        </div>
+        
+        <a href="https://t.me/LockbayAssist" class="btn">Chat with Support</a>
+    </div>
+</body>
+</html>

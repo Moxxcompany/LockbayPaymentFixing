@@ -1,0 +1,671 @@
+"""
+Simplified Escrow Fund Management Service
+Handles escrow fund operations using simplified balance system
+Uses only available_balance/frozen_balance for all fund tracking
+"""
+import logging
+from decimal import Decimal
+from datetime import datetime
+from models import Escrow, User, Transaction, TransactionType, Wallet
+from utils.escrow_balance_security import create_fund_hold, release_fund_hold
+from utils.financial_operation_locker import simple_locker
+
+logger = logging.getLogger(__name__)
+
+class EscrowFundManager:
+    """Simplified escrow fund manager using proper balance system"""
+    
+    @classmethod
+    def create_escrow_hold(cls, buyer_id: int, escrow_id: str, total_amount: float) -> dict:
+        """
+        Create escrow hold by moving funds from available to frozen balance
+        SIMPLIFIED: Uses proper database columns with simple locking
+        """
+        try:
+            # Create fund hold for the escrow amount
+            success = create_fund_hold(
+                user_id=buyer_id,
+                amount=total_amount,
+                hold_type="escrow",
+                reference_id=escrow_id
+            )
+            
+            if success:
+                logger.info(f"ESCROW_HOLD_CREATED: {escrow_id} - ${total_amount:.2f} held for user {buyer_id}")
+                return {"success": True, "amount_held": total_amount}
+            else:
+                logger.error(f"ESCROW_HOLD_FAILED: {escrow_id} - insufficient funds for user {buyer_id}")
+                return {"success": False, "error": "Insufficient funds"}
+                
+        except Exception as e:
+            logger.error(f"Error creating escrow hold for {escrow_id}: {e}")
+            return {"success": False, "error": str(e)}
+    
+    @classmethod
+    def release_escrow_funds(cls, buyer_id: int, escrow_id: str, amount: float) -> dict:
+        """
+        Release escrow funds back to buyer's available balance
+        SIMPLIFIED: Uses proper database columns with simple locking
+        """
+        try:
+            # Release fund hold
+            success = release_fund_hold(
+                user_id=buyer_id,
+                amount=amount,
+                reference_id=escrow_id
+            )
+            
+            if success:
+                logger.info(f"ESCROW_FUNDS_RELEASED: {escrow_id} - ${amount:.2f} released to user {buyer_id}")
+                return {"success": True, "amount_released": amount}
+            else:
+                logger.error(f"ESCROW_RELEASE_FAILED: {escrow_id} - could not release funds for user {buyer_id}")
+                return {"success": False, "error": "Could not release funds"}
+                
+        except Exception as e:
+            logger.error(f"Error releasing escrow funds for {escrow_id}: {e}")
+            return {"success": False, "error": str(e)}
+    
+    @classmethod
+    def complete_escrow_payment(cls, escrow_id: str, seller_id: int, amount: float) -> dict:
+        """
+        Complete escrow by crediting seller and consuming buyer's frozen funds
+        SIMPLIFIED: Direct wallet operations
+        """
+        try:
+            with simple_locker.lock_wallet_operation(seller_id) as (session, seller_wallet):
+                # Credit seller's available balance
+                current_balance = Decimal(str(seller_wallet.available_balance or 0))
+                credit_amount = Decimal(str(amount))
+                
+                seller_wallet.available_balance = float(current_balance + credit_amount)
+                
+                logger.info(f"ESCROW_COMPLETED: {escrow_id} - ${amount:.2f} credited to seller {seller_id}")
+                
+                return {"success": True, "amount_credited": amount}
+                
+        except Exception as e:
+            logger.error(f"Error completing escrow payment for {escrow_id}: {e}")
+            return {"success": False, "error": str(e)}
+    
+    @classmethod
+    def consume_frozen_funds(cls, buyer_id: int, escrow_id: str, amount: float) -> dict:
+        """
+        Internal method to process payment with provided session
+        
+        ENHANCED: All fund segregation happens within single session/transaction
+        """
+        try:
+            # Get escrow details
+            escrow = session.query(Escrow).filter(
+                Escrow.escrow_id == escrow_id
+            ).first()
+            
+            if not escrow:
+                logger.error(f"Escrow {escrow_id} not found")
+                return {"success": False, "error": "Escrow not found"}
+                
+            # Calculate fund segregation
+            base_amount = Decimal(str(escrow.amount))  # $10.00
+            platform_fee = Decimal(str(escrow.fee_amount))  # $1.00
+            expected_buyer_payment = cls._calculate_buyer_payment(escrow)
+            
+            # Calculate overpayment/underpayment
+            payment_variance = total_received_usd - expected_buyer_payment
+            
+            logger.info(
+                f"Fund segregation for {escrow_id}: "
+                f"Received: ${total_received_usd}, Expected: ${expected_buyer_payment}, "
+                f"Base: ${base_amount}, Fee: ${platform_fee}, Variance: ${payment_variance}"
+            )
+            
+            result = {
+                "success": True,
+                "escrow_held": float(base_amount),
+                "platform_fee_collected": float(platform_fee),
+                "overpayment_credited": 0.0,
+                "underpayment_amount": 0.0
+            }
+            
+            # 1. ALWAYS hold the base escrow amount
+            escrow_holding = EscrowHolding(
+                escrow_id=escrow_id,
+                amount_held=base_amount,
+                currency="USD",
+                status="held"
+            )
+            session.add(escrow_holding)
+            
+            # AUDIT: Log escrow fund segregation
+            financial_audit_logger.log_escrow_event(
+                event_type=FinancialEventType.ESCROW_FUNDS_SEGREGATED,
+                escrow_id=escrow_id,
+                user_id=escrow.buyer_id,
+                amount=base_amount,
+                currency="USD",
+                previous_state="payment_received",
+                new_state="funds_segregated",
+                transaction_id=tx_hash,
+                session=session,
+                crypto_amount=str(crypto_amount),
+                crypto_currency=crypto_currency,
+                expected_amount=str(expected_total_usd),
+                received_amount=str(total_received_usd)
+            )
+            
+            # 2. ALWAYS collect platform fee (if buyer should pay it)
+            if cls._buyer_pays_fee(escrow):
+                platform_revenue = PlatformRevenue(
+                    escrow_id=escrow_id,
+                    fee_amount=platform_fee,
+                    fee_currency="USD",
+                    fee_type="escrow_fee",
+                    source_transaction_id=tx_hash
+                )
+                session.add(platform_revenue)
+                
+                # AUDIT: Log platform fee collection
+                financial_audit_logger.log_financial_event(
+                    event_type=FinancialEventType.PLATFORM_FEE_COLLECTED,
+                    entity_type=EntityType.PLATFORM_REVENUE,
+                    entity_id=escrow_id,
+                    user_id=escrow.buyer_id,
+                    financial_context=FinancialContext(
+                        amount=platform_fee,
+                        currency="USD",
+                        fee_amount=platform_fee
+                    ),
+                    related_entities={'escrow_id': escrow_id, 'transaction_id': tx_hash},
+                    additional_data={'fee_type': 'escrow_fee'},
+                    session=session
+                )
+            
+            # 3. Handle payment variance
+            if payment_variance > Decimal("0.01"):  # Overpayment
+                # CRITICAL FIX: Credit excess to buyer wallet using the SAME SESSION for atomicity
+                credit_success = await CryptoServiceAtomic.credit_user_wallet_atomic(
+                    user_id=escrow.buyer_id,
+                    amount=float(payment_variance),
+                    currency="USD",
+                    transaction_type="escrow_overpayment",
+                    description=f"Escrow overpayment: +${payment_variance:.2f} from {escrow_id}",
+                    session=session  # CRITICAL: Pass session for atomic transaction
+                )
+                if credit_success:
+                    result["overpayment_credited"] = float(payment_variance)
+                    logger.info(f"Credited ${payment_variance:.2f} overpayment to buyer wallet for {escrow_id}")
+                    
+                    # AUDIT: Log overpayment credit
+                    financial_audit_logger.log_financial_event(
+                        event_type=FinancialEventType.OVERPAYMENT_CREDITED,
+                        entity_type=EntityType.WALLET,
+                        entity_id=str(escrow.buyer_id),
+                        user_id=escrow.buyer_id,
+                        financial_context=FinancialContext(
+                            amount=payment_variance,
+                            currency="USD"
+                        ),
+                        related_entities={'escrow_id': escrow_id, 'transaction_id': tx_hash},
+                        additional_data={
+                            'overpayment_reason': 'escrow_payment_excess',
+                            'original_crypto_amount': str(crypto_amount),
+                            'original_crypto_currency': crypto_currency
+                        },
+                        session=session
+                    )
+                    
+                    # CRITICAL FIX: Send overpayment notifications (was missing!)
+                    try:
+                        await cls._send_overpayment_notifications(
+                            escrow=escrow,
+                            overpayment_amount=payment_variance,
+                            crypto_currency=crypto_currency,
+                            crypto_amount=crypto_amount,
+                            session=session  # Pass shared session for consistency
+                        )
+                        logger.info(f"Overpayment notifications sent for escrow {escrow_id}")
+                    except Exception as notification_error:
+                        logger.error(f"Failed to send overpayment notifications for {escrow_id}: {notification_error}")
+                
+            elif payment_variance < Decimal("-1.00"):  # Significant underpayment
+                # Log underpayment but proceed if within tolerance
+                underpayment = abs(payment_variance)
+                result["underpayment_amount"] = float(underpayment)
+                logger.warning(f"Underpayment of ${underpayment:.2f} for escrow {escrow_id}")
+                
+                # AUDIT: Log underpayment detection
+                financial_audit_logger.log_financial_event(
+                    event_type=FinancialEventType.UNDERPAYMENT_DETECTED,
+                    entity_type=EntityType.ESCROW,
+                    entity_id=escrow_id,
+                    user_id=escrow.buyer_id,
+                    financial_context=FinancialContext(
+                        amount=underpayment,
+                        currency="USD"
+                    ),
+                    related_entities={'escrow_id': escrow_id, 'transaction_id': tx_hash},
+                    additional_data={
+                        'expected_amount': str(expected_buyer_payment),
+                        'received_amount': str(total_received_usd),
+                        'shortage_amount': str(underpayment),
+                        'crypto_amount': str(crypto_amount),
+                        'crypto_currency': crypto_currency
+                    },
+                    session=session
+                )
+            
+            # 4. Create proper transaction records
+            await cls._create_transaction_records(
+                session, escrow, base_amount, platform_fee, payment_variance, tx_hash
+            )
+            
+            # 5. CRITICAL: Verify holding was created properly with comprehensive checking
+            from services.escrow_holding_verifier import EscrowHoldingVerifier
+            
+            verification_context = {
+                "payment_source": "escrow_fund_manager",
+                "crypto_currency": crypto_currency,
+                "crypto_amount": str(crypto_amount),
+                "total_received_usd": str(total_received_usd),
+                "expected_total_usd": str(expected_total_usd),
+                "payment_variance": str(payment_variance),
+                "platform_fee": str(platform_fee),
+                "fund_segregation_result": result
+            }
+            
+            verification_result = await EscrowHoldingVerifier.verify_holding_created(
+                escrow_id=escrow_id,
+                expected_amount=base_amount,  # Verify the base escrow amount is held
+                payment_source="escrow_fund_manager",
+                tx_hash=tx_hash,
+                auto_recover=True,  # Enable auto-recovery for missing holdings
+                verification_context=verification_context
+            )
+            
+            # Add verification results to the response
+            result["holding_verification"] = verification_result.get_summary()
+            
+            if not verification_result.success:
+                logger.error(
+                    f"❌ HOLDING_VERIFICATION_FAILED for {escrow_id}: "
+                    f"Errors: {verification_result.errors}, Warnings: {verification_result.warnings}"
+                )
+                
+                # If verification failed AND auto-recovery failed, this is critical
+                if not verification_result.auto_recovered:
+                    result["critical_error"] = "Holding verification failed - manual intervention required"
+                    logger.critical(
+                        f"🚨 CRITICAL: Holding verification failed for {escrow_id} "
+                        f"and auto-recovery was unsuccessful. Manual intervention required!"
+                    )
+                else:
+                    logger.info(
+                        f"✅ HOLDING_VERIFIED for {escrow_id}: "
+                        f"ID: {verification_result.holding_id}, Auto-recovered: {verification_result.auto_recovered}"
+                    )
+                
+                logger.info(f"✅ Fund segregation and verification completed for {escrow_id}: {result}")
+            return result
+                
+        except Exception as e:
+            logger.error(f"Error processing escrow payment {escrow_id}: {e}")
+            return {"success": False, "error": str(e)}
+    
+    @classmethod
+    async def _send_overpayment_notifications(
+        cls,
+        escrow,
+        overpayment_amount: Decimal,
+        crypto_currency: str,
+        crypto_amount: Decimal,
+        session=None
+    ):
+        """Send overpayment notifications - SAFE TRANSACTION PATTERN"""
+        try:
+            # SAFE PATTERN: Extract user data while in transaction context  
+            user_data = None
+            if session is not None:
+                # Session provided - use it to extract data, don't close it
+                user = session.query(User).filter(User.id == escrow.buyer_id).first()
+                if user:
+                    user_data = {
+                        'user_id': user.id,
+                        'telegram_id': user.telegram_id,
+                        'email': user.email,
+                        'escrow_id': escrow.escrow_id,
+                        'buyer_id': escrow.buyer_id
+                    }
+            else:
+                # No session provided - create quick transaction to extract data
+                from utils.atomic_transactions import async_atomic_transaction
+                with atomic_transaction() as temp_session:
+                    user = temp_session.query(User).filter(User.id == escrow.buyer_id).first()
+                    if user:
+                        user_data = {
+                            'user_id': user.id,
+                            'telegram_id': user.telegram_id,
+                            'email': user.email,
+                            'escrow_id': escrow.escrow_id,
+                            'buyer_id': escrow.buyer_id
+                        }
+                # Transaction committed here - database lock released
+            
+            # SAFE PATTERN: Send notifications OUTSIDE transaction context
+            if not user_data:
+                logger.warning(f"Cannot notify user {escrow.buyer_id} - user not found")
+                return
+                
+            # Calculate crypto overpayment amount for display
+            overpayment_crypto = float(overpayment_amount) / 1.0  # Use simple conversion since we have USD overpayment
+            
+            # Send Telegram notification
+            if user_data['telegram_id']:
+                telegram_message = (
+                    f"💰 **Bonus Credit Received!**\n\n"
+                    f"Escrow Trade: `{user_data['escrow_id']}`\n"
+                    f"• **Extra paid:** {overpayment_crypto:.8f} {crypto_currency}\n"
+                    f"• **Bonus:** ${float(overpayment_amount):.2f}\n\n"
+                    f"✨ Added to wallet\n"
+                    f"/wallet to view"
+                )
+                
+                try:
+                    from telegram import Bot
+                    from config import Config
+                    
+                    if Config.BOT_TOKEN:
+                        bot = Bot(Config.BOT_TOKEN)
+                        await bot.send_message(
+                            chat_id=int(user_data['telegram_id']),
+                            text=telegram_message,
+                            parse_mode="Markdown"
+                        )
+                        logger.info(f"Fund manager overpayment Telegram notification sent to user {user_data['buyer_id']}")
+                    else:
+                        logger.error("BOT_TOKEN not configured - cannot send Telegram notification")
+                except Exception as e:
+                    logger.error(f"Failed to send Telegram overpayment notification: {e}")
+            
+            # Send email notification
+            if user_data['email']:
+                try:
+                    email_subject = f"Bonus Credit - Trade #{user_data['escrow_id']}"
+                    email_body = f"""
+                    <h2>🎉 Bonus Credit Received!</h2>
+                    <p>Great news! You sent a bit extra on your escrow trade and we've credited the bonus to your wallet.</p>
+                    
+                    <div style="background: #f0f8ff; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                        <h3>💰 Bonus Details:</h3>
+                        <p><strong>Trade ID:</strong> #{user_data['escrow_id']}</p>
+                        <p><strong>Extra Amount:</strong> {overpayment_crypto:.8f} {crypto_currency}</p>
+                        <p><strong>Bonus Value:</strong> ${float(overpayment_amount):.2f} USD</p>
+                    </div>
+                    
+                    <p>✨ <strong>Bonus credit added automatically!</strong> No action needed from you.</p>
+                    <p>Your wallet balance has been updated with the excess payment.</p>
+                    """
+                    
+                    from services.email import EmailService
+                    email_service = EmailService()
+                    
+                    success = await email_service.send_email(
+                        to_email=user_data['email'],
+                        subject=email_subject,
+                        html_content=email_body
+                    )
+                    
+                    if success:
+                        logger.info(f"Fund manager overpayment email notification sent to user {user_data['buyer_id']}")
+                    else:
+                        logger.warning(f"Email service returned failure for user {user_data['buyer_id']}")
+                    
+                except Exception as e:
+                    logger.error(f"Failed to send email overpayment notification: {e}")
+                        
+        except Exception as e:
+            logger.error(f"Error sending overpayment notifications: {e}")
+            raise
+    
+    @classmethod
+    def _calculate_buyer_payment(cls, escrow) -> Decimal:
+        """Calculate what the buyer should pay based on fee split"""
+        base_amount = Decimal(str(escrow.amount))
+        fee_split = getattr(escrow, 'fee_split_option', 'buyer_pays')
+        
+        if fee_split == 'buyer_pays':
+            return Decimal(str(escrow.total_amount))  # Base + full fee
+        elif fee_split == 'split':
+            buyer_fee = Decimal(str(getattr(escrow, 'buyer_fee_amount', 0)))
+            return base_amount + buyer_fee
+        else:  # seller_pays
+            return base_amount
+    
+    @classmethod
+    def _buyer_pays_fee(cls, escrow) -> bool:
+        """Check if buyer pays the platform fee"""
+        fee_split = getattr(escrow, 'fee_split_option', 'buyer_pays')
+        return fee_split in ['buyer_pays', 'split']
+    
+    @classmethod
+    async def _create_transaction_records(
+        cls, session, escrow, held_amount, fee_amount, variance, tx_hash
+    ):
+        """Create proper transaction records for fund segregation"""
+        from utils.helpers import generate_transaction_id
+        
+        # Main escrow deposit transaction
+        deposit_tx = Transaction(
+            transaction_id=generate_transaction_id(),
+            escrow_id=escrow.id,
+            user_id=escrow.buyer_id,
+            transaction_type=TransactionType.DEPOSIT.value,
+            amount=held_amount,
+            currency="USD",
+            blockchain_address=tx_hash,
+            status="completed",
+            description=f"Escrow deposit: ${held_amount} held for {escrow.escrow_id}",
+            confirmed_at=datetime.utcnow()
+        )
+        session.add(deposit_tx)
+        
+        # Platform fee transaction (if applicable)
+        if cls._buyer_pays_fee(escrow) and fee_amount > 0:
+            fee_tx = Transaction(
+                transaction_id=generate_transaction_id(),
+                escrow_id=escrow.id,
+                user_id=escrow.buyer_id,
+                transaction_type=TransactionType.FEE.value,
+                amount=fee_amount,
+                currency="USD",
+                blockchain_address=tx_hash,
+                status="completed",
+                description=f"Platform fee: ${fee_amount} for escrow {escrow.escrow_id}",
+                confirmed_at=datetime.utcnow()
+            )
+            session.add(fee_tx)
+    
+    @classmethod
+    async def release_escrow_funds(
+        cls,
+        escrow_id: str,
+        release_to_user_id: int,
+        release_amount: Decimal = None
+    ) -> bool:
+        """
+        Release held escrow funds to specified user with ATOMIC transaction
+        
+        Args:
+            escrow_id: Escrow identifier
+            release_to_user_id: User ID to release funds to
+            release_amount: Specific amount to release (None = full amount)
+            
+        Returns:
+            bool: True if release successful
+        """
+        from utils.atomic_transactions import async_atomic_transaction
+        
+        try:
+            with atomic_transaction() as session:
+                # CRITICAL FIX: Acquire row lock FIRST to prevent race conditions
+                # Get escrow holding record with row lock to prevent concurrent releases
+                holding = session.query(EscrowHolding).filter(
+                    EscrowHolding.escrow_id == escrow_id
+                ).with_for_update().first()
+                
+                if not holding:
+                    logger.error(f"No escrow holding found for {escrow_id}")
+                    return False
+                
+                # ENHANCED: Check for duplicate release attempts AFTER acquiring lock
+                # Check if funds were already released (even if status wasn't updated)
+                existing_release = session.query(Transaction).filter(
+                    Transaction.escrow_id == session.query(Escrow.id).filter(
+                        Escrow.escrow_id == escrow_id
+                    ).scalar_subquery(),
+                    Transaction.transaction_type == "release",
+                    Transaction.status == "completed"
+                ).first()
+                
+                if existing_release:
+                    logger.warning(f"⚠️ Funds already released for escrow {escrow_id} - preventing duplicate release")
+                    return False
+                    
+                # Check if already fully released
+                if holding.status == "released":
+                    logger.warning(f"⚠️ Escrow {escrow_id} already fully released to user {holding.released_to_user_id}")
+                    return False
+                
+                # CRITICAL FIX: Allow releases from both 'held' and 'partially_released' status
+                if holding.status not in ["held", "partially_released"]:
+                    logger.error(f"Invalid holding status '{holding.status}' for escrow {escrow_id}")
+                    return False
+                
+                # Validate release amount doesn't exceed available balance
+                if release_amount and release_amount > holding.amount_held:
+                    logger.error(f"Release amount ${release_amount} exceeds available balance ${holding.amount_held} for escrow {escrow_id}")
+                    return False
+                
+                amount_to_release = release_amount or holding.amount_held
+                
+                # CRITICAL FIX: Determine if this is a partial or full release
+                is_partial_release = release_amount is not None and release_amount < holding.amount_held
+                is_full_release = amount_to_release >= holding.amount_held
+                
+                # Initialize tracking fields if this is the first release
+                if holding.original_amount is None:
+                    holding.original_amount = holding.amount_held
+                
+                # Store amounts before release for audit trail
+                amount_before_release = holding.amount_held
+                amount_after_release = holding.amount_held - amount_to_release
+                
+                # ENHANCED: Update holding status and tracking based on release type
+                if is_full_release:
+                    holding.status = "released"
+                    holding.released_at = datetime.utcnow()
+                    holding.amount_held = Decimal("0")
+                    release_type = "full" if not holding.first_release_at else "final"
+                else:
+                    holding.status = "partially_released"
+                    holding.amount_held = amount_after_release
+                    if holding.first_release_at is None:
+                        holding.first_release_at = datetime.utcnow()
+                    release_type = "partial"
+                
+                # Update cumulative tracking
+                holding.total_released += amount_to_release
+                holding.remaining_amount = holding.amount_held
+                holding.partial_releases_count += 1
+                holding.released_to_user_id = release_to_user_id
+                
+                # Flush holding updates to get IDs
+                session.flush()
+                
+                # Credit user wallet within same transaction session
+                credit_success = await CryptoServiceAtomic.credit_user_wallet_atomic(
+                    user_id=release_to_user_id,
+                    amount=float(amount_to_release),
+                    currency="USD",
+                    transaction_type="release",
+                    description=f"Trade payment #{escrow_id}: +${amount_to_release} ({'partial' if is_partial_release else 'full'} release)",
+                    escrow_id=session.query(Escrow.id).filter(
+                        Escrow.escrow_id == escrow_id
+                    ).scalar(),
+                    session=session  # Pass session for atomic transaction
+                )
+                
+                if not credit_success:
+                    # Wallet credit failed - atomic_transaction will handle rollback
+                    logger.error(f"Failed to credit wallet for escrow release {escrow_id} - will be rolled back")
+                    return False
+                
+                # CRITICAL FIX: Create detailed audit trail record for this release
+                from models import PartialReleaseAudit
+                
+                # Find the transaction record created by the wallet credit
+                transaction = session.query(Transaction).filter(
+                    Transaction.user_id == release_to_user_id,
+                    Transaction.transaction_type == "release",
+                    Transaction.description.contains(escrow_id)
+                ).order_by(Transaction.created_at.desc()).first()
+                
+                transaction_id = transaction.transaction_id if transaction else f"release_{escrow_id}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
+                
+                # Create comprehensive audit trail record
+                audit_record = PartialReleaseAudit(
+                    escrow_id=escrow_id,
+                    escrow_holding_id=holding.id,
+                    release_amount=amount_to_release,
+                    currency="USD",
+                    released_to_user_id=release_to_user_id,
+                    release_type=release_type,
+                    transaction_id=transaction_id,
+                    amount_before_release=amount_before_release,
+                    amount_after_release=amount_after_release,
+                    released_at=datetime.utcnow()
+                )
+                session.add(audit_record)
+                
+                # atomic_transaction will handle commit automatically
+                logger.info(
+                    f"✅ Atomically released ${amount_to_release} from escrow {escrow_id} to user {release_to_user_id} "
+                    f"(Release type: {release_type}, Remaining: ${amount_after_release})"
+                )
+                return True
+                
+        except Exception as e:
+            logger.error(f"Error releasing escrow funds {escrow_id}: {e}")
+            return False
+    
+    @classmethod
+    async def get_platform_revenue_summary(cls) -> dict:
+        """Get summary of collected platform revenue"""
+        session = None
+        try:
+            session = SessionLocal()
+            
+            from sqlalchemy import func
+            
+            # Total revenue by type
+            revenue_by_type = session.query(
+                PlatformRevenue.fee_type,
+                func.sum(PlatformRevenue.fee_amount).label('total')
+            ).group_by(PlatformRevenue.fee_type).all()
+            
+            # Total held funds
+            total_held = session.query(
+                func.sum(EscrowHolding.amount_held)
+            ).filter(EscrowHolding.status == "held").scalar() or 0
+            
+            return {
+                "revenue_by_type": {row.fee_type: float(row.total) for row in revenue_by_type},
+                "total_escrow_held": float(total_held),
+                "total_revenue": float(sum(row.total for row in revenue_by_type))
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting revenue summary: {e}")
+            return {"error": str(e)}
+        finally:
+            if session:
+                session.close()
