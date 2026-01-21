@@ -637,12 +637,20 @@ class EmailVerificationService:
             email_service = EmailService()
             try:
                 # Use the existing direct send method which is robust
-                email_service.send_email(
-                    to_email=email,
-                    subject=subject,
-                    html_content=html_content
-                )
-                email_sent = True
+                # FIXED: Added await for send_email_async and handled user_name for direct template rendering
+                if hasattr(email_service, 'send_email_async'):
+                    email_sent = await email_service.send_email_async(
+                        to_email=email,
+                        subject=subject,
+                        html_content=html_content
+                    )
+                else:
+                    email_service.send_email(
+                        to_email=email,
+                        subject=subject,
+                        html_content=html_content
+                    )
+                    email_sent = True
                 logger.info(f"✅ OTP email sent DIRECTLY to {email} for user {user_id}")
             except Exception as email_error:
                 logger.error(f"❌ Failed to send OTP email to {email}: {email_error}")
