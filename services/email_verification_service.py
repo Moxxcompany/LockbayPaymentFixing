@@ -1161,10 +1161,7 @@ class EmailVerificationService:
         user_name: str = "User"
     ) -> Dict[str, Any]:
         """
-        Send OTP email using background queue for immediate response (10ms vs 2-5s)
-        
-        PERFORMANCE FIX: This method queues emails for background processing,
-        eliminating 2-5 second blocking delays in webhook responses
+        Send OTP email using background queue with graceful fallback
         """
         import time
         start_time = time.time()
@@ -1172,8 +1169,8 @@ class EmailVerificationService:
         try:
             logger.info(f"⏱️ PERF: Starting background email queue for {email}")
             
-            # Queue email for background processing - returns immediately
-            queue_result = await background_email_queue.queue_otp_email(
+            # Attempt to use background queue
+            result = await background_email_queue.queue_otp_email(
                 recipient=email,
                 otp_code=otp_code,
                 purpose=purpose,
@@ -1182,29 +1179,22 @@ class EmailVerificationService:
             )
             
             elapsed = time.time() - start_time
-            logger.info(f"⏱️ PERF: Email queued in {elapsed*1000:.2f}ms (was blocking 2-5s)")
             
-            if queue_result.get("success"):
-                logger.info(f"✅ OTP email queued successfully for {email} - Job ID: {queue_result.get('job_id')}")
-                return {
-                    "success": True,
-                    "queued": True,
-                    "job_id": queue_result.get("job_id"),
-                    "elapsed_ms": elapsed * 1000
-                }
-            else:
-                logger.error(f"❌ Failed to queue OTP email for {email}: {queue_result.get('error')}")
-                return {
-                    "success": False,
-                    "queued": False,
-                    "error": queue_result.get("error", "queue_failed")
-                }
-            
+            # If queue is unavailable or failed, fallback to direct send
+            if not result.get("success") and result.get("error") == "queue_unavailable":
+                logger.info(f"📧 Fallback: Sending OTP email directly to {email}")
+                success = await EmailService().send_email_async(
+                    to_email=email,
+                    subject=f"🔐 Your verification code: {otp_code}",
+                    html_content=background_email_queue._create_otp_email_content(
+                        otp_code=otp_code,
+                        user_name=user_name,
+                        purpose=purpose
+                    )
+                )
+                return {"success": success, "fallback": True, "elapsed_ms": elapsed * 1000}
+                
+            return result
         except Exception as e:
-            elapsed = time.time() - start_time
-            logger.error(f"❌ Error queuing OTP email for {email}: {e} (after {elapsed*1000:.2f}ms)")
-            return {
-                "success": False,
-                "queued": False,
-                "error": str(e)
-            }
+            logger.error(f"❌ OTP email sending failed: {e}")
+            return {"success": False, "error": str(e)}
