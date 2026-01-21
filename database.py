@@ -33,8 +33,9 @@ except Exception as validator_error:
 if not Config.DATABASE_URL:
     raise ValueError("DATABASE_URL environment variable is required")
 
-# OPTIMIZED FOR RAILWAY POSTGRESQL: Conservative connection pool
-# Railway Hobby plan supports ~50 connections, need to account for BOTH sync+async pools
+# OPTIMIZED FOR CLOUD POSTGRESQL (Railway/Neon): Conservative connection pool
+# Cloud database plans often have strict connection limits (e.g., Railway Hobby ~50)
+# We account for BOTH sync+async pools:
 # Sync pool: 7 base + 15 overflow = 22 max
 # Async pool: 7 base + 15 overflow = 22 max
 # Total: 44 connections max (safely under 50 limit with headroom for admin queries)
@@ -42,8 +43,8 @@ if not Config.DATABASE_URL:
 engine = create_engine(
     Config.DATABASE_URL,
     poolclass=QueuePool,
-    pool_size=7,           # Sync base pool for Railway PostgreSQL
-    max_overflow=15,       # Sync burst capacity for Railway PostgreSQL
+    pool_size=7,           # Base pool for cloud database
+    max_overflow=15,       # Burst capacity for cloud database
     pool_pre_ping=True,    # Validate connections before use
     pool_recycle=3600,     # Recycle connections every hour
     pool_timeout=30,       # Wait max 30 seconds for connection during bursts
@@ -62,16 +63,14 @@ async_database_url = Config.DATABASE_URL.replace('postgresql://', 'postgresql+as
 async_database_url = async_database_url.replace('sslmode=require', 'ssl=require')
 async_database_url = async_database_url.replace('sslmode=prefer', 'ssl=prefer')
 async_database_url = async_database_url.replace('sslmode=disable', 'ssl=disable')
-# OPTIMIZED FOR RAILWAY POSTGRESQL: Conservative async connection pool
-# Railway Hobby plan supports ~50 connections, need to account for BOTH sync+async pools
-# Sync pool: 7 base + 15 overflow = 22 max
-# Async pool: 7 base + 15 overflow = 22 max
+# OPTIMIZED FOR CLOUD POSTGRESQL: Conservative async connection pool
+# Cloud database plans often have strict connection limits
 # Total: 44 connections max (safely under 50 limit with headroom for admin queries)
 # Combined with 4-minute keep-alive job to maintain database warmth
 async_engine = create_async_engine(
     async_database_url,
-    pool_size=7,           # Async base pool for Railway PostgreSQL
-    max_overflow=15,       # Async burst capacity for Railway PostgreSQL
+    pool_size=7,           # Async base pool for cloud database
+    max_overflow=15,       # Async burst capacity for cloud database
     pool_pre_ping=True,    # Validate connections before use
     pool_recycle=3600,     # Recycle connections every hour
     pool_timeout=30,       # Wait max 30 seconds for connection during bursts
