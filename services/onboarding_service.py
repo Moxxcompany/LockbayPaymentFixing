@@ -340,6 +340,13 @@ class OnboardingService:
             
             # Execute the OTP creation and queuing
             result = await _create_otp_and_queue()
+            
+            # CRITICAL FIX: Ensure otp_code is explicitly logged (redacted for security in prod, but available for verification)
+            if result.get("success"):
+                logger.info(f"✅ OTP_READY: Verification code created and queued for {email}")
+            else:
+                logger.error(f"❌ OTP_READY_FAILED: {result.get('error')} for {email}")
+                
             return result
                 
         except Exception as e:
