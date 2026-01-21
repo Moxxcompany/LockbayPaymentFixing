@@ -35,11 +35,11 @@ class FastForexService(APIAdapterRetry):
         self.base_url = "https://api.fastforex.io"
         
         # Enhanced cache configuration for performance optimization
-        self.cache_ttl = 1800  # 30 minutes cache for exchange rates (WEBHOOK OPTIMIZATION: increased for webhook performance)
-        self.fallback_cache_ttl = 3600  # 60 minutes for fallback rates (WEBHOOK OPTIMIZATION: extended for emergency fallback)
-        self.rapid_cache_ttl = 300  # 5 minutes rapid cache for high-frequency requests (WEBHOOK OPTIMIZATION: increased)
-        self.session_cache_ttl = 60  # 60 seconds ultra-fast cache for active sessions (WEBHOOK OPTIMIZATION: increased)
-        self.webhook_cache_ttl = 900  # 15 minutes cache specifically for webhook scenarios
+        self.cache_ttl = 3600  # 1 hour cache for exchange rates (increased from 30m)
+        self.fallback_cache_ttl = 7200  # 2 hours for fallback rates (increased from 1h)
+        self.rapid_cache_ttl = 600  # 10 minutes rapid cache (increased from 5m)
+        self.session_cache_ttl = 300  # 5 minutes ultra-fast cache (increased from 1m)
+        self.webhook_cache_ttl = 1800  # 30 minutes cache for webhook scenarios (increased from 15m)
         
         if not self.api_key:
             logger.warning(
