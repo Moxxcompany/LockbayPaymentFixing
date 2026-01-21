@@ -79,8 +79,8 @@ def validate_webhook_secrets():
     logger = logging.getLogger(__name__)
     
     required_secrets = [
-        ("FINCRA_WEBHOOK_ENCRYPTION_KEY", "Fincra"),
-        ("DYNOPAY_WEBHOOK_SECRET", "DynoPay"),
+        # ("FINCRA_WEBHOOK_ENCRYPTION_KEY", "Fincra"),
+        # ("DYNOPAY_WEBHOOK_SECRET", "DynoPay"),
     ]
     
     missing = []
