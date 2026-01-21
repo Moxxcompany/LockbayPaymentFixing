@@ -5708,7 +5708,7 @@ async def handle_deposit_currency_selection(update: Update, context: ContextType
                     InlineKeyboardButton("📱 Show QR", callback_data=f"show_qr:{crypto_address}")
                 ],
                 [
-                    InlineKeyboardButton("🔙 Choose Different Crypto", callback_data="crypto_funding_start_direct")
+                    InlineKeyboardButton("🔙 Choose Different Crypto", callback_data="crypto_funding_options")
                 ]
             ]
             
@@ -5763,7 +5763,7 @@ This is usually temporary and resolves quickly."""
         keyboard = [
             [
                 InlineKeyboardButton("🔄 Try Again", callback_data=f"deposit_currency:{currency}"),
-                InlineKeyboardButton("🔄 Try Different Crypto", callback_data="crypto_funding_start_direct")
+                InlineKeyboardButton("🔄 Try Different Crypto", callback_data="crypto_funding_options")
             ],
             [
                 InlineKeyboardButton("💬 Contact Support", url="https://t.me/LockbayAssist"),
