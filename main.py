@@ -253,7 +253,7 @@ def register_emergency_handlers(application):
         (ExchangeHandler.show_exchange_history, '^exchange_history$'),  # FIX: Missing exchange history handler (static method)
         (handle_main_menu_callback, '^main_menu$'),  # FIX: Missing main menu handler
         (handle_menu_support, '^menu_support$'),  # FIX: Missing support button handler
-        (show_crypto_funding_options, '^(crypto_funding_start|crypto_funding_start_direct)$'), # FIX: Crypto selection
+        (show_crypto_funding_options, '^(crypto_funding_start|crypto_funding_start_direct|crypto_funding_options)$'), # FIX: Crypto selection
         # ✅ PAYMENT RECOVERY HANDLERS: For underpayment action buttons
         (PaymentRecoveryHandler.handle_complete_payment, '^pay_complete:'),  # Complete payment button
         (PaymentRecoveryHandler.handle_proceed_partial, '^pay_partial:'),  # Proceed with partial amount button
@@ -627,7 +627,7 @@ async def run_webhook_optimized(monitor):
     
     # Register all critical handlers
     critical_handlers = [
-        (show_crypto_funding_options, '^(crypto_funding_start|crypto_funding_start_direct)$'),
+        (show_crypto_funding_options, '^(crypto_funding_start|crypto_funding_start_direct|crypto_funding_options)$'),
         (FincraPaymentHandler.start_wallet_funding, '^fincra_start_payment$'),
         (handle_bank_selection, '^wallet_select_bank:.*$'),
         (handle_deposit_currency_selection, '^deposit_currency:'),
