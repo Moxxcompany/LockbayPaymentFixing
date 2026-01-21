@@ -6,6 +6,7 @@ Comprehensive multi-tier rate fetching with circuit breaker and stale data toler
 
 import logging
 import aiohttp
+import time
 from datetime import datetime, timedelta
 from typing import Dict, Optional, Any, Tuple
 from decimal import Decimal
@@ -18,6 +19,72 @@ from utils.production_cache import get_cached, set_cached
 
 logger = logging.getLogger(__name__)
 
+@dataclass
+class PrefetchData:
+    """Container for prefetched exchange context"""
+    user_id: int
+    wallets: list
+    saved_destinations: list
+    prefetch_duration_ms: float
+    timestamp: datetime = datetime.utcnow()
+
+async def prefetch_exchange_context(user_id: int, session: Any) -> Optional[PrefetchData]:
+    """Prefetch all data needed for exchange operations in parallel"""
+    start_time = time.time()
+    try:
+        from models import Wallet, SavedAddress, SavedBankAccount
+        from sqlalchemy import select
+        
+        # Parallel fetch wallets and destinations
+        wallets_stmt = select(Wallet).where(Wallet.user_id == user_id)
+        addresses_stmt = select(SavedAddress).where(SavedAddress.user_id == user_id)
+        banks_stmt = select(SavedBankAccount).where(SavedBankAccount.user_id == user_id)
+        
+        results = await asyncio.gather(
+            session.execute(wallets_stmt),
+            session.execute(addresses_stmt),
+            session.execute(banks_stmt),
+            return_exceptions=True
+        )
+        
+        if any(isinstance(r, Exception) for r in results):
+            for r in results:
+                if isinstance(r, Exception):
+                    logger.error(f"Prefetch error: {r}")
+            return None
+            
+        wallets = [r[0] for r in results[0].all()]
+        addresses = [r[0] for r in results[1].all()]
+        banks = [r[0] for r in results[2].all()]
+        
+        duration = (time.time() - start_time) * 1000
+        return PrefetchData(
+            user_id=user_id,
+            wallets=wallets,
+            saved_destinations=addresses + banks,
+            prefetch_duration_ms=duration
+        )
+    except Exception as e:
+        logger.error(f"Critical error in prefetch: {e}")
+        return None
+
+def get_cached_exchange_data(user_data: dict) -> Optional[PrefetchData]:
+    """Get cached prefetch data if valid"""
+    if not user_data: return None
+    data = user_data.get("_exchange_prefetch")
+    if data and (datetime.utcnow() - data.timestamp).total_seconds() < 300:
+        return data
+    return None
+
+def cache_exchange_data(user_data: dict, data: PrefetchData):
+    """Cache prefetch data in user context"""
+    if user_data:
+        user_data["_exchange_prefetch"] = data
+
+def invalidate_exchange_cache(user_data: dict):
+    """Clear cached prefetch data"""
+    if user_data:
+        user_data.pop("_exchange_prefetch", None)
 
 class RateSource(Enum):
     """Rate source providers"""
