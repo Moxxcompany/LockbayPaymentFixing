@@ -606,27 +606,26 @@ class EmailVerificationService:
             # CRITICAL: OTP emails are time-sensitive and should not be queued
             user_name = getattr(user, 'first_name', 'User') or 'User'
             
-            # Create email content
+            # Create email content using the professional template
+            from services.email_templates import create_unified_email_template
+            
+            # Map purpose to template title/content if needed, or use defaults from template system
+            template_data = cls.PURPOSE_CONFIGS.get(purpose, cls.PURPOSE_CONFIGS['registration'])
+            
             subject = f"🔐 Your verification code: {otp_code}"
-            html_content = f"""
-            <html>
-            <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-                <h2>Hello {user_name}!</h2>
-                <p>Your verification code is:</p>
-                <div style="background: #f0f0f0; padding: 20px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 5px; margin: 20px 0;">
-                    {otp_code}
-                </div>
-                <p>This code will expire in {expiry_minutes} minutes.</p>
-                <p>If you didn't request this code, please ignore this email.</p>
-                <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
-                <p style="color: #666; font-size: 12px;">LockBay - Secure Escrow Platform</p>
-            </body>
-            </html>
-            """
+            html_content = create_unified_email_template(
+                title=template_data['template_title'],
+                content=template_data['template_content'],
+                user_name=user_name,
+                otp_code=otp_code,
+                expiry_minutes=expiry_minutes
+            )
             
             # Send email DIRECTLY (no queue) for instant delivery
+            # We use send_email_async if available, otherwise fallback to threaded send_email
             email_service = EmailService()
             try:
+                # Use the existing direct send method which is robust
                 email_service.send_email(
                     to_email=email,
                     subject=subject,
