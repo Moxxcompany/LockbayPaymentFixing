@@ -14,7 +14,11 @@ class Config:
     # Bot configuration with environment detection
     # Environment detection (order of precedence)
     # ENVIRONMENT takes absolute priority, then REPLIT_ENVIRONMENT, then deployment heuristics
-    ENVIRONMENT = os.getenv("ENVIRONMENT", "").lower().strip()
+    ENVIRONMENT = os.getenv("ENVIRONMENT", os.getenv("RAILWAY_ENVIRONMENT_NAME", "")).lower().strip()
+    if ENVIRONMENT and ENVIRONMENT not in ["production", "development"]:
+        # Standardize Railway environment names if they differ
+        ENVIRONMENT = "production" if "prod" in ENVIRONMENT else "development"
+    
     REPLIT_ENVIRONMENT = os.getenv("REPLIT_ENVIRONMENT", "").lower().strip()
     
     # Priority 1: ENVIRONMENT variable (manual override - absolute priority)
