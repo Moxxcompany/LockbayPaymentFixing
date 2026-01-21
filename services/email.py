@@ -31,6 +31,22 @@ class EmailService:
                 sib_api_v3_sdk.ApiClient(configuration)
             )
 
+    async def send_email_async(
+        self,
+        to_email: str,
+        subject: str,
+        text_content: Optional[str] = None,
+        html_content: Optional[str] = None,
+    ) -> bool:
+        """Send an email asynchronously using Brevo"""
+        return await asyncio.to_thread(
+            self.send_email,
+            to_email=to_email,
+            subject=subject,
+            text_content=text_content,
+            html_content=html_content
+        )
+
     def send_email(
         self,
         to_email: str,
