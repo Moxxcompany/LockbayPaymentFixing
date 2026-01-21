@@ -625,7 +625,7 @@ async def run_webhook_optimized(monitor):
     
     # Register all critical handlers
     critical_handlers = [
-        (show_crypto_funding_options, '^crypto_funding_start$'),
+        (show_crypto_funding_options, '^(crypto_funding_start|crypto_funding_start_direct)$'),
         (FincraPaymentHandler.start_wallet_funding, '^fincra_start_payment$'),
         (handle_bank_selection, '^wallet_select_bank:.*$'),
         (handle_deposit_currency_selection, '^deposit_currency:'),
