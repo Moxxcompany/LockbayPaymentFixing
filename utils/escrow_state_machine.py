@@ -188,13 +188,41 @@ class AtomicEscrowOperation:
                 # Credit seller wallet atomically within same transaction
                 from services.crypto import CryptoServiceAtomic
 
+                # CRITICAL BUG FIX: Deduct seller fee based on fee_split_option
+                release_amount = amount
+                try:
+                    from decimal import Decimal
+                    # Ensure amount is Decimal for calculation
+                    amount_dec = Decimal(str(amount))
+                    
+                    split_option = getattr(escrow, 'fee_split_option', 'buyer_pays')
+                    seller_fee = Decimal(str(getattr(escrow, 'seller_fee_amount', 0) or 0))
+                    
+                    if split_option == 'seller_pays':
+                        if seller_fee > 0:
+                            release_amount_dec = amount_dec - seller_fee
+                            release_amount = float(max(release_amount_dec, Decimal("0")))
+                            logger.info(f"💰 SELLER_FEE_DEDUCTION (Seller Pays): Escrow {escrow.escrow_id} - Original: ${amount_dec}, Fee: ${seller_fee}, Net: ${release_amount}")
+                    elif split_option == 'split':
+                        if seller_fee > 0:
+                            release_amount_dec = amount_dec - seller_fee
+                            release_amount = float(max(release_amount_dec, Decimal("0")))
+                            logger.info(f"💰 SELLER_FEE_DEDUCTION (Split 50/50): Escrow {escrow.escrow_id} - Original: ${amount_dec}, Seller Part: ${seller_fee}, Net: ${release_amount}")
+                    else: # buyer_pays or others
+                        logger.info(f"💰 NO_SELLER_DEDUCTION ({split_option}): Escrow {escrow.escrow_id} - Releasing full amount: ${amount}")
+                        
+                except Exception as fee_err:
+                    logger.error(f"⚠️ FEE_CALCULATION_ERROR: Failed to calculate seller fee deduction: {fee_err}")
+                    # Fallback to original amount if calculation fails to avoid blocking release
+                    release_amount = amount
+
                 credit_success = CryptoServiceAtomic.credit_user_wallet_atomic(
                     user_id=seller_user_id,
-                    amount=amount,
+                    amount=release_amount,
                     currency=currency,
                     escrow_id=escrow.id,
                     transaction_type="escrow_release",
-                    description=f"💰 Escrow release for #{escrow.escrow_id}: ${amount:.2f}",
+                    description=f"💰 Escrow release for #{escrow.escrow_id}: ${release_amount:.2f}",
                     session=session,
                 )
 
