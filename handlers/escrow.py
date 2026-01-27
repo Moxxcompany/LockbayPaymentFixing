@@ -310,6 +310,14 @@ def safe_get_context_data(
         return context.user_data[key]
     return {}
 
+def get_default_fee(amount: Decimal) -> Decimal:
+    """Calculate default platform fee based on Config.ESCROW_FEE_PERCENTAGE
+    
+    Use this instead of hardcoded 0.05 (5%) fallback values.
+    """
+    fee_percentage = Decimal(str(Config.ESCROW_FEE_PERCENTAGE)) / Decimal("100")
+    return (amount * fee_percentage).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
 def as_decimal(value: Any, default: Decimal = Decimal("0")) -> Decimal:
     """Convert value to Decimal safely"""
     if value is None:
