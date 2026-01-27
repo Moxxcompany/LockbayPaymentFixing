@@ -9464,15 +9464,19 @@ async def handle_confirm_release_funds(update: TelegramUpdate, context: ContextT
                     
                     # Calculate release amount (escrow amount minus seller fees)
                     escrow_amount = Decimal(str(escrow.amount))  # type: ignore
+                    seller_fee = Decimal(str(escrow.seller_fee_amount)) if escrow.seller_fee_amount else Decimal("0.0")
+                    release_amount = escrow_amount - seller_fee  # Deduct seller's fee from release
                     
-                    # Credit seller's wallet
+                    logger.info(f"💰 Escrow {escrow.escrow_id}: amount=${escrow_amount}, seller_fee=${seller_fee}, release_amount=${release_amount}")
+                    
+                    # Credit seller's wallet (after deducting their fee)
                     seller_success = await CryptoServiceAtomic.credit_user_wallet_atomic(
                         user_id=escrow.seller_id,  # type: ignore
-                        amount=escrow_amount,
+                        amount=release_amount,  # FIX: Credit release_amount, not full escrow_amount
                         currency="USD",
                         escrow_id=escrow.id,  # type: ignore
                         transaction_type="escrow_release",
-                        description=f"✅ Released • Escrow #{escrow.escrow_id}",
+                        description=f"✅ Released • Escrow #{escrow.escrow_id} (Fee: ${seller_fee})",
                         session=session
                     )
                     
