@@ -2360,7 +2360,7 @@ async def verify_email_otp_onboarding(
                 .filter(
                     EmailVerification.user_id == actual_user_id,
                     EmailVerification.verification_code == otp_code,
-                    EmailVerification.purpose == "onboarding",
+                    EmailVerification.purpose == "registration",  # FIX: Align with OnboardingService which uses 'registration'
                 )
                 .first()
             )
