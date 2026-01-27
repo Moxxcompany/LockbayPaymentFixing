@@ -354,4 +354,7 @@ coverage_reports/
 .pytest_cache/
 
 # Webhook queue data
-webhook_queue/webhook_inbox/webhook_events.db
+webhook_queue/webhook_inbox/webhook_events.db-e 
+# Environment files
+*.env
+*.env.*
