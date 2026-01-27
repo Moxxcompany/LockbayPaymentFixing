@@ -3101,7 +3101,7 @@ async def show_trade_review_OLD_DUPLICATE(query_or_update, context: ContextTypes
 
     # FIXED: Use buyer_fee from fee split calculation instead of hardcoded platform fee
     amount = Decimal(str(escrow_data["amount"]))
-    buyer_fee = Decimal(str(escrow_data.get("buyer_fee", amount * Decimal("0.05"))))
+    buyer_fee = Decimal(str(escrow_data.get("buyer_fee", get_default_fee(amount))))
     total_amount = amount + buyer_fee
 
     # Fix: Use HTML escaping since message uses HTML format
@@ -7136,7 +7136,7 @@ async def handle_back_to_payment(update: TelegramUpdate, context: ContextTypes.D
     # Create the trade review content manually to send as new message
     # FIXED: Use buyer_fee from fee split calculation instead of hardcoded platform fee
     amount = Decimal(str(escrow_data["amount"]))
-    buyer_fee = Decimal(str(escrow_data.get("buyer_fee", amount * Decimal("0.05"))))
+    buyer_fee = Decimal(str(escrow_data.get("buyer_fee", get_default_fee(amount))))
     total_amount = amount + buyer_fee
 
     # Use proper seller display format that matches database storage
