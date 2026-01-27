@@ -187,6 +187,40 @@ Check if these frequently queried columns have indexes:
 
 ## ✅ RECENTLY FIXED IN THIS SESSION
 
-1. Seller fee deduction on escrow release (4 files)
-2. Added `load_dotenv()` to config.py
-3. Corrected seller @m_maker2 wallet balance ($200 → $190)
+1. **Seller fee deduction on escrow release** (4 files)
+   - `handlers/escrow.py` - Main release handler
+   - `services/standalone_auto_release_service.py` - Auto-release
+   - `services/auto_cashout.py` - Admin cashout (2 locations)
+
+2. **Async/sync mismatch in wallet credits** (3 files)
+   - Changed from `credit_user_wallet_atomic` (async) to `credit_user_wallet_simple` (sync)
+   - `services/standalone_auto_release_service.py`
+   - `services/auto_cashout.py` (2 locations)
+
+3. **Added `load_dotenv()` to config.py**
+
+4. **Corrected seller @m_maker2 wallet balance** ($200 → $190)
+
+---
+
+## ⚠️ REMAINING ASYNC/SYNC ISSUES TO FIX
+
+The following files still call async `credit_user_wallet_atomic` without `await`:
+
+```
+handlers/fincra_payment.py:466
+handlers/fincra_webhook.py:1169
+services/automatic_refund_service.py:319
+services/deposit_timeout_service.py:362
+services/auto_earnings_service.py:57, 119, 171
+services/orphaned_cashout_cleanup_service.py:230
+services/wallet_service.py:191
+services/standardized_error_recovery.py:352
+services/overpayment_service.py:507, 614, 714
+services/universal_welcome_bonus_service.py:101
+services/payment_edge_cases.py:309, 413, 440
+```
+
+**Recommendation:** Review each file and either:
+- Add `await` if in async context
+- Use `credit_user_wallet_simple()` if in sync context
