@@ -2082,7 +2082,7 @@ async def handle_resend_otp_onboarding(
         # Clean existing verification records for this user
         session.query(EmailVerification).filter(
             EmailVerification.user_id == db_user.id,
-            EmailVerification.purpose == "onboarding"
+            EmailVerification.purpose == "registration"  # FIX: Align with OnboardingService
         ).delete()
         
         # FIXED: Use correct schema with proper column names and atomic UPSERT
