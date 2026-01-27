@@ -286,7 +286,7 @@ async def process_existing_user_async(
                     result = await shared_session.execute(
                         select(EmailVerification).filter(
                             EmailVerification.user_id == user_id_db,
-                            EmailVerification.purpose == "onboarding",
+                            EmailVerification.purpose == "registration",  # FIX: Align with OnboardingService
                             EmailVerification.expires_at > datetime.now(timezone.utc)
                         )
                     )
