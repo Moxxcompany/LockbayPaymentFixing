@@ -7328,12 +7328,13 @@ async def handle_wallet_payment_confirmation(
 
             amount = as_decimal(escrow_data["amount"])
 
-            # Use fee split data instead of fixed 10%
+            # Use fee split data instead of fixed percentage - use Config for defaults
+            default_fee = get_default_fee(amount)
             buyer_fee = as_decimal(escrow_data.get(
-                "buyer_fee", amount * Decimal("0.05")
+                "buyer_fee", default_fee
             ))  # Always convert to Decimal
             seller_fee = as_decimal(escrow_data.get(
-                "seller_fee", amount * Decimal("0.05")
+                "seller_fee", default_fee
             ))  # Always convert to Decimal
             
             # IMPORTANT: Separate buyer wallet payment from database total_amount
