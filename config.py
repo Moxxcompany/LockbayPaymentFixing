@@ -4,6 +4,10 @@ import os
 import logging
 from decimal import Decimal
 from typing import Union, Dict, Any, Optional
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
