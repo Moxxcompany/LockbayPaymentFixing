@@ -3250,7 +3250,7 @@ async def handle_payment_method_selection(
     escrow_data = context.user_data["escrow_data"]
     # FIXED: Use buyer_fee from fee split calculation instead of hardcoded 5%
     amount = Decimal(str(escrow_data["amount"]))
-    buyer_fee = Decimal(str(escrow_data.get("buyer_fee", amount * Decimal("0.05"))))
+    buyer_fee = Decimal(str(escrow_data.get("buyer_fee", get_default_fee(amount))))
     total_amount = amount + buyer_fee
 
     if query and query.data == "payment_wallet":
@@ -3541,7 +3541,7 @@ async def handle_crypto_payment_direct(
     escrow_data = context.user_data["escrow_data"]
     # FIXED: Use buyer_fee from fee split calculation instead of hardcoded 5%
     amount = Decimal(str(escrow_data["amount"]))
-    buyer_fee = Decimal(str(escrow_data.get("buyer_fee", amount * Decimal("0.05"))))
+    buyer_fee = Decimal(str(escrow_data.get("buyer_fee", get_default_fee(amount))))
     total_amount = amount + buyer_fee
 
     # Prevent duplicate processing
@@ -4437,7 +4437,7 @@ async def handle_crypto_payment(update: TelegramUpdate, context: ContextTypes.DE
     escrow_data = context.user_data["escrow_data"]
     # FIXED: Use buyer_fee from fee split calculation instead of hardcoded 5%
     amount = Decimal(str(escrow_data["amount"]))
-    buyer_fee = Decimal(str(escrow_data.get("buyer_fee", amount * Decimal("0.05"))))
+    buyer_fee = Decimal(str(escrow_data.get("buyer_fee", get_default_fee(amount))))
     total_amount = amount + buyer_fee
 
     # Get crypto rates and calculate amount needed
@@ -4858,7 +4858,7 @@ async def handle_ngn_payment(update: TelegramUpdate, context: ContextTypes.DEFAU
     escrow_data = context.user_data["escrow_data"]
     # FIXED: Use buyer_fee from fee split calculation instead of hardcoded 5%
     amount = Decimal(str(escrow_data["amount"]))
-    buyer_fee = Decimal(str(escrow_data.get("buyer_fee", amount * Decimal("0.05"))))
+    buyer_fee = Decimal(str(escrow_data.get("buyer_fee", get_default_fee(amount))))
     total_amount = amount + buyer_fee
 
     # Get NGN exchange rate with RATE LOCK protection
@@ -6922,7 +6922,7 @@ async def handle_escrow_crypto_switching(update: TelegramUpdate, context: Contex
     escrow_data = context.user_data["escrow_data"]
     # FIXED: Use buyer_fee from fee split calculation instead of hardcoded 5%
     amount = Decimal(str(escrow_data["amount"]))
-    buyer_fee = Decimal(str(escrow_data.get("buyer_fee", amount * Decimal("0.05"))))
+    buyer_fee = Decimal(str(escrow_data.get("buyer_fee", get_default_fee(amount))))
     total_amount = amount + buyer_fee
     
     text = """🔄 Switch Cryptocurrency
