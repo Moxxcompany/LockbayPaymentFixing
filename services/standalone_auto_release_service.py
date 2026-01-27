@@ -198,15 +198,12 @@ class StandaloneAutoReleaseService:
                             
                             logger.info(f"💰 Auto-release {locked_escrow.escrow_id}: amount=${escrow_amount}, seller_fee=${seller_fee}, release_amount=${release_amount}")
 
-                            # Release funds to seller atomically (after deducting seller fee)
-                            release_success = CryptoServiceAtomic.credit_user_wallet_atomic(
+                            # Release funds to seller using SYNC method (auto-release runs in sync context)
+                            # CRITICAL FIX: credit_user_wallet_atomic is async but we're in sync context
+                            release_success = CryptoServiceAtomic.credit_user_wallet_simple(
                                 user_id=locked_escrow.seller_id,
                                 amount=float(release_amount),  # FIX: Use release_amount, not full amount
-                                currency="USD",
-                                escrow_id=locked_escrow.id,
-                                transaction_type="escrow_release",
-                                description=f"Auto-release payment for escrow {locked_escrow.escrow_id} (Fee: ${seller_fee})",
-                                session=session,
+                                description=f"Auto-release payment for escrow {locked_escrow.escrow_id} (Fee: ${seller_fee})"
                             )
 
                             if release_success:
