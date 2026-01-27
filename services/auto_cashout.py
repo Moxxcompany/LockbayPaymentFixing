@@ -1265,19 +1265,17 @@ class AutoCashoutService:
             )
 
             # Calculate release amount (escrow amount minus seller fee)
+            # CRITICAL FIX: Use sync method since we're in sync context
             escrow_amount = Decimal(str(escrow.amount))
             seller_fee = Decimal(str(escrow.seller_fee_amount)) if escrow.seller_fee_amount else Decimal("0.0")
             release_amount = escrow_amount - seller_fee
             
             logger.info(f"💰 Normal credit {escrow.escrow_id}: amount=${escrow_amount}, seller_fee=${seller_fee}, release_amount=${release_amount}")
 
-            success = CryptoServiceAtomic.credit_user_wallet_atomic(
-                seller.id,
-                release_amount,  # FIX: Use release_amount, not full escrow.amount
-                "USD",
-                escrow_id=int(escrow.id),  # type: ignore[arg-type]
-                transaction_type="escrow_release",
-                description=f"💼 Trade payment from {buyer_name} for #{escrow.escrow_id} (Fee: ${seller_fee})",
+            success = CryptoServiceAtomic.credit_user_wallet_simple(
+                user_id=seller.id,
+                amount=float(release_amount),  # FIX: Use release_amount, not full escrow.amount
+                description=f"💼 Trade payment from {buyer_name} for #{escrow.escrow_id} (Fee: ${seller_fee})"
             )
 
             if success:
