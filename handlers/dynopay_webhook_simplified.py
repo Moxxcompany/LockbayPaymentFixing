@@ -403,14 +403,13 @@ async def handle_dynopay_escrow_webhook(request: Request):
         # Process escrow payment: update escrow status to funded
         try:
             from models import Escrow, CryptoDeposit
-            from utils.session_manager import get_sync_db_session
             from sqlalchemy import update as sqlalchemy_update
             
             txid = normalized["txid"]
             usd_amount = normalized["amount"]
             escrow_id_ref = normalized["reference_id"]
             
-            with get_sync_db_session() as session:
+            with SessionManager.get_session() as session:
                 # Check idempotency - already processed?
                 existing_deposit = session.execute(
                     select(CryptoDeposit).where(
