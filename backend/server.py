@@ -480,6 +480,37 @@ async def webhook(request: Request):
 
 
 # DynoPay webhook endpoints
+@api.post("/webhook/dynopay")
+async def dynopay_generic_webhook(request: Request):
+    """Generic DynoPay webhook - routes to wallet/escrow/exchange based on reference_id"""
+    try:
+        from handlers.dynopay_webhook_simplified import handle_dynopay_wallet_webhook, handle_dynopay_escrow_webhook, handle_dynopay_exchange_webhook
+        import json as _json
+        body = await request.body()
+        data = _json.loads(body) if body else {}
+        meta = data.get("meta_data", {})
+        if isinstance(meta, str):
+            try:
+                meta = _json.loads(meta)
+            except Exception:
+                meta = {}
+        ref = meta.get("refId", "") or data.get("customer_reference", "") or ""
+        
+        # Route based on reference pattern
+        if ref.startswith("WALLET-"):
+            return await handle_dynopay_wallet_webhook(request)
+        elif ref.startswith("ES") or ref.startswith("ESCROW-"):
+            return await handle_dynopay_escrow_webhook(request)
+        elif ref.startswith("EX") or ref.startswith("EXCHANGE-"):
+            return await handle_dynopay_exchange_webhook(request)
+        else:
+            # Default to wallet
+            return await handle_dynopay_wallet_webhook(request)
+    except Exception as e:
+        logger.error(f"DynoPay generic webhook error: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
 @api.post("/webhook/dynopay/escrow")
 async def dynopay_escrow_webhook(request: Request):
     try:
