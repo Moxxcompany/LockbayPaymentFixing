@@ -154,10 +154,10 @@ class CryptoServiceAtomic:
                 # Use primary callback URL (payment manager will handle provider-specific routing)
                 primary_callback_url = f"{base_webhook_url}/dynopay/wallet"
                 
-                # DynoPay requires minimum amount of 1, use $1 for wallet deposits
+                # DynoPay requires minimum amount of 1, use $10 for wallet deposits
                 result, provider_used = await payment_manager.create_payment_address(
                     currency=currency,
-                    amount=1.0,  # DynoPay minimum amount requirement
+                    amount=10.0,  # Minimum $10 USD wallet deposit
                     callback_url=primary_callback_url,
                     reference_id=wallet_txn_id,
                     metadata=metadata
