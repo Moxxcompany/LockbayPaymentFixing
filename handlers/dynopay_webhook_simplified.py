@@ -306,6 +306,11 @@ async def _handle_dynopay_generic_webhook(request: Request, webhook_type: str) -
         )
 
         if not reference_id:
+            # payment.pending webhooks may not include meta_data/reference yet — acknowledge and skip
+            event = webhook_data.get("event", "")
+            if event == "payment.pending":
+                logger.info(f"📥 DYNOPAY_{webhook_type.upper()}: Pending payment acknowledged (no reference yet)")
+                return JSONResponse({"status": "success", "message": "Pending payment acknowledged"})
             logger.error(f"❌ DYNOPAY_{webhook_type.upper()}: No reference_id found in webhook payload")
             return JSONResponse({"error": "Missing reference_id"}, status_code=400)
 
