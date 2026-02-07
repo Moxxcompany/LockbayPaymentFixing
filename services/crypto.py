@@ -176,7 +176,7 @@ class CryptoServiceAtomic:
                 # Log financial event for address generation
                 financial_context = FinancialContext(
                     currency=currency,
-                    amount=Decimal("1.0")  # DynoPay minimum amount
+                    amount=Decimal("10.0")  # Minimum $10 USD wallet deposit
                 )
                 
                 # Use async financial audit logger with session if provided
