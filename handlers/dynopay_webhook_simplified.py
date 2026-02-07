@@ -235,6 +235,96 @@ def _trigger_immediate_processing(
         }
 
 
+
+async def _handle_dynopay_generic_webhook(request: Request, webhook_type: str) -> JSONResponse:
+    """
+    Generic handler for DynoPay webhooks routed from backend/server.py.
+    Extracts reference_id from the payload and delegates to the simplified processor.
+    """
+    try:
+        body = await request.body()
+        query_params = dict(request.query_params)
+
+        if not body and query_params:
+            webhook_data = query_params
+        elif body:
+            webhook_data = json.loads(body)
+        else:
+            return JSONResponse({"error": "Empty request"}, status_code=400)
+
+        logger.info(f"📥 DYNOPAY_{webhook_type.upper()}_WEBHOOK: Received: {webhook_data}")
+
+        # Extract reference_id from meta_data or customer_reference
+        meta_data = webhook_data.get("meta_data", {})
+        if isinstance(meta_data, str):
+            try:
+                meta_data = json.loads(meta_data)
+            except Exception:
+                meta_data = {}
+        reference_id = (
+            meta_data.get("refId")
+            or webhook_data.get("customer_reference")
+            or webhook_data.get("reference_id")
+            or ""
+        )
+
+        if not reference_id:
+            logger.error(f"❌ DYNOPAY_{webhook_type.upper()}: No reference_id found in webhook payload")
+            return JSONResponse({"error": "Missing reference_id"}, status_code=400)
+
+        # Normalize and process
+        normalized = _normalize_dynopay_payload(webhook_data, reference_id)
+
+        if not normalized["user_id"]:
+            # Try extracting user_id from meta_data directly
+            user_id_str = meta_data.get("user_id")
+            if user_id_str:
+                try:
+                    normalized["user_id"] = int(user_id_str)
+                except (ValueError, TypeError):
+                    pass
+
+        if not normalized["user_id"]:
+            logger.error(f"❌ DYNOPAY_{webhook_type.upper()}: Could not determine user_id for reference {reference_id}")
+            return JSONResponse({"error": "Cannot determine user"}, status_code=400)
+
+        result = _trigger_immediate_processing(
+            provider="dynopay",
+            txid=normalized["txid"],
+            user_id=normalized["user_id"],
+            amount=normalized["amount"],
+            coin=normalized["coin"],
+            confirmed=normalized["is_confirmed"],
+            order_id=normalized["reference_id"],
+            raw_data=normalized["raw_payload"],
+        )
+
+        if result["success"]:
+            return JSONResponse({"status": "success", "message": result.get("message", "Processed")})
+        else:
+            return JSONResponse({"status": "received", "message": result.get("message", "Will retry")})
+
+    except Exception as e:
+        logger.error(f"❌ DYNOPAY_{webhook_type.upper()}_ERROR: {e}", exc_info=True)
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+async def handle_dynopay_wallet_webhook(request: Request):
+    """Handle DynoPay wallet deposit webhooks."""
+    return await _handle_dynopay_generic_webhook(request, "wallet")
+
+
+async def handle_dynopay_escrow_webhook(request: Request):
+    """Handle DynoPay escrow payment webhooks."""
+    return await _handle_dynopay_generic_webhook(request, "escrow")
+
+
+async def handle_dynopay_exchange_webhook(request: Request):
+    """Handle DynoPay exchange payment webhooks."""
+    return await _handle_dynopay_generic_webhook(request, "exchange")
+
+
+
 @router.get("/dynopay/status")
 async def dynopay_status_simplified():
     """Health check endpoint for simplified DynoPay integration"""
