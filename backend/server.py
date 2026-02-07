@@ -402,6 +402,8 @@ async def lifespan(fastapi_app: FastAPI):
             logger.error(f"Shutdown error: {e}")
 
 
+from fastapi import APIRouter
+
 # Create the FastAPI app
 app = FastAPI(
     title="LockBay Telegram Bot",
@@ -420,8 +422,11 @@ try:
 except Exception:
     templates = None
 
+# All routes go under /api prefix to match Kubernetes ingress routing
+api = APIRouter(prefix="/api")
 
-@app.get("/health")
+
+@api.get("/health")
 async def health():
     return {
         "status": "healthy",
@@ -430,12 +435,12 @@ async def health():
     }
 
 
-@app.get("/")
+@api.get("/")
 async def root():
     return {"status": "LockBay Bot Server", "ready": _startup_complete}
 
 
-@app.post("/webhook")
+@api.post("/webhook")
 async def webhook(request: Request):
     """Handle Telegram webhook updates."""
     import orjson
@@ -468,9 +473,8 @@ async def webhook(request: Request):
 
 
 # DynoPay webhook endpoints
-@app.post("/webhook/dynopay/escrow")
+@api.post("/webhook/dynopay/escrow")
 async def dynopay_escrow_webhook(request: Request):
-    """Forward to original handler."""
     try:
         from handlers.dynopay_webhook_simplified import handle_dynopay_escrow_webhook
         return await handle_dynopay_escrow_webhook(request)
@@ -479,7 +483,7 @@ async def dynopay_escrow_webhook(request: Request):
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
-@app.post("/webhook/dynopay/wallet")
+@api.post("/webhook/dynopay/wallet")
 async def dynopay_wallet_webhook(request: Request):
     try:
         from handlers.dynopay_webhook_simplified import handle_dynopay_wallet_webhook
@@ -489,7 +493,7 @@ async def dynopay_wallet_webhook(request: Request):
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
-@app.post("/webhook/dynopay/exchange")
+@api.post("/webhook/dynopay/exchange")
 async def dynopay_exchange_webhook(request: Request):
     try:
         from handlers.dynopay_webhook_simplified import handle_dynopay_exchange_webhook
@@ -500,7 +504,7 @@ async def dynopay_exchange_webhook(request: Request):
 
 
 # Fincra webhook
-@app.post("/webhook/fincra")
+@api.post("/webhook/fincra")
 async def fincra_webhook(request: Request):
     try:
         from handlers.fincra_webhook_simplified import handle_fincra_webhook
@@ -511,7 +515,7 @@ async def fincra_webhook(request: Request):
 
 
 # BlockBee webhook
-@app.post("/webhook/blockbee/{coin}")
+@api.post("/webhook/blockbee/{coin}")
 async def blockbee_webhook(coin: str, request: Request):
     try:
         from handlers.blockbee_webhook_new import handle_blockbee_callback
@@ -522,7 +526,7 @@ async def blockbee_webhook(coin: str, request: Request):
 
 
 # Twilio webhook
-@app.post("/webhook/twilio/status")
+@api.post("/webhook/twilio/status")
 async def twilio_status_webhook(request: Request):
     try:
         from routes.twilio_webhook import handle_twilio_status_callback
@@ -533,7 +537,7 @@ async def twilio_status_webhook(request: Request):
 
 
 # Public profile page
-@app.get("/u/{profile_slug}")
+@api.get("/u/{profile_slug}")
 async def public_profile(profile_slug: str, request: Request):
     try:
         from services.public_profile_service import PublicProfileService
@@ -549,6 +553,14 @@ async def public_profile(profile_slug: str, request: Request):
 
 
 # Warmup endpoint
-@app.get("/warmup")
+@api.get("/warmup")
 async def warmup():
     return {"status": "warm", "bot_ready": _startup_complete}
+
+# Also add non-prefixed health for internal checks
+@app.get("/health")
+async def internal_health():
+    return {"status": "healthy", "bot_ready": _startup_complete}
+
+# Include the API router
+app.include_router(api)
