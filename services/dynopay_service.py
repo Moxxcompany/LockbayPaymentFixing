@@ -118,6 +118,7 @@ class DynoPayService:
                 "redirect_uri": callback_url,
                 "webhook_url": self.webhook_url,
                 "callback_url": callback_url,
+                "customer_reference": reference_id,
                 "meta_data": meta_data
             }
             
