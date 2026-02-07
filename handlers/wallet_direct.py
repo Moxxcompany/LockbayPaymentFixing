@@ -5700,7 +5700,7 @@ async def handle_deposit_currency_selection(update: Update, context: ContextType
 
 {emoji} <code>{crypto_address}</code>
 
-⚡ Send only {currency} (Min: $1 USD)
+⚡ Send only {currency} (Min: $10 USD)
 ⚡ Instant credit | Powered by {payment_provider.title()}
 ⏰ Expires: 2 hours
 
