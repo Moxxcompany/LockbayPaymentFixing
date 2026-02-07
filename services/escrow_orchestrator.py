@@ -303,15 +303,23 @@ class EscrowOrchestrator:
                 # Normalize webhook URL
                 base_url = normalize_webhook_base_url(Config.WEBHOOK_URL)
                 provider = payment_manager.primary_provider.value
-                callback_url = f"{base_url}/webhook/dynopay/escrow" if provider == 'dynopay' else f"{base_url}/blockbee/callback/{escrow_id}"
+                callback_url = f"{base_url}/dynopay/escrow" if provider == 'dynopay' else f"{base_url}/blockbee/callback/{escrow_id}"
+                
+                # When seller pays fee, buyer only needs to send the base amount
+                if request.fee_split_option == 'seller_pays':
+                    crypto_amount = float(request.amount)
+                elif request.fee_split_option == 'split':
+                    crypto_amount = float(request.amount + (buyer_fee_amount or Decimal('0')))
+                else:
+                    crypto_amount = float(request.total_amount or request.amount)
                 
                 # Generate payment address BEFORE DB transaction
                 address_data, provider_used = await payment_manager.create_payment_address(
                     currency=crypto_currency,
-                    amount=float(request.total_amount or request.amount),
+                    amount=crypto_amount,
                     callback_url=callback_url,
                     reference_id=escrow_id,  # Use escrow_id as reference
-                    metadata={'escrow_id': escrow_id, 'utid': escrow_utid, 'amount_usd': float(request.total_amount or request.amount)}
+                    metadata={'escrow_id': escrow_id, 'utid': escrow_utid, 'amount_usd': crypto_amount}
                 )
                 
                 if address_data.get('address'):
