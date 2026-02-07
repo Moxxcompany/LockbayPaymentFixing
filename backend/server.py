@@ -495,6 +495,7 @@ async def dynopay_generic_webhook(request: Request):
             except Exception:
                 meta = {}
         ref = meta.get("refId", "") or data.get("customer_reference", "") or ""
+        logger.info(f"📥 DYNOPAY_GENERIC: ref={ref}, routing...")
         
         # Route based on reference pattern
         if ref.startswith("WALLET-"):
@@ -504,7 +505,6 @@ async def dynopay_generic_webhook(request: Request):
         elif ref.startswith("EX") or ref.startswith("EXCHANGE-"):
             return await handle_dynopay_exchange_webhook(request)
         else:
-            # Default to wallet
             return await handle_dynopay_wallet_webhook(request)
     except Exception as e:
         logger.error(f"DynoPay generic webhook error: {e}")
