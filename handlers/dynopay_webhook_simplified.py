@@ -157,16 +157,21 @@ def _normalize_dynopay_payload(webhook_data: Dict[str, Any], reference_id: str) 
     if not transaction_id:
         raise HTTPException(status_code=400, detail="Missing transaction ID in webhook")
     
-    # Extract user ID from reference_id (for ESCROW- orders)
+    # Extract user ID from reference_id (ESCROW-{user_id}-... or WALLET-YYYYMMDD-HHMMSS-{user_id})
     user_id = None
     if reference_id.startswith("ESCROW-") and "-" in reference_id:
         try:
-            # Extract user ID from ESCROW-{user_id}-{timestamp} format
             parts = reference_id.split("-")
             if len(parts) >= 2:
                 user_id = int(parts[1])
         except (ValueError, IndexError):
             logger.warning(f"⚠️ USER_ID_EXTRACT: Could not extract user_id from reference_id: {reference_id}")
+    elif reference_id.startswith("WALLET-") and "-" in reference_id:
+        try:
+            # Format: WALLET-YYYYMMDD-HHMMSS-{user_id}
+            user_id = int(reference_id.split("-")[-1])
+        except (ValueError, IndexError):
+            logger.warning(f"⚠️ USER_ID_EXTRACT: Could not extract user_id from wallet reference: {reference_id}")
     
     # Determine if payment is confirmed
     is_confirmed = status in ["completed", "success", "confirmed"]
