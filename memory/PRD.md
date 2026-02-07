@@ -1,34 +1,36 @@
-# LockBay Escrow Bot - PRD
+# LockBay Telegram Escrow Bot - PRD
 
-## Problem Statement
-Set up and install the LockBay Telegram Escrow Bot from GitHub repo, configure webhook with pod URL.
+## Original Problem Statement
+Set up, install dependencies and ensure the current pod URL is used for the webhook URL.
 
 ## Architecture
-- **Platform**: Python Telegram Bot (python-telegram-bot v22)
-- **Web Framework**: FastAPI (webhook server)
-- **Database**: PostgreSQL (Railway)
-- **Payment Processors**: DynoPay, Fincra, BlockBee, Kraken
-- **Email**: Brevo (SendinBlue)
-- **SMS**: Twilio
+- **Type**: Python Telegram Bot with FastAPI webhook server
+- **Database**: Neon PostgreSQL (production) + Railway PostgreSQL (backup)
+- **Bot Framework**: python-telegram-bot v22
+- **Web Framework**: FastAPI (served via uvicorn on port 8001)
+- **Integrations**: BlockBee (crypto), Fincra (NGN payments), DynoPay, Twilio (SMS), Brevo (email), Kraken
 
-## What's Been Implemented (Feb 7, 2026)
-- Cloned repo from `https://github.com/Moxxcompany/Lockbayescrow/`
-- Installed all Python dependencies (40+ packages)
-- Created `/app/.env` with full production credentials
-- Created `/app/backend/server.py` wrapper with bot initialization + FastAPI routes under `/api` prefix
-- Configured Telegram webhook URL: `https://e9e133e1-9bd6-4c9a-95ef-0562843a77d7.preview.emergentagent.com/api/webhook`
-- Verified webhook registration with Telegram API
-- All handlers registered (emergency, direct, callback, command, text routing)
-- Database connected (Railway PostgreSQL)
-- Backend running on port 8001 via supervisor
+## What's Been Implemented (2026-02-07)
+- Cloned repo from GitHub (Moxxcompany/LockbayPaymentFixing)
+- Created `.env` with all required environment variables
+- Updated WEBHOOK_URL and TELEGRAM_WEBHOOK_URL to current pod URL
+- Installed all Python dependencies from requirements.txt
+- Backend server running on port 8001 via supervisor
+- Database connected (65 tables verified)
+- Telegram webhook registered and confirmed
 
-## Verified Working
-- `/api/health` → healthy, bot_ready: true
-- `/api/webhook` → receiving and processing Telegram updates
-- Telegram getWebhookInfo → URL registered, 0 pending updates
+## Core Requirements
+- Telegram bot for escrow trading
+- Multi-provider payment processing (crypto, NGN, fiat)
+- Webhook handling for payment callbacks
+- Admin dashboard and management tools
+- User wallet, ratings, disputes system
 
-## Backlog
-- P0: Test actual Telegram bot interactions (send /start)
-- P1: Set up Redis for state management (currently using DB fallback)
-- P2: Monitor webhook processing performance
-- P3: Set up scheduled jobs (ConsolidatedScheduler)
+## Prioritized Backlog
+- P0: All core features operational (DONE - setup complete)
+- P1: Monitor webhook delivery and bot responsiveness
+- P2: Email queue (currently in NO-OP mode - Redis/Replit KV not available)
+
+## Next Tasks
+- Test bot interactions via Telegram
+- Verify payment webhook flows end-to-end
