@@ -119,6 +119,20 @@ class SimplifiedPaymentProcessor:
         # Get USD amount (handle both crypto and fiat)
         usd_amount = self._get_usd_amount(amount, currency, payment_type)
         
+        # MINIMUM DEPOSIT ENFORCEMENT: Reject deposits below $10 USD
+        MIN_WALLET_DEPOSIT_USD = Decimal("10.0")
+        if usd_amount < MIN_WALLET_DEPOSIT_USD:
+            self.logger.warning(
+                f"⚠️ BELOW_MINIMUM: {txid} - ${usd_amount} is below minimum ${MIN_WALLET_DEPOSIT_USD} USD. "
+                f"Payment NOT credited for user {user_id}."
+            )
+            return {
+                "success": False,
+                "reason": "below_minimum",
+                "message": f"Payment of ${usd_amount} is below the minimum deposit of ${MIN_WALLET_DEPOSIT_USD} USD",
+                "amount": float(usd_amount)
+            }
+        
         try:
             # Update or create deposit record
             deposit = session.execute(
