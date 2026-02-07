@@ -768,12 +768,14 @@ def register_fincra_handlers(application):
 
     # Removed manual payment status check handler - payments auto-confirm via background jobs
 
-    # Message handler for NGN amount input
+    # Message handler for NGN amount input - ONLY when in NGN funding flow
+    # Uses group=2 to avoid blocking the unified text router (group=0)
     application.add_handler(
         MessageHandler(
             filters.TEXT & ~filters.COMMAND,
             FincraPaymentHandler.handle_ngn_amount_input,
-        )
+        ),
+        group=2
     )
 
     logger.info("Fincra payment handlers registered successfully")
