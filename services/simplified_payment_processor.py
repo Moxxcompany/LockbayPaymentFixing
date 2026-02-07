@@ -213,7 +213,7 @@ class SimplifiedPaymentProcessor:
                 amount=usd_amount,
                 currency="USD",
                 status="completed",
-                transaction_id=f"DEPOSIT-{provider.upper()}-{txid}-{user_id}",
+                transaction_id=f"DEP-{txid[:20]}-{user_id}"[:36],
                 description=f"Payment: {amount} {currency.upper()} from {provider}",
                 blockchain_tx_hash=txid,
                 provider=provider,
