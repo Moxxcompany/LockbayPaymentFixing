@@ -9,16 +9,16 @@ No background jobs, no complex queues, no over-engineering.
 import logging
 import json
 from decimal import Decimal
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException, Request, Header
 from fastapi.responses import JSONResponse
 from typing import Optional, Dict, Any
-from sqlalchemy import and_
+from sqlalchemy import and_, or_, select
 
 from database import get_db_session
-from models import CryptoDeposit, CryptoDepositStatus, User
+from models import CryptoDeposit, CryptoDepositStatus, User, Transaction
 from services.simplified_payment_processor import simplified_payment_processor
-from utils.session_manager import SessionManager
+from utils.session_manager import SessionManager, get_sync_db_session
 
 logger = logging.getLogger(__name__)
 
