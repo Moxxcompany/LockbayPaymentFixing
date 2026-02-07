@@ -463,6 +463,13 @@ async def webhook(request: Request):
             return JSONResponse({"error": "Invalid update"}, status_code=400)
 
         # Process asynchronously
+        msg_type = "callback_query" if update.callback_query else "message" if update.message else "other"
+        msg_text = ""
+        if update.message and update.message.text:
+            msg_text = update.message.text[:30]
+        elif update.callback_query and update.callback_query.data:
+            msg_text = update.callback_query.data[:30]
+        logger.info(f"📨 WEBHOOK_UPDATE: type={msg_type}, text='{msg_text}', user={update.effective_user.id if update.effective_user else 'unknown'}")
         asyncio.create_task(_bot_application.process_update(update))
 
         return JSONResponse({"ok": True})
