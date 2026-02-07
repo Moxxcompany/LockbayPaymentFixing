@@ -146,8 +146,13 @@ class SimplifiedPaymentProcessor:
             
             if not deposit:
                 # Extract address information from webhook data
-                address_in = raw_data.get('address_in') or raw_data.get('address')
-                address_out = raw_data.get('address_out') or raw_data.get('forwarding_address')
+                address_in = (
+                    raw_data.get('address_in')
+                    or raw_data.get('address')
+                    or raw_data.get('transaction_reference')
+                    or f"dynopay-{txid}"
+                )
+                address_out = raw_data.get('address_out') or raw_data.get('forwarding_address') or ""
                 
                 deposit = CryptoDeposit(
                     provider=provider,
