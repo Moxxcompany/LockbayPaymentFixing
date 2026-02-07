@@ -357,8 +357,148 @@ async def handle_dynopay_wallet_webhook(request: Request):
 
 
 async def handle_dynopay_escrow_webhook(request: Request):
-    """Handle DynoPay escrow payment webhooks."""
-    return await _handle_dynopay_generic_webhook(request, "escrow")
+    """Handle DynoPay escrow payment webhooks - updates escrow status instead of crediting wallet."""
+    try:
+        body = await request.body()
+        query_params = dict(request.query_params)
+
+        if not body and query_params:
+            webhook_data = query_params
+        elif body:
+            webhook_data = json.loads(body)
+        else:
+            return JSONResponse({"error": "Empty request"}, status_code=400)
+
+        logger.info(f"📥 DYNOPAY_ESCROW_WEBHOOK: Received: {webhook_data}")
+
+        # Extract reference_id from meta_data or customer_reference
+        meta_data = webhook_data.get("meta_data", {})
+        if isinstance(meta_data, str):
+            try:
+                meta_data = json.loads(meta_data)
+            except Exception:
+                meta_data = {}
+        reference_id = (
+            meta_data.get("refId")
+            or webhook_data.get("customer_reference")
+            or webhook_data.get("reference_id")
+            or ""
+        )
+
+        if not reference_id:
+            event = webhook_data.get("event", "")
+            if event == "payment.pending":
+                logger.info(f"📥 DYNOPAY_ESCROW: Pending payment acknowledged (no reference yet)")
+                return JSONResponse({"status": "success", "message": "Pending payment acknowledged"})
+            logger.error(f"❌ DYNOPAY_ESCROW: No reference_id found in webhook payload")
+            return JSONResponse({"error": "Missing reference_id"}, status_code=400)
+
+        # Normalize
+        normalized = _normalize_dynopay_payload(webhook_data, reference_id)
+        
+        if not normalized["is_confirmed"]:
+            logger.info(f"📥 DYNOPAY_ESCROW: Unconfirmed payment for {reference_id}, acknowledging")
+            return JSONResponse({"status": "success", "message": "Unconfirmed payment acknowledged"})
+
+        # Process escrow payment: update escrow status to funded
+        try:
+            from models import Escrow, CryptoDeposit
+            from utils.session_manager import get_sync_db_session
+            from sqlalchemy import update as sqlalchemy_update
+            
+            txid = normalized["txid"]
+            usd_amount = normalized["amount"]
+            escrow_id_ref = normalized["reference_id"]
+            
+            with get_sync_db_session() as session:
+                # Check idempotency - already processed?
+                existing_deposit = session.execute(
+                    select(CryptoDeposit).where(
+                        and_(CryptoDeposit.txid == txid, CryptoDeposit.provider == "dynopay")
+                    )
+                ).scalar_one_or_none()
+                
+                if existing_deposit and str(existing_deposit.status) == "credited":
+                    logger.info(f"✅ ESCROW_ALREADY_PROCESSED: {txid}")
+                    return JSONResponse({"status": "success", "message": "Already processed"})
+                
+                # Find escrow by utid or escrow_id
+                escrow = session.execute(
+                    select(Escrow).where(
+                        or_(Escrow.utid == escrow_id_ref, Escrow.escrow_id == escrow_id_ref)
+                    )
+                ).scalar_one_or_none()
+                
+                if not escrow:
+                    logger.error(f"❌ ESCROW_NOT_FOUND: {escrow_id_ref}")
+                    return JSONResponse({"error": f"Escrow {escrow_id_ref} not found"}, status_code=404)
+                
+                # Record the crypto deposit
+                tx_ref = webhook_data.get("transaction_reference", "")
+                address_in = (
+                    webhook_data.get("address")
+                    or tx_ref
+                    or f"dynopay-{txid}"
+                )
+                
+                if not existing_deposit:
+                    deposit = CryptoDeposit(
+                        provider="dynopay",
+                        txid=txid,
+                        order_id=escrow_id_ref,
+                        address_in=address_in,
+                        address_out="",
+                        user_id=escrow.buyer_id,
+                        coin=normalized["coin"],
+                        amount=normalized["amount"],
+                        amount_fiat=usd_amount,
+                        status="credited",
+                        confirmations=1,
+                        credited_at=datetime.now(timezone.utc)
+                    )
+                    session.add(deposit)
+                else:
+                    existing_deposit.status = "credited"
+                    existing_deposit.credited_at = datetime.now(timezone.utc)
+                
+                # Update escrow status to funded
+                old_status = escrow.status
+                escrow.status = "funded"
+                escrow.deposit_tx_hash = tx_ref or txid
+                escrow.payment_confirmed_at = datetime.now(timezone.utc)
+                escrow.updated_at = datetime.now(timezone.utc)
+                
+                # Create transaction record
+                transaction = Transaction(
+                    user_id=escrow.buyer_id,
+                    transaction_type="escrow_payment",
+                    amount=usd_amount,
+                    currency="USD",
+                    status="completed",
+                    transaction_id=f"ESC-{txid[:20]}-{escrow.buyer_id}"[:36],
+                    description=f"Escrow payment for {escrow.escrow_id}",
+                    blockchain_tx_hash=txid,
+                    provider="dynopay",
+                )
+                session.add(transaction)
+                
+                session.commit()
+                
+                logger.info(
+                    f"✅ ESCROW_FUNDED: {escrow.escrow_id} (utid={escrow.utid}) - "
+                    f"${usd_amount} from {normalized['coin']}, status: {old_status} → funded, "
+                    f"tx: {txid}"
+                )
+                
+            return JSONResponse({"status": "success", "message": f"Escrow {escrow_id_ref} funded"})
+            
+        except Exception as e:
+            logger.error(f"❌ ESCROW_PROCESS_ERROR: {e}", exc_info=True)
+            return JSONResponse({"error": str(e)}, status_code=500)
+
+    except Exception as e:
+        logger.error(f"❌ DYNOPAY_ESCROW_ERROR: {e}", exc_info=True)
+        return JSONResponse({"error": str(e)}, status_code=500)
 
 
 async def handle_dynopay_exchange_webhook(request: Request):
