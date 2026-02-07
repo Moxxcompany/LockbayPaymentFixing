@@ -194,8 +194,11 @@ Ready to proceed?"""
 
 # URL normalization helper
 def normalize_webhook_base_url(base_url: str) -> str:
-    """Remove /webhook suffix if present to prevent double paths"""
-    return base_url.rstrip('/').removesuffix('/webhook') if base_url else ''
+    """Ensure base URL ends with /webhook for proper callback routing"""
+    url = base_url.rstrip('/')
+    if not url.endswith('/webhook'):
+        url = url.rstrip('/') + '/webhook'
+    return url
 
 # Global cache for trade data auto-refresh
 _trade_cache = {"last_refresh": None, "stats": {}}
