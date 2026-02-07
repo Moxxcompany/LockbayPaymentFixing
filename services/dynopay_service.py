@@ -115,6 +115,8 @@ class DynoPayService:
                 "amount": float(amount),  # Convert Decimal to float for JSON serialization
                 "currency": dynopay_currency,
                 "redirect_uri": callback_url,
+                "webhook_url": self.webhook_url,
+                "callback_url": callback_url,
                 "meta_data": meta_data
             }
             
