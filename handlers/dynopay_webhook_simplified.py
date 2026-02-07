@@ -148,11 +148,19 @@ def _normalize_dynopay_payload(webhook_data: Dict[str, Any], reference_id: str) 
     """
     Normalize DynoPay payload into standardized format for simplified processor
     """
-    # Extract core transaction data
-    transaction_id = webhook_data.get("id", "")
-    paid_amount = webhook_data.get("paid_amount", 0)
-    paid_currency = webhook_data.get("paid_currency", "").upper()
+    # Extract core transaction data - DynoPay uses payment_id, transaction_reference, or id
+    transaction_id = (
+        webhook_data.get("payment_id")
+        or webhook_data.get("transaction_reference")
+        or webhook_data.get("txId")
+        or webhook_data.get("id")
+        or ""
+    )
+    # Amount fields: DynoPay uses 'amount' or 'paid_amount'
+    paid_amount = webhook_data.get("paid_amount") or webhook_data.get("amount", 0)
+    paid_currency = (webhook_data.get("paid_currency") or webhook_data.get("currency") or "").upper()
     status = webhook_data.get("status", "").lower()
+    event = webhook_data.get("event", "").lower()
     
     if not transaction_id:
         raise HTTPException(status_code=400, detail="Missing transaction ID in webhook")
@@ -173,13 +181,36 @@ def _normalize_dynopay_payload(webhook_data: Dict[str, Any], reference_id: str) 
         except (ValueError, IndexError):
             logger.warning(f"⚠️ USER_ID_EXTRACT: Could not extract user_id from wallet reference: {reference_id}")
     
-    # Determine if payment is confirmed
-    is_confirmed = status in ["completed", "success", "confirmed"]
+    # Also try meta_data.user_id as fallback
+    if not user_id:
+        meta_data = webhook_data.get("meta_data", {})
+        if isinstance(meta_data, dict):
+            uid = meta_data.get("user_id")
+            if uid:
+                try:
+                    user_id = int(uid)
+                except (ValueError, TypeError):
+                    pass
     
-    try:
-        amount_decimal = Decimal(str(paid_amount))
-    except (ValueError, TypeError):
-        amount_decimal = Decimal('0')
+    # Determine if payment is confirmed - check both status and event fields
+    is_confirmed = (
+        status in ["completed", "success", "confirmed", "processing"]
+        or event in ["payment.confirmed", "payment.completed", "payment.success"]
+    )
+    
+    # Use base_amount (USD) if available, otherwise use crypto amount
+    base_amount = webhook_data.get("base_amount")
+    if base_amount and webhook_data.get("base_currency", "").upper() == "USD":
+        try:
+            amount_decimal = Decimal(str(base_amount))
+        except (ValueError, TypeError):
+            amount_decimal = Decimal('0')
+        paid_currency = "USD"
+    else:
+        try:
+            amount_decimal = Decimal(str(paid_amount))
+        except (ValueError, TypeError):
+            amount_decimal = Decimal('0')
     
     normalized = {
         "provider": "dynopay",
