@@ -28,6 +28,7 @@ class DynoPayService:
         self.api_key = getattr(Config, 'DYNOPAY_API_KEY', None)
         self.wallet_token = getattr(Config, 'DYNOPAY_WALLET_TOKEN', None)
         self.base_url = getattr(Config, 'DYNOPAY_BASE_URL', 'https://user-api.dynopay.com/api')
+        self.webhook_url = getattr(Config, 'DYNOPAY_WEBHOOK_URL', None)
         
         if not self.api_key or not self.wallet_token:
             logger.warning("DynoPay API credentials not configured - service will not function")
