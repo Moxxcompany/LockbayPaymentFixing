@@ -18,7 +18,7 @@ from sqlalchemy import and_, or_, select
 from database import get_db_session
 from models import CryptoDeposit, CryptoDepositStatus, User, Transaction
 from services.simplified_payment_processor import simplified_payment_processor
-from utils.session_manager import SessionManager, get_sync_db_session
+from utils.session_manager import SessionManager
 
 logger = logging.getLogger(__name__)
 
