@@ -1341,6 +1341,44 @@ class BlockBeeService(APIAdapterRetry):
 
                     if is_escrow and escrow:
                         logger.info(f"Successfully activated escrow {escrow.escrow_id} from crypto payment")
+                        
+                        # CRITICAL FIX: Send notifications for unified path (which skips legacy notification block)
+                        if unified_processing_completed:
+                            try:
+                                session.commit()
+                                logger.info(f"📋 UNIFIED_BLOCKBEE_NOTIFICATION: Sending notifications for {escrow.escrow_id}")
+                                
+                                from services.notification_service import notification_service
+                                seller_email = getattr(escrow, 'seller_email', None)
+                                seller_phone = getattr(escrow, 'seller_phone', None)
+                                seller_username = getattr(escrow, 'seller_username', None)
+                                
+                                if seller_email:
+                                    seller_identifier = seller_email
+                                    seller_type = 'email'
+                                elif seller_phone:
+                                    seller_identifier = seller_phone
+                                    seller_type = 'phone'
+                                elif seller_username:
+                                    seller_identifier = seller_username
+                                    seller_type = 'username'
+                                else:
+                                    seller_identifier = None
+                                    seller_type = None
+                                
+                                if seller_identifier and seller_type:
+                                    await notification_service.send_seller_invitation(
+                                        escrow_id=str(escrow.escrow_id),
+                                        seller_identifier=seller_identifier,
+                                        seller_type=seller_type,
+                                        amount=float(getattr(escrow, 'total_amount', 0) or 0)
+                                    )
+                                    logger.info(f"✅ UNIFIED_BLOCKBEE: Seller notification sent for {escrow.escrow_id}")
+                                
+                                await self._send_escrow_buyer_confirmation(escrow, txid_in, value_fiat)
+                                logger.info(f"✅ UNIFIED_BLOCKBEE: Buyer confirmation sent for {escrow.escrow_id}")
+                            except Exception as notif_err:
+                                logger.error(f"❌ UNIFIED_BLOCKBEE: Notification error for {escrow.escrow_id}: {notif_err}")
                     elif not is_escrow and exchange_order:
                         logger.info(f"Successfully processed exchange order {exchange_order.id} from crypto payment")
                 else:
