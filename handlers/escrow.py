@@ -8495,11 +8495,13 @@ async def handle_view_trade(update: TelegramUpdate, context: ContextTypes.DEFAUL
                 payment_confirmed_at = getattr(escrow, 'payment_confirmed_at', None)
                 expires_at = getattr(escrow, 'expires_at', None)
                 
-                # Calculate seller acceptance deadline
-                if not expires_at and payment_confirmed_at:
+                # Calculate seller acceptance deadline - ALWAYS recalculate from payment_confirmed_at
+                if payment_confirmed_at:
                     from config import Config as AppConfig
                     seller_timeout_minutes = getattr(AppConfig, 'SELLER_RESPONSE_TIMEOUT_MINUTES', 1440)  # 24 hours
-                    expires_at = payment_confirmed_at + timedelta(minutes=seller_timeout_minutes)
+                    calculated_expires = payment_confirmed_at + timedelta(minutes=seller_timeout_minutes)
+                    if not expires_at or calculated_expires > expires_at:
+                        expires_at = calculated_expires
                 
                 if expires_at:
                     current_time = datetime.now(timezone.utc)
