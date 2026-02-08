@@ -196,6 +196,7 @@ class ApiResilienceService:
         """Get appropriate health check URL for each service"""
         health_checks = {
             "blockbee": "https://api.blockbee.io/info/",
+            "tatum": "https://api.tatum.io/v4/data/rate/symbol?symbol=BTC&basePair=USD",
             "fastforex": "https://api.fastforex.io/currencies",  # Lightweight endpoint
             "binance": "https://api.binance.com/api/v3/ping",
             "fincra": "https://api.fincra.com/auth/healthz",  # Basic health endpoint
