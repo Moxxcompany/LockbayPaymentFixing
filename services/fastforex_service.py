@@ -218,7 +218,10 @@ class FastForexService(APIAdapterRetry):
             return None
         
         try:
-            async with aiohttp.ClientSession() as session:
+            headers = {}
+            if COINGECKO_API_KEY:
+                headers["x-cg-demo-api-key"] = COINGECKO_API_KEY
+            async with aiohttp.ClientSession(headers=headers) as session:
                 params = {"ids": coin_id, "vs_currencies": "usd"}
                 timeout = aiohttp.ClientTimeout(total=10)
                 async with session.get(COINGECKO_API_URL, params=params, timeout=timeout) as response:
