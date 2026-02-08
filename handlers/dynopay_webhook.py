@@ -739,24 +739,30 @@ class DynoPayWebhookHandler:
                         elif not result_to_return:
                             # MAIN PAYMENT PROCESSING: All within session block
                         
-                            # Convert payment amount to USD for escrow processing
-                            crypto_amount_decimal = Decimal(str(paid_amount))
+                            crypto_amount_decimal = Decimal(str(raw_crypto_amount))
                         
-                            # PERFORMANCE OPTIMIZATION: Cache exchange rates to avoid repeated API calls
-                            usd_rate = await DynoPayWebhookHandler._get_cached_exchange_rate(str(paid_currency) if paid_currency is not None else 'USD')
-                        
-                            # CRITICAL FIX: Handle None rate (exchange rate unavailable - need retry)
-                            if usd_rate is None:
-                                logger.warning(f"⚠️ WEBHOOK_RATE_RETRY: Exchange rate unavailable for {paid_currency}, marking for retry")
-                                result_to_return = {
-                                    "status": "retry",
-                                    "message": f"Exchange rate unavailable for {paid_currency}, will retry",
-                                    "escrow_id": escrow_escrow_id,
-                                    "transaction_id": transaction_id
-                                }
+                            # Use DynoPay base_amount (USD) if available, otherwise convert via exchange rate
+                            if dynopay_base_amt and dynopay_base_curr == 'USD':
+                                usd_amount = Decimal(str(dynopay_base_amt))
+                                usd_rate = Decimal(str(webhook_data.get('exchange_rate', 0))) if webhook_data.get('exchange_rate') else None
+                                logger.info(f"📊 DYNOPAY_USD_DIRECT: Using base_amount=${usd_amount} for escrow processing")
                             else:
-                                # Safe to use usd_rate now (guaranteed not None)
-                                usd_amount = crypto_amount_decimal * Decimal(str(usd_rate))
+                                # PERFORMANCE OPTIMIZATION: Cache exchange rates to avoid repeated API calls
+                                usd_rate = await DynoPayWebhookHandler._get_cached_exchange_rate(str(paid_currency) if paid_currency is not None else 'USD')
+                        
+                                # CRITICAL FIX: Handle None rate (exchange rate unavailable - need retry)
+                                if usd_rate is None:
+                                    logger.warning(f"⚠️ WEBHOOK_RATE_RETRY: Exchange rate unavailable for {paid_currency}, marking for retry")
+                                    result_to_return = {
+                                        "status": "retry",
+                                        "message": f"Exchange rate unavailable for {paid_currency}, will retry",
+                                        "escrow_id": escrow_escrow_id,
+                                        "transaction_id": transaction_id
+                                    }
+                                else:
+                                    usd_amount = crypto_amount_decimal * Decimal(str(usd_rate))
+                            
+                            if not result_to_return:
                             
                                 # CRITICAL FIX: Don't create duplicate transaction here
                                 # EscrowFundManager creates the correct transaction with ESCROW_PAYMENT type
