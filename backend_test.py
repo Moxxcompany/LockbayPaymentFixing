@@ -203,8 +203,9 @@ class PaymentFixTester:
     def test_webhook_endpoints_exist(self):
         """Test that webhook endpoints are accessible"""
         endpoints = [
-            "/api/webhook/dynopay",
-            "/api/webhook/blockbee/callback/test-order",
+            "/webhook/dynopay/escrow",
+            "/webhook/dynopay/wallet", 
+            "/blockbee/callback/test-order",
         ]
         
         for endpoint in endpoints:
