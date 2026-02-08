@@ -1011,7 +1011,7 @@ Available tokens:
 
     # Kraken Configuration for Alternative Withdrawals
     KRAKEN_API_KEY = os.getenv("KRAKEN_API_KEY")
-    KRAKEN_SECRET_KEY = os.getenv("KRAKEN_SECRET_KEY")
+    KRAKEN_SECRET_KEY = os.getenv("KRAKEN_SECRET_KEY") or os.getenv("KRAKEN_PRIVATE_KEY")
     KRAKEN_ENABLED = bool(KRAKEN_API_KEY and KRAKEN_SECRET_KEY)
     
     # Kraken minimum withdrawal amounts (in crypto units - from official Kraken docs)
