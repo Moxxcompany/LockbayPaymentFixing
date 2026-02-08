@@ -17,6 +17,28 @@ from models import CashoutErrorCode
 
 logger = logging.getLogger(__name__)
 
+# CoinGecko symbol mapping (free API, no key required)
+COINGECKO_SYMBOL_MAP = {
+    "BTC": "bitcoin",
+    "ETH": "ethereum",
+    "LTC": "litecoin",
+    "DOGE": "dogecoin",
+    "BCH": "bitcoin-cash",
+    "BNB": "binancecoin",
+    "TRX": "tron",
+    "USDT": "tether",
+    "XRP": "ripple",
+    "ADA": "cardano",
+    "DOT": "polkadot",
+    "XLM": "stellar",
+    "XMR": "monero",
+    "ZEC": "zcash",
+    "LINK": "chainlink",
+    "XTZ": "tezos",
+    "REP": "augur",
+}
+COINGECKO_API_URL = "https://api.coingecko.com/api/v3/simple/price"
+
 
 class FastForexAPIError(Exception):
     """Custom exception for FastForex API errors"""
