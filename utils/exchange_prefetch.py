@@ -695,8 +695,8 @@ class ExchangeRateFallbackService:
 
         # Check each source
         for source in [
+            RateSource.TATUM,
             RateSource.FASTFOREX,
-            RateSource.COINGECKO,
             RateSource.EXCHANGERATES,
         ]:
             cb = self._get_circuit_breaker(source.value)
