@@ -236,6 +236,49 @@ class FastForexService(APIAdapterRetry):
         
         return None
 
+    async def _fetch_coingecko_batch_rates(self, symbols: list) -> Dict[str, Decimal]:
+        """
+        Batch-fetch multiple crypto→USD rates from CoinGecko in a single API call.
+        Much more efficient than individual calls and avoids rate-limiting.
+        """
+        # Map standard symbols to CoinGecko IDs
+        coin_ids = {}
+        for sym in symbols:
+            coin_id = COINGECKO_SYMBOL_MAP.get(sym)
+            if coin_id:
+                coin_ids[sym] = coin_id
+        
+        if not coin_ids:
+            return {}
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                params = {
+                    "ids": ",".join(coin_ids.values()),
+                    "vs_currencies": "usd"
+                }
+                timeout = aiohttp.ClientTimeout(total=15)
+                async with session.get(COINGECKO_API_URL, params=params, timeout=timeout) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        rates = {}
+                        for sym, coin_id in coin_ids.items():
+                            if coin_id in data and "usd" in data[coin_id]:
+                                rates[sym] = Decimal(str(data[coin_id]["usd"]))
+                        if rates:
+                            logger.info(f"🦎 CoinGecko batch: {len(rates)} rates fetched ({', '.join(rates.keys())})")
+                        return rates
+                    elif response.status == 429:
+                        logger.warning("🦎 CoinGecko batch rate-limited")
+                    else:
+                        logger.warning(f"🦎 CoinGecko batch API error: {response.status}")
+        except asyncio.TimeoutError:
+            logger.warning("🦎 CoinGecko batch API timeout")
+        except Exception as e:
+            logger.warning(f"🦎 CoinGecko batch API error: {e}")
+        
+        return {}
+
     async def get_crypto_to_usd_rate(self, crypto_symbol: str) -> Decimal:
         """Get cryptocurrency to USD exchange rate with intelligent caching.
         
