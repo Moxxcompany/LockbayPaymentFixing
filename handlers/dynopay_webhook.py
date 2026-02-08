@@ -1835,23 +1835,27 @@ To: {seller_identifier}{referral_section}
             
             logger.info(f"💰 WALLET_DEPOSIT: Processing deposit for user {user_id}, {paid_amount} {paid_currency}, txid: {transaction_id}")
             
-            # CRITICAL FIX: Convert crypto to USD before crediting wallet
-            # Mirroring escrow fix from unified_payment_processor.py lines 80-92
+            # CRITICAL FIX: Use DynoPay's base_amount (USD) when available
+            # This mirrors the escrow handler's approach and prevents rate discrepancy losses
             from services.fastforex_service import FastForexService
             forex_service = FastForexService()
             
-            if paid_currency == 'USD':
+            if dynopay_base_amount and dynopay_base_currency == 'USD':
+                # DynoPay already provided authoritative USD value - use it directly
+                usd_amount = Decimal(str(dynopay_base_amount))
+                logger.info(f"💱 WALLET_USD_AUTHORITATIVE: Using DynoPay base_amount=${usd_amount:.2f} (crypto: {crypto_amount} {paid_currency})")
+            elif paid_currency == 'USD':
                 usd_amount = Decimal(str(paid_amount or 0))
                 logger.info(f"💱 WALLET_USD: Direct USD deposit: ${usd_amount:.2f}")
             else:
-                # Convert crypto to USD using cached rate
+                # Fallback: Convert crypto to USD using cached rate (only when no base_amount)
                 crypto_rate = await forex_service.get_crypto_to_usd_rate(paid_currency)
                 if crypto_rate is None:
                     logger.error(f"❌ WALLET_RATE_UNAVAILABLE: No rate available for {paid_currency}")
                     return {"status": "retry", "message": f"Exchange rate unavailable for {paid_currency}"}
                 
                 usd_amount = Decimal(str(paid_amount or 0)) * Decimal(str(crypto_rate))
-                logger.info(f"💱 WALLET_USD_CONVERSION: Converted {paid_amount} {paid_currency} to ${usd_amount:.2f} USD (rate: ${crypto_rate:.2f})")
+                logger.info(f"💱 WALLET_USD_CONVERSION_FALLBACK: Converted {paid_amount} {paid_currency} to ${usd_amount:.2f} USD (rate: ${crypto_rate:.2f})")
             
             # Use async session to credit wallet
             from models import Wallet, CryptoDeposit, CryptoDepositStatus
