@@ -136,19 +136,25 @@ class DynoPayWebhookHandler:
         start_time = time.time()
         
         try:
-            # Extract webhook data
+            # Determine event type - skip payment.pending events (only process confirmed)
+            event_type = webhook_data.get('event', '')
+            if event_type == 'payment.pending':
+                logger.info(f"📋 DYNOPAY_WEBHOOK: Received payment.pending event - acknowledging (txId: {webhook_data.get('txId', 'unknown')})")
+                return {"status": "ok", "message": "Pending event acknowledged"}
+            
+            # Extract webhook data with field mapping (DynoPay actual format → expected format)
             meta_data = webhook_data.get('meta_data', {})
-            reference_id = meta_data.get('refId')
-            paid_amount = webhook_data.get('paid_amount')
-            paid_currency = webhook_data.get('paid_currency')
-            transaction_id = webhook_data.get('id')
+            reference_id = meta_data.get('refId') or webhook_data.get('customer_reference')
+            paid_amount = webhook_data.get('paid_amount') or webhook_data.get('amount')
+            paid_currency = webhook_data.get('paid_currency') or webhook_data.get('currency')
+            transaction_id = webhook_data.get('id') or webhook_data.get('payment_id') or webhook_data.get('txId')
             
             if not reference_id:
-                logger.error("DynoPay webhook missing reference_id")
+                logger.error(f"DynoPay webhook missing reference_id (event: {event_type}, keys: {list(webhook_data.keys())})")
                 return {"status": "error", "message": "Missing reference ID"}
             
             if not paid_amount or not paid_currency:
-                logger.error("DynoPay webhook missing payment details")
+                logger.error(f"DynoPay webhook missing payment details (event: {event_type}, amount: {paid_amount}, currency: {paid_currency})")
                 return {"status": "error", "message": "Missing payment details"}
             
             if not transaction_id:
