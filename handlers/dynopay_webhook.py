@@ -1772,9 +1772,25 @@ To: {seller_identifier}{referral_section}
             # Extract webhook data
             meta_data = webhook_data.get('meta_data', {})
             reference_id = meta_data.get('refId') or webhook_data.get('customer_reference')
-            paid_amount = webhook_data.get('paid_amount') or webhook_data.get('amount')
+            # DynoPay field mapping (same as escrow handler):
+            # - 'amount' = crypto amount (e.g., 0.01331 ETH)
+            # - 'base_amount' = USD value (e.g., 10) - authoritative payment value
+            # - 'currency' = crypto currency (ETH, BTC, etc.)
+            # - 'base_currency' = fiat currency (USD)
+            crypto_amount = webhook_data.get('amount') or webhook_data.get('paid_amount')
             paid_currency = webhook_data.get('paid_currency') or webhook_data.get('currency')
             transaction_id = webhook_data.get('id') or webhook_data.get('payment_id') or webhook_data.get('txId')
+            
+            # Use base_amount (USD) from DynoPay when available - this is the authoritative value
+            dynopay_base_amount = webhook_data.get('base_amount')
+            dynopay_base_currency = webhook_data.get('base_currency', 'USD')
+            
+            if dynopay_base_amount and dynopay_base_currency == 'USD':
+                paid_amount = dynopay_base_amount
+                logger.info(f"📊 WALLET_DYNOPAY_AMOUNT: Using base_amount=${dynopay_base_amount} USD (crypto: {crypto_amount} {paid_currency}, rate: {webhook_data.get('exchange_rate')})")
+            else:
+                paid_amount = crypto_amount
+                logger.info(f"📊 WALLET_DYNOPAY_AMOUNT: No base_amount available, using crypto amount: {paid_amount} {paid_currency}")
             
             if not reference_id or not paid_amount or not paid_currency or not transaction_id:
                 logger.error("DynoPay wallet webhook missing required fields")
