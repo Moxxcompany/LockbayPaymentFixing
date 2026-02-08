@@ -1073,7 +1073,8 @@ class BlockBeeService(APIAdapterRetry):
                                         # All validations passed - proceed with payment confirmation
                                         escrow.status = EscrowStatus.PAYMENT_CONFIRMED.value
                                         escrow.payment_confirmed_at = datetime.utcnow()
-                                        escrow.expires_at = datetime.utcnow() + timedelta(hours=24)
+                                        from config import Config as LegacyBlockBeeConfig
+                                        escrow.expires_at = datetime.utcnow() + timedelta(minutes=LegacyBlockBeeConfig.SELLER_RESPONSE_TIMEOUT_MINUTES)
                                         
                                         # DELIVERY COUNTDOWN: Set delivery_deadline based on payment confirmation time
                                         # Delivery time starts counting AFTER payment, not at creation
