@@ -363,7 +363,14 @@ class UnifiedFinancialGateway:
                 logger.debug(f"Using cached USD to NGN rate: {cached_rate}")
                 return MonetaryDecimal.to_decimal(cached_rate, "cached_ngn_rate")
 
-            # Fetch from FastForex
+            # Fetch from Tatum (primary)
+            rate = await self._fetch_tatum_usd_to_ngn()
+            if rate:
+                self.rate_cache.set(cache_key, str(rate))
+                logger.info(f"Retrieved USD to NGN rate (Tatum): {MonetaryDecimal.quantize_rate(rate)}")
+                return rate
+
+            # Fallback to FastForex
             rate = await self._fetch_fastforex_usd_to_ngn()
             if rate:
                 self.rate_cache.set(cache_key, str(rate))
