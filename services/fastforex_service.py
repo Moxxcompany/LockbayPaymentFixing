@@ -411,15 +411,83 @@ class FastForexService(APIAdapterRetry):
             raise FastForexAPIError("Unexpected error occurred")
 
     async def get_multiple_rates(self, symbols: list) -> Dict[str, Decimal]:
-        """Get multiple real-time cryptocurrency rates concurrently (CoinGecko primary, FastForex fallback)"""
+        """Get multiple real-time cryptocurrency rates efficiently.
+        Uses single batch CoinGecko call, then FastForex for any misses."""
         try:
             logger.info(f"Fetching optimized rates for: {symbols}")
-
-            # Use caching + CoinGecko/FastForex cascade via get_crypto_to_usd_rate
-            tasks = []
-            for symbol in symbols:
-                task = asyncio.create_task(self.get_crypto_to_usd_rate(symbol))
-                tasks.append((symbol, task))
+            
+            # Map all symbols to standard format
+            symbol_map = {
+                "BTC": "BTC", "ETH": "ETH", "LTC": "LTC", "DOGE": "DOGE",
+                "BCH": "BCH", "BSC": "BNB", "TRX": "TRX",
+                "USDT-ERC20": "USDT", "USDT-TRC20": "USDT", "USD": "USD",
+                "XETH": "ETH", "XXBT": "BTC", "XLTC": "LTC", "XXDG": "DOGE",
+                "XBCH": "BCH", "XTRX": "TRX", "XXRP": "XRP", "XADA": "ADA",
+                "XDOT": "DOT", "XXLM": "XLM", "XXMR": "XMR", "XZEC": "ZEC",
+                "XREP": "REP", "XXTZ": "XTZ", "XLINK": "LINK", "XUSDT": "USDT",
+                "ZUSD": "USD", "ZEUR": "EUR",
+            }
+            
+            rates = {}
+            uncached_symbols = []
+            
+            # Step 1: Collect cached rates, identify uncached symbols
+            for sym in symbols:
+                mapped = symbol_map.get(sym, sym)
+                if mapped == "USD":
+                    rates[sym] = Decimal("1.0")
+                    continue
+                if mapped == "USDT":
+                    rates[sym] = Decimal("1.0")
+                    continue
+                    
+                cache_key = f"crypto_rate_{mapped}_USD"
+                cached = get_cached(cache_key)
+                if cached is not None:
+                    rates[sym] = Decimal(str(cached))
+                else:
+                    uncached_symbols.append((sym, mapped))
+            
+            if not uncached_symbols:
+                return rates
+            
+            # Step 2: Batch fetch from CoinGecko (single API call)
+            unique_mapped = list(set(m for _, m in uncached_symbols))
+            gecko_rates = await self._fetch_coingecko_batch_rates(unique_mapped)
+            
+            # Cache CoinGecko results and populate rates dict
+            remaining = []
+            for orig_sym, mapped in uncached_symbols:
+                if mapped in gecko_rates:
+                    rate = gecko_rates[mapped]
+                    cache_key = f"crypto_rate_{mapped}_USD"
+                    set_cached(cache_key, rate, ttl=self.cache_ttl)
+                    set_cached(f"rapid_crypto_rate_{mapped}_USD", rate, ttl=self.rapid_cache_ttl)
+                    set_cached(f"fallback_crypto_rate_{mapped}_USD", rate, ttl=self.fallback_cache_ttl)
+                    rates[orig_sym] = rate
+                else:
+                    remaining.append((orig_sym, mapped))
+            
+            # Step 3: FastForex fallback for any CoinGecko misses
+            if remaining and self.api_key:
+                tasks = []
+                for orig_sym, mapped in remaining:
+                    task = asyncio.create_task(self._fetch_fastforex_single_rate(mapped))
+                    tasks.append((orig_sym, mapped, task))
+                
+                for orig_sym, mapped, task in tasks:
+                    try:
+                        rate = await task
+                        if rate:
+                            cache_key = f"crypto_rate_{mapped}_USD"
+                            set_cached(cache_key, rate, ttl=self.cache_ttl)
+                            set_cached(f"rapid_crypto_rate_{mapped}_USD", rate, ttl=self.rapid_cache_ttl)
+                            set_cached(f"fallback_crypto_rate_{mapped}_USD", rate, ttl=self.fallback_cache_ttl)
+                            rates[orig_sym] = rate
+                    except Exception as e:
+                        logger.error(f"Failed to get rate for {orig_sym}: {e}")
+            
+            return rates
 
             # Wait for all tasks to complete
             rates = {}
