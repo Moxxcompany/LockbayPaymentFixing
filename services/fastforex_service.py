@@ -38,6 +38,8 @@ COINGECKO_SYMBOL_MAP = {
     "REP": "augur",
 }
 COINGECKO_API_URL = "https://api.coingecko.com/api/v3/simple/price"
+# CoinGecko demo API key (free, higher rate limits than anonymous)
+COINGECKO_API_KEY = os.environ.get("COINGECKO_API_KEY", "")
 
 
 class FastForexAPIError(Exception):
