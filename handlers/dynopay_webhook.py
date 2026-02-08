@@ -780,7 +780,7 @@ class DynoPayWebhookHandler:
                                         received_usd=usd_amount,
                                         crypto_currency=str(paid_currency).upper() if paid_currency is not None else 'USD',
                                         tx_hash=transaction_id,
-                                        price_usd=Decimal(str(usd_rate)),
+                                        price_usd=Decimal(str(usd_rate)) if usd_rate else Decimal(str(webhook_data.get('exchange_rate', 0))),
                                         session=session
                                     )
                                 
