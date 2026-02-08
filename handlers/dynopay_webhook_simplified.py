@@ -478,7 +478,7 @@ async def handle_dynopay_escrow_webhook(request: Request):
                     description=f"Escrow payment for {escrow.escrow_id}",
                     blockchain_tx_hash=txid,
                     provider="dynopay",
-                    escrow_id=escrow.escrow_id,
+                    escrow_id=escrow.id,
                 )
                 session.add(transaction)
                 
