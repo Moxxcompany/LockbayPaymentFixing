@@ -1378,9 +1378,9 @@ To: {seller_identifier}{referral_section}
             
             # Extract payment details
             meta_data = webhook_data.get('meta_data', {})
-            paid_amount = webhook_data.get('paid_amount')
-            paid_currency = webhook_data.get('paid_currency')
-            transaction_id = webhook_data.get('id')
+            paid_amount = webhook_data.get('paid_amount') or webhook_data.get('amount')
+            paid_currency = webhook_data.get('paid_currency') or webhook_data.get('currency')
+            transaction_id = webhook_data.get('id') or webhook_data.get('payment_id') or webhook_data.get('txId')
             
             # Log the incident for security monitoring
             logger.error(
@@ -1468,9 +1468,9 @@ To: {seller_identifier}{referral_section}
             escrow_status = escrow.status if not hasattr(escrow.status, 'value') else escrow.status.value
             
             # Extract payment details
-            paid_amount = webhook_data.get('paid_amount')
-            paid_currency = webhook_data.get('paid_currency')
-            transaction_id = webhook_data.get('id')
+            paid_amount = webhook_data.get('paid_amount') or webhook_data.get('amount')
+            paid_currency = webhook_data.get('paid_currency') or webhook_data.get('currency')
+            transaction_id = webhook_data.get('id') or webhook_data.get('payment_id') or webhook_data.get('txId')
             
             logger.warning(
                 f"⚠️ Payment {transaction_id} received for escrow {escrow_escrow_id} in invalid state: {escrow_status}. "
@@ -1630,9 +1630,9 @@ To: {seller_identifier}{referral_section}
             escrow_buyer_id = escrow.buyer_id
             escrow_escrow_id = escrow.escrow_id
             
-            transaction_id = webhook_data.get('id', 'unknown')
-            paid_amount = webhook_data.get('paid_amount', 0)
-            paid_currency = webhook_data.get('paid_currency', 'unknown')
+            transaction_id = webhook_data.get('id') or webhook_data.get('payment_id') or webhook_data.get('txId') or 'unknown'
+            paid_amount = webhook_data.get('paid_amount') or webhook_data.get('amount') or 0
+            paid_currency = webhook_data.get('paid_currency') or webhook_data.get('currency') or 'unknown'
             
             # Comprehensive failure logging
             logger.error(
@@ -1730,10 +1730,10 @@ To: {seller_identifier}{referral_section}
         try:
             # Extract webhook data
             meta_data = webhook_data.get('meta_data', {})
-            reference_id = meta_data.get('refId')
-            paid_amount = webhook_data.get('paid_amount')
-            paid_currency = webhook_data.get('paid_currency')
-            transaction_id = webhook_data.get('id')
+            reference_id = meta_data.get('refId') or webhook_data.get('customer_reference')
+            paid_amount = webhook_data.get('paid_amount') or webhook_data.get('amount')
+            paid_currency = webhook_data.get('paid_currency') or webhook_data.get('currency')
+            transaction_id = webhook_data.get('id') or webhook_data.get('payment_id') or webhook_data.get('txId')
             
             if not reference_id or not paid_amount or not paid_currency or not transaction_id:
                 logger.error("DynoPay wallet webhook missing required fields")
