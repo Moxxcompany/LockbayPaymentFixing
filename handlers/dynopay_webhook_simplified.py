@@ -484,12 +484,12 @@ async def handle_dynopay_escrow_webhook(request: Request):
                 session.commit()
                 
                 logger.info(
-                    f"✅ ESCROW_FUNDED: {escrow.escrow_id} (utid={escrow.utid}) - "
-                    f"${usd_amount} from {normalized['coin']}, status: {old_status} → funded, "
+                    f"✅ ESCROW_PAYMENT_CONFIRMED: {escrow.escrow_id} (utid={escrow.utid}) - "
+                    f"${usd_amount} from {normalized['coin']}, status: {old_status} → payment_confirmed, "
                     f"tx: {txid}"
                 )
                 
-            return JSONResponse({"status": "success", "message": f"Escrow {escrow_id_ref} funded"})
+            return JSONResponse({"status": "success", "message": f"Escrow {escrow_id_ref} payment confirmed"})
             
         except Exception as e:
             logger.error(f"❌ ESCROW_PROCESS_ERROR: {e}", exc_info=True)
