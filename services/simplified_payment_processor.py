@@ -327,6 +327,37 @@ class SimplifiedPaymentProcessor:
             "message": "Deposit recorded, waiting for confirmation"
         }
 
+    def _extract_provider_usd_amount(self, provider: str, raw_data: Dict[str, Any], amount: Decimal, currency: str) -> Optional[Decimal]:
+        """
+        Extract provider-supplied USD amount from webhook data.
+        
+        Providers like BlockBee and DynoPay include authoritative fiat values
+        in their callbacks. Using these prevents rate discrepancy losses that 
+        occur when re-converting crypto→USD via a different rate source (FastForex).
+        """
+        try:
+            if provider == "blockbee":
+                # BlockBee provides 'price' (USD per coin) in callback data
+                price = raw_data.get("price")
+                if price:
+                    usd_value = amount * Decimal(str(price))
+                    self.logger.info(f"💱 BLOCKBEE_USD: {amount} {currency} * ${price}/coin = ${usd_value:.2f}")
+                    return usd_value
+                    
+            elif provider == "dynopay":
+                # DynoPay provides 'base_amount' (authoritative USD value)
+                base_amount = raw_data.get("base_amount")
+                base_currency = raw_data.get("base_currency", "")
+                if base_amount and base_currency == "USD":
+                    usd_value = Decimal(str(base_amount))
+                    self.logger.info(f"💱 DYNOPAY_USD: base_amount=${usd_value:.2f}")
+                    return usd_value
+                    
+        except (ValueError, TypeError, ArithmeticError) as e:
+            self.logger.warning(f"⚠️ PROVIDER_USD_EXTRACT_ERROR: {provider} - {e}, falling back to FastForex")
+        
+        return None
+
     def _get_usd_amount(self, amount: Decimal, currency: str, payment_type: str = "crypto") -> Decimal:
         """Get USD amount using FastForex for crypto or direct conversion for fiat."""
         try:
