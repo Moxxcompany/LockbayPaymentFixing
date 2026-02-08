@@ -6136,10 +6136,14 @@ To: {seller_display}{referral_section}
         payment_confirmed_at = escrow_payment_confirmed_at
         expires_at = escrow_expires_at
         
-        # Calculate seller acceptance deadline
-        if not expires_at and payment_confirmed_at:
+        # Calculate seller acceptance deadline - ALWAYS recalculate from payment_confirmed_at if available
+        # This handles cases where expires_at wasn't properly updated after payment confirmation
+        if payment_confirmed_at:
             seller_timeout_minutes = getattr(Config, 'SELLER_RESPONSE_TIMEOUT_MINUTES', 1440)  # 24 hours
-            expires_at = payment_confirmed_at + timedelta(minutes=seller_timeout_minutes)
+            calculated_expires = payment_confirmed_at + timedelta(minutes=seller_timeout_minutes)
+            # Use the later of: stored expires_at or calculated from payment_confirmed_at
+            if not expires_at or calculated_expires > expires_at:
+                expires_at = calculated_expires
         
         # Format time remaining
         seller_time_msg = "⏰ Seller has 24h to accept"  # Fallback
