@@ -1,63 +1,55 @@
 # Lockbay - Telegram Escrow Bot PRD
 
 ## Original Problem Statement
-Analyze code and set it up and install dependencies.
+1. Analyze code and set it up and install dependencies
+2. Replace CoinGecko and FastForex rate providers with Tatum API
 
 ## Architecture
 - **Type**: Telegram Bot (python-telegram-bot v22.6) + FastAPI webhook server
 - **Database**: PostgreSQL (SQLAlchemy ORM, 57 tables)
 - **Cache**: Redis (optional, fallback to in-memory)
 - **Language**: Python 3.11
-- **Deployment**: Railway / Replit / Docker
 
-## Tech Stack
-- FastAPI (webhook server on port 8001)
-- python-telegram-bot (Telegram bot framework)
-- SQLAlchemy 2.0 (ORM, sync + async sessions)
-- PostgreSQL 15 (local dev, Neon for production)
-- Redis (state management, caching)
-- APScheduler (background jobs)
-- Brevo/SendinBlue (email notifications)
-- Kraken API (crypto withdrawals)
-- Fincra (NGN bank transfers)
-- DynoPay (payment processing)
-- BlockBee (crypto deposits)
-- Twilio (SMS invitations)
+## What's Been Implemented
 
-## Core Features
-- P2P escrow trading on Telegram
-- Multi-currency wallet (USD, crypto, NGN)
-- Crypto deposits/withdrawals (BTC, ETH, LTC, USDT, DOGE)
-- NGN bank transfers (Fincra integration)
-- Dispute resolution system
-- Admin dashboard (Telegram-based)
-- Rating/reputation system
-- Referral program
-- Auto-cashout functionality
-- Support chat system
-
-## What's Been Implemented (Setup - Feb 8, 2026)
+### Setup (Feb 8, 2026)
 - Analyzed full codebase (~500+ files)
-- Installed all Python dependencies from requirements.txt
-- Set up local PostgreSQL 15 database (lockbay)
-- Created root .env with development configuration
-- Database tables created (57 tables)
-- Backend server running on port 8001 (health check passing)
-- All Telegram handlers registered successfully
+- Installed all Python dependencies
+- Set up local PostgreSQL 15 database
+- Backend running on port 8001
+
+### Tatum API Migration (Feb 8, 2026)
+- **Replaced CoinGecko + FastForex** with **Tatum API** as primary rate provider
+- Tatum API key: configured in `.env` as `TATUM_API_KEY`
+- Endpoint: `GET https://api.tatum.io/v4/data/rate/symbol?symbol=BTC&basePair=USD`
+
+#### Files Modified:
+- `/app/.env` — Added `TATUM_API_KEY`
+- `/app/config.py` — Added `TATUM_API_KEY` config
+- `/app/services/fastforex_service.py` — Full rewrite: Tatum primary, FastForex legacy fallback
+- `/app/services/financial_gateway.py` — Added Tatum methods, replaced CoinGecko
+- `/app/utils/exchange_rate_fallback.py` — Added Tatum as primary source
+- `/app/utils/exchange_prefetch.py` — Added Tatum as primary source
+- `/app/services/api_resilience_service.py` — Added Tatum health monitoring
+
+#### Rate Priority Chain:
+1. Cache (in-memory) → 2. Tatum API (primary) → 3. FastForex (legacy fallback)
+
+#### Verified Working:
+- Crypto rates: BTC, ETH, LTC, DOGE, TRX, XRP
+- Kraken symbol mapping: XXBT→BTC, XETH→ETH, etc.
+- Fiat rates: USD→NGN
+- Markup calculations
+- Batch rate fetching
+- Conversions (crypto↔USD, USD↔NGN)
 
 ## Required External Credentials (Not Yet Configured)
-- `BOT_TOKEN` - Telegram bot token (from @BotFather)
-- `BREVO_API_KEY` - Email notifications
-- `KRAKEN_API_KEY` / `KRAKEN_SECRET_KEY` - Crypto withdrawals
-- `FINCRA_SECRET_KEY` / `FINCRA_PUBLIC_KEY` - NGN payments
-- `DYNOPAY_API_KEY` - Payment processing
-- `FASTFOREX_API_KEY` - Forex rates
-- `REDIS_URL` - Production Redis instance
+- `BOT_TOKEN` — Telegram bot token (from @BotFather)
+- `BREVO_API_KEY` — Email notifications
+- `KRAKEN_API_KEY` / `KRAKEN_SECRET_KEY` — Crypto withdrawals
+- `FINCRA_SECRET_KEY` / `FINCRA_PUBLIC_KEY` — NGN payments
 
-## Backlog / Next Steps
-- P0: Configure real Telegram BOT_TOKEN for full bot functionality
-- P0: Set up Redis for production state management
-- P1: Configure payment provider API keys (Kraken, Fincra, DynoPay)
-- P1: Set up Brevo for email notifications
-- P2: Configure monitoring (Prometheus/Grafana)
-- P2: Production deployment to Railway/Replit
+## Backlog
+- P0: Configure real Telegram BOT_TOKEN
+- P1: Configure payment provider API keys
+- P2: Remove deprecated FastForex/CoinGecko code entirely (currently kept as fallback)
