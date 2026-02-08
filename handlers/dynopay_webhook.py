@@ -401,20 +401,25 @@ class DynoPayWebhookHandler:
                         UnifiedTransactionType.ESCROW.value
                     ]
                     
-                    # Calculate USD value with safe fallback approach
+                    # Calculate USD value - use DynoPay's base_amount if already in USD
                     usd_amount = None
-                    try:
-                        usd_rate = await CryptoServiceAtomic.get_real_time_exchange_rate(paid_currency)
-                        # CRITICAL FIX: Check for None before using usd_rate
-                        if usd_rate is not None:
-                            usd_amount = Decimal(str(paid_amount)) * Decimal(str(usd_rate))
-                            logger.debug(f"USD conversion successful: {paid_amount} {paid_currency} = ${usd_amount:.2f}")
-                        else:
-                            logger.warning(f"Exchange rate returned None for {paid_currency}")
-                    except Exception as rate_error:
-                        logger.warning(f"Failed to get exchange rate for {paid_currency}: {rate_error}")
-                        # SAFE FALLBACK: Log the issue but don't use misleading hardcoded rates
-                        logger.info(f"Will send notification without USD value for {paid_amount} {paid_currency}")
+                    dynopay_base = webhook_data.get('base_amount')
+                    dynopay_base_curr = webhook_data.get('base_currency', '')
+                    if dynopay_base and dynopay_base_curr == 'USD':
+                        # DynoPay already provided authoritative USD value
+                        usd_amount = Decimal(str(dynopay_base))
+                        logger.info(f"📊 USD_FROM_DYNOPAY: Using base_amount=${usd_amount:.2f} (no conversion needed)")
+                    else:
+                        try:
+                            usd_rate = await CryptoServiceAtomic.get_real_time_exchange_rate(paid_currency)
+                            if usd_rate is not None:
+                                usd_amount = Decimal(str(paid_amount)) * Decimal(str(usd_rate))
+                                logger.debug(f"USD conversion successful: {paid_amount} {paid_currency} = ${usd_amount:.2f}")
+                            else:
+                                logger.warning(f"Exchange rate returned None for {paid_currency}")
+                        except Exception as rate_error:
+                            logger.warning(f"Failed to get exchange rate for {paid_currency}: {rate_error}")
+                            logger.info(f"Will send notification without USD value for {paid_amount} {paid_currency}")
                     
                     # Handle wallet funding notifications (exchanges that credit user wallets)
                     if transaction_type in wallet_funding_types:
