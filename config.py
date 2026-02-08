@@ -811,7 +811,8 @@ Available tokens:
     )  # Daily transaction volume alert threshold
 
     # Forex and Rate Management Configuration
-    FASTFOREX_API_KEY = os.getenv("FASTFOREX_API_KEY", "")  # FastForex API key
+    FASTFOREX_API_KEY = os.getenv("FASTFOREX_API_KEY", "")  # FastForex API key (legacy, deprecated)
+    TATUM_API_KEY = os.getenv("TATUM_API_KEY", "")  # Tatum API key (primary rate provider)
     BACKUP_FOREX_API_KEY = os.getenv(
         "BACKUP_FOREX_API_KEY", ""
     )  # Backup forex API key (optional)
