@@ -3632,6 +3632,12 @@ async def handle_crypto_payment_direct(
         markup_percentage = Decimal(str(AppConfig.EXCHANGE_MARKUP_PERCENTAGE)) / Decimal("100")
         markup_rate = crypto_amount * (Decimal("1") + markup_percentage)
         
+        # Apply $2 crypto fee padding for non-USDT currencies (display crypto amount includes padding)
+        USDT_CURRENCIES = {"USDT", "USDT_TRC20", "USDT_ERC20", "USDT_BEP20"}
+        if crypto.upper() not in USDT_CURRENCIES:
+            padding_crypto = Decimal("2") / crypto_rate  # Convert $2 to crypto equivalent
+            markup_rate = markup_rate + padding_crypto
+        
         # Update payment currency tracking
         escrow_data["payment_currency"] = crypto
         escrow_data["original_crypto_rate"] = Decimal(str(crypto_rate))
@@ -4523,6 +4529,12 @@ async def handle_crypto_payment(update: TelegramUpdate, context: ContextTypes.DE
         # FIXED: Use configurable exchange markup instead of hardcoded 2%
         markup_percentage = Decimal(str(AppConfig.EXCHANGE_MARKUP_PERCENTAGE)) / Decimal("100")
         markup_rate = crypto_amount * (Decimal("1") + markup_percentage)
+        
+        # Apply $2 crypto fee padding for non-USDT currencies (display crypto amount includes padding)
+        USDT_CURRENCIES = {"USDT", "USDT_TRC20", "USDT_ERC20", "USDT_BEP20"}
+        if crypto.upper() not in USDT_CURRENCIES:
+            padding_crypto = Decimal("2") / crypto_rate  # Convert $2 to crypto equivalent
+            markup_rate = markup_rate + padding_crypto
         
         # Update payment currency tracking
         escrow_data["payment_currency"] = crypto
