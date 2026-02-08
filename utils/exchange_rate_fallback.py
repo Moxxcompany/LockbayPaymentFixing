@@ -251,8 +251,72 @@ class ExchangeRateFallbackService:
             error_message="All USD to NGN sources failed",
         )
 
+    async def _fetch_tatum_crypto_rate(self, crypto: str) -> Optional[RateResult]:
+        """Fetch crypto rate from Tatum API (primary source)"""
+        tatum_key = Config.TATUM_API_KEY
+        if not tatum_key:
+            return None
+
+        try:
+            url = "https://api.tatum.io/v4/data/rate/symbol"
+            params = {"symbol": crypto.upper(), "basePair": "USD"}
+            headers = {"x-api-key": tatum_key}
+
+            async with aiohttp.ClientSession(
+                timeout=aiohttp.ClientTimeout(total=10)
+            ) as session:
+                async with session.get(url, params=params, headers=headers) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        if "value" in data:
+                            rate = Decimal(str(data["value"]))
+                            return RateResult(
+                                rate=rate,
+                                source=RateSource.TATUM,
+                                timestamp=datetime.utcnow(),
+                                currency_pair=f"{crypto.upper()}_USD",
+                                confidence=0.95,
+                            )
+        except Exception as e:
+            logger.error(f"Tatum crypto rate error: {e}")
+            raise
+
+        return None
+
+    async def _fetch_tatum_usd_ngn(self) -> Optional[RateResult]:
+        """Fetch USD to NGN rate from Tatum API"""
+        tatum_key = Config.TATUM_API_KEY
+        if not tatum_key:
+            return None
+
+        try:
+            url = "https://api.tatum.io/v4/data/rate/symbol"
+            params = {"symbol": "USD", "basePair": "NGN"}
+            headers = {"x-api-key": tatum_key}
+
+            async with aiohttp.ClientSession(
+                timeout=aiohttp.ClientTimeout(total=10)
+            ) as session:
+                async with session.get(url, params=params, headers=headers) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        if "value" in data:
+                            rate = Decimal(str(data["value"]))
+                            return RateResult(
+                                rate=rate,
+                                source=RateSource.TATUM,
+                                timestamp=datetime.utcnow(),
+                                currency_pair="USD_NGN",
+                                confidence=0.95,
+                            )
+        except Exception as e:
+            logger.error(f"Tatum USD to NGN error: {e}")
+            raise
+
+        return None
+
     async def _fetch_fastforex_crypto_rate(self, crypto: str) -> Optional[RateResult]:
-        """Fetch crypto rate from FastForex API"""
+        """Fetch crypto rate from FastForex API (legacy fallback)"""
         if not Config.FASTFOREX_API_KEY:
             return None
 
