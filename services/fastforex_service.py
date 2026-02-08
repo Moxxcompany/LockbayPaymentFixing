@@ -368,14 +368,11 @@ class FastForexService(APIAdapterRetry):
             raise FastForexAPIError("Unexpected error occurred")
 
     async def get_multiple_rates(self, symbols: list) -> Dict[str, Decimal]:
-        """Get multiple real-time cryptocurrency rates concurrently"""
+        """Get multiple real-time cryptocurrency rates concurrently (CoinGecko primary, FastForex fallback)"""
         try:
-            if not self.api_key:
-                raise FastForexAPIError("FastForex API key not configured")
-
             logger.info(f"Fetching optimized rates for: {symbols}")
 
-            # Use caching for massive performance improvement
+            # Use caching + CoinGecko/FastForex cascade via get_crypto_to_usd_rate
             tasks = []
             for symbol in symbols:
                 task = asyncio.create_task(self.get_crypto_to_usd_rate(symbol))
