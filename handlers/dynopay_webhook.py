@@ -600,6 +600,31 @@ class DynoPayWebhookHandler:
                             unified_tx, webhook_data, float(paid_amount) if paid_amount is not None else 0.0, 
                             str(paid_currency) if paid_currency is not None else '', transaction_id, session
                         )
+                        
+                        # CRITICAL FIX: Update escrow timing fields after unified transaction processing
+                        # The unified path only updates unified_transactions table, NOT the escrow object
+                        if result_to_return and result_to_return.get("status") == "success" and escrow:
+                            from config import Config as DynoUnifiedConfig
+                            now_stmt = select(func.now())
+                            now_result = await session.execute(now_stmt)
+                            current_time = now_result.scalar()
+                            
+                            if current_time:
+                                escrow.status = EscrowStatus.PAYMENT_CONFIRMED.value
+                                escrow.payment_confirmed_at = current_time
+                                escrow.expires_at = current_time + timedelta(minutes=DynoUnifiedConfig.SELLER_RESPONSE_TIMEOUT_MINUTES)
+                                escrow.deposit_confirmed = True
+                                escrow.deposit_tx_hash = transaction_id
+                                
+                                # DELIVERY COUNTDOWN
+                                if escrow.pricing_snapshot is not None and 'delivery_hours' in escrow.pricing_snapshot:
+                                    delivery_hours = int(escrow.pricing_snapshot['delivery_hours'])
+                                    escrow.delivery_deadline = current_time + timedelta(hours=delivery_hours)
+                                    escrow.auto_release_at = escrow.delivery_deadline + timedelta(hours=24)
+                                    logger.info(f"⏰ DELIVERY_DEADLINE_SET: Escrow {escrow.escrow_id} delivery countdown starts - {delivery_hours}h")
+                                
+                                await session.flush()
+                                logger.info(f"✅ UNIFIED_DYNOPAY_ESCROW_FIX: Updated escrow {escrow.escrow_id} expires_at to {DynoUnifiedConfig.SELLER_RESPONSE_TIMEOUT_MINUTES}m from payment confirmation")
                 
                     else:
                         # LEGACY ESCROW PAYMENT: Continue processing within session
