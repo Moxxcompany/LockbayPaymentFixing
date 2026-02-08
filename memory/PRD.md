@@ -1,38 +1,63 @@
-# Lockbay - Telegram P2P Escrow Bot PRD
+# Lockbay - Telegram Escrow Bot PRD
 
 ## Original Problem Statement
-1. Analyze repo and setup/install dependencies
-2. Fix: User sent $10 to bot wallet but only $8.71 was credited. Ensure same issue doesn't exist in escrow crypto payments.
+Analyze code and set it up and install dependencies.
 
 ## Architecture
-- **Backend**: Python FastAPI (port 8001) + python-telegram-bot v22.6
-- **Database**: PostgreSQL 15 (SQLAlchemy ORM, 57 tables)
-- **Cache**: Redis (optional)
-- **Payments**: DynoPay, BlockBee, Kraken, Fincra
-- **Email**: Brevo (SendinBlue)
+- **Type**: Telegram Bot (python-telegram-bot v22.6) + FastAPI webhook server
+- **Database**: PostgreSQL (SQLAlchemy ORM, 57 tables)
+- **Cache**: Redis (optional, fallback to in-memory)
+- **Language**: Python 3.11
+- **Deployment**: Railway / Replit / Docker
 
-## What's Been Implemented
+## Tech Stack
+- FastAPI (webhook server on port 8001)
+- python-telegram-bot (Telegram bot framework)
+- SQLAlchemy 2.0 (ORM, sync + async sessions)
+- PostgreSQL 15 (local dev, Neon for production)
+- Redis (state management, caching)
+- APScheduler (background jobs)
+- Brevo/SendinBlue (email notifications)
+- Kraken API (crypto withdrawals)
+- Fincra (NGN bank transfers)
+- DynoPay (payment processing)
+- BlockBee (crypto deposits)
+- Twilio (SMS invitations)
 
-### Session 1 (Feb 2026) - Setup
-- [x] Installed Python dependencies, set up PostgreSQL 15 with lockbay DB
-- [x] Backend running on port 8001, health check passing
+## Core Features
+- P2P escrow trading on Telegram
+- Multi-currency wallet (USD, crypto, NGN)
+- Crypto deposits/withdrawals (BTC, ETH, LTC, USDT, DOGE)
+- NGN bank transfers (Fincra integration)
+- Dispute resolution system
+- Admin dashboard (Telegram-based)
+- Rating/reputation system
+- Referral program
+- Auto-cashout functionality
+- Support chat system
 
-### Session 2 (Feb 2026) - Bug Fix: Rate Discrepancy
-- **Root Cause**: DynoPay wallet deposit handler ignored `base_amount` (authoritative USD) field, re-converting crypto via FastForex causing ~13% loss
-- [x] Fixed dynopay_webhook.py `handle_wallet_deposit_webhook` to use `base_amount`
-- [x] Fixed simplified_payment_processor.py with `_extract_provider_usd_amount()` for BlockBee
-- [x] Verified escrow paths (3 locations) already use `base_amount` correctly
-- [x] All tests passing (100% backend, 5/5 unit tests)
+## What's Been Implemented (Setup - Feb 8, 2026)
+- Analyzed full codebase (~500+ files)
+- Installed all Python dependencies from requirements.txt
+- Set up local PostgreSQL 15 database (lockbay)
+- Created root .env with development configuration
+- Database tables created (57 tables)
+- Backend server running on port 8001 (health check passing)
+- All Telegram handlers registered successfully
 
-## Prioritized Backlog
-### P0 - Critical
-- Configure BOT_TOKEN for Telegram bot
-- Set up payment provider API keys (DynoPay, BlockBee, FastForex)
+## Required External Credentials (Not Yet Configured)
+- `BOT_TOKEN` - Telegram bot token (from @BotFather)
+- `BREVO_API_KEY` - Email notifications
+- `KRAKEN_API_KEY` / `KRAKEN_SECRET_KEY` - Crypto withdrawals
+- `FINCRA_SECRET_KEY` / `FINCRA_PUBLIC_KEY` - NGN payments
+- `DYNOPAY_API_KEY` - Payment processing
+- `FASTFOREX_API_KEY` - Forex rates
+- `REDIS_URL` - Production Redis instance
 
-### P1 - Important
-- Rate discrepancy monitoring/alerting
-- Configure webhook URLs for production
-
-### P2 - Nice to Have
-- Web admin dashboard
-- Automated financial reconciliation
+## Backlog / Next Steps
+- P0: Configure real Telegram BOT_TOKEN for full bot functionality
+- P0: Set up Redis for production state management
+- P1: Configure payment provider API keys (Kraken, Fincra, DynoPay)
+- P1: Set up Brevo for email notifications
+- P2: Configure monitoring (Prometheus/Grafana)
+- P2: Production deployment to Railway/Replit
