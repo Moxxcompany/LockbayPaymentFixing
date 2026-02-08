@@ -9,6 +9,14 @@ import sys
 import time
 import logging
 
+# Force unbuffered output so Railway/Docker logs appear immediately
+os.environ["PYTHONUNBUFFERED"] = "1"
+sys.stdout.reconfigure(line_buffering=True)
+sys.stderr.reconfigure(line_buffering=True)
+
+# Immediate startup signal for Railway deploy logs
+print("🚀 LockBay production_start.py launching...", flush=True)
+
 # Production startup - logs appear after app initialization
 logger = logging.getLogger(__name__)
 
