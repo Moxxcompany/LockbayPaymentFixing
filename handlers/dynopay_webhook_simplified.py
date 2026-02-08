@@ -460,9 +460,9 @@ async def handle_dynopay_escrow_webhook(request: Request):
                     existing_deposit.status = "credited"
                     existing_deposit.credited_at = datetime.now(timezone.utc)
                 
-                # Update escrow status to funded
+                # Update escrow status to payment_confirmed
                 old_status = escrow.status
-                escrow.status = "funded"
+                escrow.status = "payment_confirmed"
                 escrow.deposit_tx_hash = tx_ref or txid
                 escrow.payment_confirmed_at = datetime.now(timezone.utc)
                 escrow.updated_at = datetime.now(timezone.utc)
