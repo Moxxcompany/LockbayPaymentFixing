@@ -200,6 +200,19 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# Middleware to strip /api prefix (Emergent platform forwards full path)
+from starlette.middleware.base import BaseHTTPMiddleware
+
+class StripAPIPrefixMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        if request.url.path.startswith("/api/"):
+            request.scope["path"] = request.url.path[4:]  # strip "/api"
+        elif request.url.path == "/api":
+            request.scope["path"] = "/"
+        return await call_next(request)
+
+app.add_middleware(StripAPIPrefixMiddleware)
+
 # Initialize Jinja2 templates for public profile pages
 templates = Jinja2Templates(directory="templates")
 
