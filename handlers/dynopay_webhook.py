@@ -498,12 +498,8 @@ class DynoPayWebhookHandler:
             
             # Extract webhook data
             meta_data = webhook_data.get('meta_data', {})
-            paid_amount = webhook_data.get('paid_amount')
-            paid_currency = webhook_data.get('paid_currency')
-            
-            # Variables to store result and notification data (populated in session, used after)
-            result_to_return = None
-            notification_data = None
+            paid_amount = webhook_data.get('paid_amount') or webhook_data.get('amount')
+            paid_currency = webhook_data.get('paid_currency') or webhook_data.get('currency')
             
             # CRITICAL FIX: Wrap session with IntegrityError handling for commit-time constraint violations
             try:
