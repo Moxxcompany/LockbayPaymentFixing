@@ -731,7 +731,8 @@ class DynoPayWebhookHandler:
                                             current_time = now_result.scalar()
                                         
                                             escrow.payment_confirmed_at = current_time  # type: ignore[assignment]
-                                            escrow.expires_at = current_time + timedelta(hours=24) if current_time is not None else None  # type: ignore[operator]
+                                            from config import Config as DynoLegacyConfig
+                                            escrow.expires_at = current_time + timedelta(minutes=DynoLegacyConfig.SELLER_RESPONSE_TIMEOUT_MINUTES) if current_time is not None else None  # type: ignore[operator]
                                             escrow.deposit_confirmed = True  # type: ignore[assignment]
                                             escrow.deposit_tx_hash = transaction_id  # type: ignore[assignment]
                                         
