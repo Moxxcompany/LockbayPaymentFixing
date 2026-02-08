@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 class RateSource(Enum):
     """Rate source providers"""
 
+    TATUM = "tatum"
     FASTFOREX = "fastforex"
     COINGECKO = "coingecko"
     COINAPI = "coinapi"
