@@ -1786,10 +1786,10 @@ class PlatformRevenue(Base):
     __tablename__ = "platform_revenue"
     
     id = Column(Integer, primary_key=True, autoincrement=True)
-    escrow_id = Column(String(50), nullable=False, index=True)
+    escrow_id = Column(String(50), nullable=False)
     fee_amount = Column(Numeric(38, 18), nullable=False)
     fee_currency = Column(String(10), nullable=False, default="USD")
-    fee_type = Column(String(50), nullable=False, index=True)
+    fee_type = Column(String(50), nullable=False)
     source_transaction_id = Column(String(100), nullable=True, index=True)
     
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
