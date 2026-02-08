@@ -625,6 +625,33 @@ class DynoPayWebhookHandler:
                                 
                                 await session.flush()
                                 logger.info(f"✅ UNIFIED_DYNOPAY_ESCROW_FIX: Updated escrow {escrow.escrow_id} expires_at to {DynoUnifiedConfig.SELLER_RESPONSE_TIMEOUT_MINUTES}m from payment confirmation")
+                                
+                                # CRITICAL FIX: Populate notification_data so post-session notifications fire
+                                # The unified path previously skipped this, resulting in NO buyer/seller notifications
+                                buyer_telegram_id = escrow.buyer.telegram_id if escrow.buyer else None
+                                buyer_referral_code = escrow.buyer.referral_code if escrow.buyer else None
+                                
+                                seller_identifier = ""
+                                if escrow.seller and escrow.seller.username:
+                                    seller_identifier = f"@{escrow.seller.username}"
+                                elif escrow.seller and escrow.seller.first_name:
+                                    seller_identifier = escrow.seller.first_name
+                                else:
+                                    seller_identifier = "Seller"
+                                
+                                notification_data = {
+                                    "type": "seller_offer",
+                                    "escrow_id": escrow.escrow_id,
+                                    "overpayment_credited": Decimal("0"),
+                                    "buyer_telegram_id": buyer_telegram_id,
+                                    "buyer_id": escrow.buyer_id,
+                                    "escrow_amount": Decimal(str(escrow.amount or 0)),
+                                    "buyer_fee": Decimal(str(escrow.buyer_fee_amount or 0)),
+                                    "seller_identifier": seller_identifier,
+                                    "seller_id": escrow.seller_id,
+                                    "buyer_referral_code": buyer_referral_code
+                                }
+                                logger.info(f"📋 UNIFIED_DYNOPAY_NOTIFICATION: Prepared notification_data for escrow {escrow.escrow_id} (buyer={buyer_telegram_id}, seller={seller_identifier})")
                 
                     else:
                         # LEGACY ESCROW PAYMENT: Continue processing within session
