@@ -36,6 +36,19 @@ os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # Import the FastAPI app from webhook_server
 from webhook_server import app as webhook_app
 
+# Add middleware to strip /api prefix since Emergent ingress forwards /api/* with prefix intact
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request as StarletteRequest
+
+class StripApiPrefixMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: StarletteRequest, call_next):
+        if request.url.path.startswith("/api"):
+            # Strip /api prefix so routes match
+            request.scope["path"] = request.url.path[4:] or "/"
+        return await call_next(request)
+
+webhook_app.add_middleware(StripApiPrefixMiddleware)
+
 # Create a wrapper app that will initialize the bot on startup
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
