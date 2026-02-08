@@ -98,9 +98,13 @@ class DynoPayService:
         try:
             dynopay_currency = self._map_currency_to_dynopay(currency)
             
-            # Apply $2 crypto fee padding for non-USDT currencies
+            # Apply $2 crypto fee padding for non-USDT currencies (exempt wallet deposits)
             original_amount = Decimal(str(amount))
-            if currency.upper() not in self.CRYPTO_FEE_PADDING_EXEMPT:
+            is_wallet_deposit = reference_id and reference_id.startswith('WALLET-')
+            if is_wallet_deposit:
+                padded_amount = original_amount
+                logger.info(f"💰 CRYPTO_FEE_PADDING: Wallet deposit exempt - no padding applied (${original_amount}, ref: {reference_id})")
+            elif currency.upper() not in self.CRYPTO_FEE_PADDING_EXEMPT:
                 padded_amount = original_amount + self.CRYPTO_FEE_PADDING_USD
                 logger.info(f"💰 CRYPTO_FEE_PADDING: ${original_amount} + ${self.CRYPTO_FEE_PADDING_USD} padding = ${padded_amount} (currency: {currency})")
             else:
