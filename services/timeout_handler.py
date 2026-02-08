@@ -85,7 +85,7 @@ class SystematicTimeoutHandler:
         ),
         TimeoutRule(
             timeout_type=TimeoutType.ESCROW_PAYMENT,
-            timeout_duration=timedelta(minutes=15),  # CRITICAL FIX: 15 minutes for payment timeout
+            timeout_duration=timedelta(minutes=Config.PAYMENT_TIMEOUT_MINUTES),  # Dynamic payment timeout from config
             warning_threshold=timedelta(minutes=10),  # Warn at 10 minutes
             action=TimeoutAction.CANCEL_ORDER,
             escalate_after=timedelta(minutes=30)  # Escalate if still unresolved after 30 minutes

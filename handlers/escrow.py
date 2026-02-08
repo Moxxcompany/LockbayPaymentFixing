@@ -4322,7 +4322,7 @@ Fee: ${fee_numeric}
 Total: ${total_numeric}
 
 To: <code>{deposit_address}</code>
-🆔 {display_trade_id} • ⏰ 15min
+🆔 {display_trade_id} • ⏰ {Config.PAYMENT_TIMEOUT_MINUTES}min
 
 1️⃣ Send exact • 2️⃣ Wait 1-3min • 3️⃣ Done
 
@@ -4353,7 +4353,7 @@ To: <code>{deposit_address}</code>
 To: {deposit_address}
 🆔 Trade: {display_trade_id}
 
-⏰ 15min"""
+⏰ {Config.PAYMENT_TIMEOUT_MINUTES}min"""
                     await safe_edit_message_text(
                         query, fallback_text, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard)  # type: ignore
                     )
@@ -4367,7 +4367,7 @@ To: {deposit_address}
 To: {deposit_address}
 🆔 Trade: {display_trade_id}
 
-⏰ Pay within 15min or trade cancels
+⏰ Pay within {Config.PAYMENT_TIMEOUT_MINUTES}min or trade cancels
 💡 Copy address above"""
                     await safe_edit_message_text(
                         query, plain_text, reply_markup=InlineKeyboardMarkup(keyboard)  # type: ignore
@@ -4809,7 +4809,7 @@ async def handle_ngn_payment_direct(
 🆔 Trade: {lb_trade_id}
 Payment Link: {payment_link_result['payment_link']}
 
-⏰ Pay within 15min or trade cancels
+⏰ Pay within {Config.PAYMENT_TIMEOUT_MINUTES}min or trade cancels
 ✅ Auto-confirmation in 2-5 minutes
 
 Tap link above to complete payment via Fincra's secure platform.
@@ -7019,7 +7019,7 @@ async def handle_show_qr(update: TelegramUpdate, context: ContextTypes.DEFAULT_T
 
 <code>{deposit_address}</code>
 
-⏰ Expires in 15min
+⏰ Expires in {Config.PAYMENT_TIMEOUT_MINUTES}min
 🔒 Secure escrow • Payment protected"""
 
         # After payment confirmation, only allow cancel - no payment switching
