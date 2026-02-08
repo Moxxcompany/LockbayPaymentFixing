@@ -902,6 +902,22 @@ class BlockBeeService(APIAdapterRetry):
                             if processing_result.escrow_confirmed:
                                 logger.info(f"✅ Unified processor confirmed escrow {escrow.escrow_id}")
                                 
+                                # CRITICAL FIX: Update escrow timing fields that unified processor doesn't set
+                                # Without this, expires_at stays at the 15-min payment window instead of 24h seller acceptance
+                                escrow.status = EscrowStatus.PAYMENT_CONFIRMED.value
+                                escrow.payment_confirmed_at = datetime.utcnow()
+                                from config import Config as BlockBeeConfig
+                                escrow.expires_at = datetime.utcnow() + timedelta(minutes=BlockBeeConfig.SELLER_RESPONSE_TIMEOUT_MINUTES)
+                                
+                                # DELIVERY COUNTDOWN: Set delivery_deadline based on payment confirmation time
+                                if escrow.pricing_snapshot and 'delivery_hours' in escrow.pricing_snapshot:
+                                    delivery_hours = int(escrow.pricing_snapshot['delivery_hours'])
+                                    escrow.delivery_deadline = datetime.utcnow() + timedelta(hours=delivery_hours)
+                                    escrow.auto_release_at = escrow.delivery_deadline + timedelta(hours=24)
+                                    logger.info(f"⏰ DELIVERY_DEADLINE_SET: Escrow {escrow.escrow_id} delivery countdown starts - {delivery_hours}h")
+                                
+                                logger.info(f"⏰ EXPIRES_AT_UPDATED: Escrow {escrow.escrow_id} seller has {BlockBeeConfig.SELLER_RESPONSE_TIMEOUT_MINUTES}m to accept")
+                                
                                 # Additional holding verification logging for BlockBee crypto payments
                                 if holding_verified:
                                     if holding_auto_recovered:
