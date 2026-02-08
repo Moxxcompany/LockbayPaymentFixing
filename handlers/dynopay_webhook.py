@@ -493,7 +493,7 @@ class DynoPayWebhookHandler:
             # Initialize variables for return value (ensure they're always defined)
             usd_rate = None
             created_transaction_id = transaction_id
-            crypto_amount_decimal = Decimal(str(webhook_data.get('paid_amount', 0)))
+            crypto_amount_decimal = Decimal(str(webhook_data.get('paid_amount') or webhook_data.get('amount') or 0))
             usd_amount = Decimal('0')
             
             # Extract webhook data
