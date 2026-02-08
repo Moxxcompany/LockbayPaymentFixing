@@ -135,8 +135,9 @@ class ExchangeRateFallbackService:
 
         # Rate source configurations
         self.sources_config = {
-            RateSource.FASTFOREX: {"timeout": 10, "retry_count": 2, "confidence": 0.95},
-            RateSource.COINGECKO: {"timeout": 8, "retry_count": 2, "confidence": 0.90},
+            RateSource.TATUM: {"timeout": 10, "retry_count": 2, "confidence": 0.95},
+            RateSource.FASTFOREX: {"timeout": 10, "retry_count": 2, "confidence": 0.90},
+            RateSource.COINGECKO: {"timeout": 8, "retry_count": 2, "confidence": 0.85},
             RateSource.COINAPI: {"timeout": 12, "retry_count": 1, "confidence": 0.85},
             RateSource.EXCHANGERATES: {
                 "timeout": 10,
