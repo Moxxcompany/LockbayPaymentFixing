@@ -204,10 +204,45 @@ class FastForexService(APIAdapterRetry):
             logger.error(f"❌ NGN_RATE_ERROR: Failed to get NGN to USD rate - {e}")
             raise e
 
-    async def get_crypto_to_usd_rate(self, crypto_symbol: str) -> Decimal:
-        """Get cryptocurrency to USD exchange rate with intelligent caching"""
+    async def _fetch_coingecko_crypto_rate(self, mapped_symbol: str) -> Optional[Decimal]:
+        """
+        Fetch crypto→USD rate from CoinGecko (FREE, no API key required).
+        Primary source for crypto rates to reduce FastForex API usage/costs.
+        """
+        coin_id = COINGECKO_SYMBOL_MAP.get(mapped_symbol)
+        if not coin_id:
+            logger.debug(f"CoinGecko: No mapping for {mapped_symbol}, skipping")
+            return None
+        
         try:
-            # Map crypto symbols to FastForex format FIRST (before cache check)
+            async with aiohttp.ClientSession() as session:
+                params = {"ids": coin_id, "vs_currencies": "usd"}
+                timeout = aiohttp.ClientTimeout(total=10)
+                async with session.get(COINGECKO_API_URL, params=params, timeout=timeout) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        if coin_id in data and "usd" in data[coin_id]:
+                            rate = Decimal(str(data[coin_id]["usd"]))
+                            logger.info(f"🦎 CoinGecko {mapped_symbol}: ${float(rate):.4f} USD")
+                            return rate
+                    elif response.status == 429:
+                        logger.warning("🦎 CoinGecko rate-limited, falling back to FastForex")
+                    else:
+                        logger.warning(f"🦎 CoinGecko API error: {response.status}")
+        except asyncio.TimeoutError:
+            logger.warning("🦎 CoinGecko API timeout, falling back to FastForex")
+        except Exception as e:
+            logger.warning(f"🦎 CoinGecko API error: {e}")
+        
+        return None
+
+    async def get_crypto_to_usd_rate(self, crypto_symbol: str) -> Decimal:
+        """Get cryptocurrency to USD exchange rate with intelligent caching.
+        
+        Source priority: Cache → CoinGecko (free) → FastForex (paid) → Error
+        """
+        try:
+            # Map crypto symbols to standard format FIRST (before cache check)
             # This ensures both "LTC" and "XLTC" use the same cache entry
             symbol_map = {
                 # Standard symbols
@@ -258,15 +293,31 @@ class FastForexService(APIAdapterRetry):
             rapid_cached_rate = get_cached(rapid_cache_key)
             if rapid_cached_rate is not None:
                 return Decimal(str(rapid_cached_rate))
-            
-            if not self.api_key:
-                raise FastForexAPIError("FastForex API key not configured")
 
             # USD to USD is always 1.0
             if mapped_symbol == "USD":
                 return Decimal("1.0")
 
-            # PERFORMANCE OPTIMIZATION: Use optimized HTTP session with connection pooling
+            # USDT to USD is always ~1.0
+            if mapped_symbol == "USDT":
+                rate = Decimal("1.0")
+                set_cached(cache_key, rate, ttl=self.cache_ttl)
+                return rate
+
+            # === SOURCE 1: CoinGecko (FREE, no API key) ===
+            coingecko_rate = await self._fetch_coingecko_crypto_rate(mapped_symbol)
+            if coingecko_rate is not None:
+                set_cached(cache_key, coingecko_rate, ttl=self.cache_ttl)
+                set_cached(rapid_cache_key, coingecko_rate, ttl=self.rapid_cache_ttl)
+                # Also populate fallback cache for webhook paths
+                set_cached(f"fallback_crypto_rate_{mapped_symbol}_USD", coingecko_rate, ttl=self.fallback_cache_ttl)
+                return coingecko_rate
+
+            # === SOURCE 2: FastForex (paid fallback) ===
+            if not self.api_key:
+                logger.warning(f"CoinGecko failed and no FastForex API key for {crypto_symbol}")
+                raise FastForexAPIError(f"All rate sources failed for {crypto_symbol}")
+
             async with optimized_http_session() as session:
                 url = f"{self.base_url}/fetch-one"
                 params = {"from": mapped_symbol, "to": "USD", "api_key": self.api_key}
@@ -280,14 +331,14 @@ class FastForexService(APIAdapterRetry):
                             
                             # Cache the fresh rate for performance (dual caching strategy)
                             set_cached(cache_key, rate, ttl=self.cache_ttl)
-                            set_cached(rapid_cache_key, rate, ttl=self.rapid_cache_ttl)  # Rapid cache for high-frequency requests
+                            set_cached(rapid_cache_key, rate, ttl=self.rapid_cache_ttl)
+                            set_cached(f"fallback_crypto_rate_{mapped_symbol}_USD", rate, ttl=self.fallback_cache_ttl)
                             
                             logger.info(
-                                f"🔄 Fresh {crypto_symbol} rate: ${float(rate):.4f} USD (cached for {self.cache_ttl}s + rapid cache {self.rapid_cache_ttl}s)"
+                                f"🔄 FastForex fallback {crypto_symbol}: ${float(rate):.4f} USD"
                             )
                             return rate
                         else:
-                            # SECURITY FIX: Sanitize API response data
                             safe_data = sanitize_for_log(data)
                             logger.error(
                                 f"Invalid response format from FastForex for {crypto_symbol}: {safe_data}"
@@ -295,14 +346,10 @@ class FastForexService(APIAdapterRetry):
                             raise FastForexAPIError("Invalid response format")
                     else:
                         error_text = await response.text()
-                        # SECURITY FIX: Sanitize error response
                         safe_error = sanitize_for_log(error_text)
                         logger.error(
                             f"FastForex API error for {crypto_symbol}: {response.status} - {safe_error}"
                         )
-
-                        # Fail fast - no fallback logic per user request
-
                         raise FastForexAPIError(
                             f"All rate sources failed for {crypto_symbol}"
                         )
