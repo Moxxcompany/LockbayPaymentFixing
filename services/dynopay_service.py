@@ -128,7 +128,7 @@ class DynoPayService:
             }
             
             payload = {
-                "amount": float(amount),  # Convert Decimal to float for JSON serialization
+                "amount": payment_amount,  # Padded amount for crypto fee protection
                 "currency": dynopay_currency,
                 "redirect_uri": callback_url,
                 "webhook_url": self.webhook_url,
