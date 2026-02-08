@@ -116,8 +116,16 @@ class SimplifiedPaymentProcessor:
     ) -> Dict[str, Any]:
         """Credit wallet immediately when provider confirms payment."""
         
-        # Get USD amount (handle both crypto and fiat)
-        usd_amount = self._get_usd_amount(amount, currency, payment_type)
+        # CRITICAL FIX: Use provider-supplied fiat value when available
+        # This prevents rate discrepancy losses from re-converting crypto→USD via FastForex
+        provider_usd_amount = self._extract_provider_usd_amount(provider, raw_data, amount, currency)
+        
+        if provider_usd_amount is not None:
+            usd_amount = provider_usd_amount
+            self.logger.info(f"💱 PROVIDER_USD: Using {provider} authoritative USD value: ${usd_amount:.2f} (crypto: {amount} {currency})")
+        else:
+            # Fallback: Get USD amount via FastForex (handle both crypto and fiat)
+            usd_amount = self._get_usd_amount(amount, currency, payment_type)
         
         # MINIMUM DEPOSIT ENFORCEMENT: Reject deposits below $10 USD
         MIN_WALLET_DEPOSIT_USD = Decimal("10.0")
