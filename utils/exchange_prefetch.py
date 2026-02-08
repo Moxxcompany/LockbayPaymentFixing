@@ -273,6 +273,7 @@ class ExchangeRateFallbackService:
 
         # Try multiple sources
         sources = [
+            (RateSource.TATUM, self._fetch_tatum_usd_ngn),
             (RateSource.FASTFOREX, self._fetch_fastforex_usd_ngn),
             (RateSource.EXCHANGERATES, self._fetch_exchangerates_usd_ngn),
         ]
