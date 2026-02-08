@@ -149,8 +149,8 @@ class ExchangeRateFallbackService:
 
         # Try multiple sources in order of preference
         sources = [
+            (RateSource.TATUM, self._fetch_tatum_crypto_rate),
             (RateSource.FASTFOREX, self._fetch_fastforex_crypto_rate),
-            (RateSource.COINGECKO, self._fetch_coingecko_crypto_rate),
             (RateSource.COINAPI, self._fetch_coinapi_crypto_rate),
         ]
 
