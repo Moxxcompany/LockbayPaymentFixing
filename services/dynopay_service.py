@@ -82,6 +82,10 @@ class DynoPayService:
             logger.error(f"Unexpected error in get_supported_currencies: {e}")
             raise DynoPayAPIError(f"Unexpected error: {e}")
 
+    # Crypto fee padding: $2 flat added to non-USDT payments to cover network fees
+    CRYPTO_FEE_PADDING_USD = Decimal("2")
+    CRYPTO_FEE_PADDING_EXEMPT = {"USDT", "USDT_TRC20", "USDT_ERC20", "USDT_BEP20"}
+
     async def create_payment_address(
         self, 
         currency: str, 
@@ -93,6 +97,17 @@ class DynoPayService:
         """Create crypto payment address for escrow deposit"""
         try:
             dynopay_currency = self._map_currency_to_dynopay(currency)
+            
+            # Apply $2 crypto fee padding for non-USDT currencies
+            original_amount = Decimal(str(amount))
+            if currency.upper() not in self.CRYPTO_FEE_PADDING_EXEMPT:
+                padded_amount = original_amount + self.CRYPTO_FEE_PADDING_USD
+                logger.info(f"💰 CRYPTO_FEE_PADDING: ${original_amount} + ${self.CRYPTO_FEE_PADDING_USD} padding = ${padded_amount} (currency: {currency})")
+            else:
+                padded_amount = original_amount
+                logger.info(f"💰 CRYPTO_FEE_PADDING: USDT exempt - no padding applied (${original_amount})")
+            
+            payment_amount = float(padded_amount)
             
             # VALIDATION LOG: Confirm UTID is being used as reference_id
             logger.info(f"🔍 DYNOPAY_UTID_VALIDATION: Creating payment with reference_id='{reference_id}' (should be UTID format)")
