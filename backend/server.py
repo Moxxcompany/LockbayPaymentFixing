@@ -517,7 +517,10 @@ _original_lifespan = app.router.lifespan_context
 @asynccontextmanager
 async def _patched_lifespan(app_instance):
     """Initialize bot before the webhook server starts accepting requests."""
-    await initialize_bot()
+    try:
+        await initialize_bot()
+    except Exception as e:
+        logger.error(f"Bot initialization failed (server will continue): {e}")
     async with _original_lifespan(app_instance) as state:
         yield state
 
