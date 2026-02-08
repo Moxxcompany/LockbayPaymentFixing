@@ -140,7 +140,7 @@ class DynoPayWebhookHandler:
             event_type = webhook_data.get('event', '')
             if event_type == 'payment.pending':
                 logger.info(f"📋 DYNOPAY_WEBHOOK: Received payment.pending event - acknowledging (txId: {webhook_data.get('txId', 'unknown')})")
-                return {"status": "ok", "message": "Pending event acknowledged"}
+                return {"status": "success", "message": "Pending event acknowledged"}
             
             # Extract webhook data with field mapping (DynoPay actual format → expected format)
             meta_data = webhook_data.get('meta_data', {})
