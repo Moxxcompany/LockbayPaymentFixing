@@ -1734,7 +1734,7 @@ Available tokens:
     VERIFICATION_EXPIRY_MINUTES = int(os.getenv("VERIFICATION_EXPIRY_MINUTES", "15"))  # 15 minutes verification expiry
     USER_CACHE_TTL_MINUTES = int(os.getenv("USER_CACHE_TTL_MINUTES", "15"))  # 15 minutes user cache for better performance
     CONVERSATION_TIMEOUT_MINUTES = int(os.getenv("CONVERSATION_TIMEOUT_MINUTES", "30"))  # 30 minutes conversation timeout
-    PAYMENT_TIMEOUT_MINUTES = int(os.getenv("PAYMENT_TIMEOUT_MINUTES", "15"))  # 15 minutes payment deadline for security
+    PAYMENT_TIMEOUT_MINUTES = int(os.getenv("PAYMENT_TIMEOUT_MINUTES", "60"))  # 60 minutes (1 hour) payment deadline
     SELLER_RESPONSE_TIMEOUT_MINUTES = int(os.getenv("SELLER_RESPONSE_TIMEOUT_MINUTES", "1440"))  # 24 hours for seller to accept after payment
     
     # UI and Display Limits
