@@ -5,6 +5,7 @@ FastForex API service for real-time cryptocurrency and forex rates
 import aiohttp
 import asyncio
 import logging
+import os
 import time
 from decimal import Decimal
 from typing import Dict, Optional
