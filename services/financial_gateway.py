@@ -310,20 +310,18 @@ class UnifiedFinancialGateway:
             if crypto_symbol == "USD":
                 return Decimal("1.0")
 
-            # Fetch from FastForex API
+            # Fetch from Tatum API (primary)
+            rate = await self._fetch_tatum_crypto_rate(crypto_symbol)
+            if rate:
+                self.rate_cache.set(cache_key, str(rate))
+                logger.info(f"Retrieved {crypto_currency} rate (Tatum): ${MonetaryDecimal.quantize_rate(rate)} USD")
+                return rate
+
+            # Fallback to FastForex
             rate = await self._fetch_fastforex_crypto_rate(crypto_symbol)
             if rate:
                 self.rate_cache.set(cache_key, str(rate))
-                logger.info(f"Retrieved {crypto_currency} rate: ${MonetaryDecimal.quantize_rate(rate)} USD")
-                return rate
-
-            # Fallback to CoinGecko
-            rate = await self._fetch_coingecko_rate(crypto_symbol)
-            if rate:
-                self.rate_cache.set(cache_key, str(rate))
-                logger.info(
-                    f"Retrieved {crypto_currency} rate from backup: ${MonetaryDecimal.quantize_rate(rate)} USD"
-                )
+                logger.info(f"Retrieved {crypto_currency} rate (FastForex fallback): ${MonetaryDecimal.quantize_rate(rate)} USD")
                 return rate
 
             # Final fallback attempt
