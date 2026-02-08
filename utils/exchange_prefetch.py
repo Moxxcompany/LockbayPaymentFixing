@@ -90,6 +90,7 @@ def invalidate_exchange_cache(user_data: dict):
 class RateSource(Enum):
     """Rate source providers"""
 
+    TATUM = "tatum"
     FASTFOREX = "fastforex"
     COINGECKO = "coingecko"
     COINAPI = "coinapi"
