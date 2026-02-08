@@ -201,27 +201,13 @@ app = FastAPI(
 )
 
 # ASGI middleware to strip /api prefix (Emergent platform forwards full path to port 8001)
-_original_app_asgi = app.router.default
-class _StripAPIPrefixASGI:
-    def __init__(self, asgi_app):
-        self.app = asgi_app
-    async def __call__(self, scope, receive, send):
-        if scope["type"] in ("http", "websocket"):
-            path = scope.get("path", "")
-            if path.startswith("/api/"):
-                scope["path"] = path[4:]  # /api/webhook -> /webhook
-                scope["raw_path"] = scope["path"].encode("utf-8")
-            elif path == "/api":
-                scope["path"] = "/"
-                scope["raw_path"] = b"/"
-        await self.app(scope, receive, send)
-
-# Wrap the FastAPI ASGI app
-_inner_asgi = app.build_middleware_stack
-def _build_with_strip():
-    inner = _inner_asgi()
-    return _StripAPIPrefixASGI(inner)
-app.build_middleware_stack = _build_with_strip
+@app.middleware("http")
+async def strip_api_prefix(request: Request, call_next):
+    if request.scope["path"].startswith("/api/"):
+        request.scope["path"] = request.scope["path"][4:]
+    elif request.scope["path"] == "/api":
+        request.scope["path"] = "/"
+    return await call_next(request)
 
 # Initialize Jinja2 templates for public profile pages
 templates = Jinja2Templates(directory="templates")
