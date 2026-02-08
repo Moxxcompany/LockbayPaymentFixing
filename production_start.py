@@ -168,7 +168,8 @@ def main():
             logger.warning(f"⚠️ Resolved {cleanup_report['port_conflicts_found']} port conflicts")
         
         logger.info("🔒 Establishing singleton process...")
-        if not process_manager.ensure_singleton(port=5000):
+        singleton_port = int(os.environ.get("PORT", "5000"))
+        if not process_manager.ensure_singleton(port=singleton_port):
             logger.error("❌ Another instance is already running or port conflicts exist")
             logger.info("💡 If this is unexpected, wait 30 seconds and try again")
             sys.exit(1)
