@@ -73,6 +73,13 @@ class ApiResilienceService:
                 max_retries=2,
                 circuit_breaker_threshold=3,
             ),
+            "tatum": ApiEndpoint(
+                name="tatum",
+                url="https://api.tatum.io",
+                timeout_seconds=15,
+                max_retries=2,
+                circuit_breaker_threshold=3,
+            ),
             "binance": ApiEndpoint(
                 name="binance",
                 url="https://api.binance.com",
