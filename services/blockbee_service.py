@@ -1107,20 +1107,7 @@ class BlockBeeService(APIAdapterRetry):
                                     logger.error(f"❌ Fund segregation failed for escrow {escrow.escrow_id}: {fund_segregation_result.get('error')}")
                                     escrow.status = EscrowStatus.PAYMENT_CONFIRMED.value  # Keep as payment_confirmed if segregation fails
                                     escrow.payment_confirmed_at = datetime.utcnow()
-                                    escrow.expires_at = datetime.utcnow() + timedelta(hours=24)
-                                    
-                                    # DELIVERY COUNTDOWN: Set delivery_deadline based on payment confirmation time
-                                    if escrow.pricing_snapshot and 'delivery_hours' in escrow.pricing_snapshot:
-                                        delivery_hours = int(escrow.pricing_snapshot['delivery_hours'])
-                                        escrow.delivery_deadline = datetime.utcnow() + timedelta(hours=delivery_hours)
-                                        escrow.auto_release_at = escrow.delivery_deadline + timedelta(hours=24)
-                                        logger.info(f"⏰ DELIVERY_DEADLINE_SET: Escrow {escrow.escrow_id} delivery countdown starts - {delivery_hours}h")
-                            except Exception as segregation_error:
-                                logger.error(f"❌ Critical error in fund segregation for escrow {escrow.escrow_id}: {segregation_error}")
-                                # Fallback: Keep as payment_confirmed if segregation has errors
-                                escrow.status = EscrowStatus.PAYMENT_CONFIRMED.value
-                                escrow.payment_confirmed_at = datetime.utcnow()
-                                escrow.expires_at = datetime.utcnow() + timedelta(hours=24)
+                                    escrow.expires_at = datetime.utcnow() + timedelta(minutes=LegacyBlockBeeConfig.SELLER_RESPONSE_TIMEOUT_MINUTES)
                                 
                                 # DELIVERY COUNTDOWN: Set delivery_deadline based on payment confirmation time
                                 if escrow.pricing_snapshot and 'delivery_hours' in escrow.pricing_snapshot:
