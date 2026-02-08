@@ -369,18 +369,36 @@ class EscrowOrchestrator:
             if deposit_address and crypto_currency:
                 # Use existing_escrow.id if updating, otherwise new_escrow.id
                 db_escrow_id = existing_escrow.id if existing_escrow else new_escrow.id
-                payment_address_record = PaymentAddress(
-                    utid=escrow_utid,
-                    address=deposit_address,
-                    currency=crypto_currency,
-                    provider=provider_used.value,
-                    user_id=request.user_id,
-                    escrow_id=db_escrow_id,
-                    is_used=False,
-                    provider_data=address_data
+                
+                # Check if address already exists (DynoPay may reuse addresses)
+                existing_addr = await session.execute(
+                    select(PaymentAddress).where(PaymentAddress.address == deposit_address)
                 )
-                session.add(payment_address_record)
-                logger.info(f"✅ PAYMENT_ADDRESS_SAVED: Created payment_addresses record for escrow {escrow_id}, address {deposit_address}")
+                existing_addr_record = existing_addr.scalar_one_or_none()
+                
+                if existing_addr_record:
+                    # Update existing record for the new escrow
+                    existing_addr_record.utid = escrow_utid
+                    existing_addr_record.escrow_id = db_escrow_id
+                    existing_addr_record.user_id = request.user_id
+                    existing_addr_record.currency = crypto_currency
+                    existing_addr_record.provider = provider_used.value
+                    existing_addr_record.is_used = False
+                    existing_addr_record.provider_data = address_data
+                    logger.info(f"✅ PAYMENT_ADDRESS_UPDATED: Reused address {deposit_address} for escrow {escrow_id}")
+                else:
+                    payment_address_record = PaymentAddress(
+                        utid=escrow_utid,
+                        address=deposit_address,
+                        currency=crypto_currency,
+                        provider=provider_used.value,
+                        user_id=request.user_id,
+                        escrow_id=db_escrow_id,
+                        is_used=False,
+                        provider_data=address_data
+                    )
+                    session.add(payment_address_record)
+                    logger.info(f"✅ PAYMENT_ADDRESS_SAVED: Created payment_addresses record for escrow {escrow_id}, address {deposit_address}")
             
             # Update IdempotencyKey with entity_id to prevent duplicates
             from sqlalchemy import update
