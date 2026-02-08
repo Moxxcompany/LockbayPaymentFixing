@@ -1,40 +1,38 @@
-# LockBay Telegram Escrow Bot - PRD
+# Lockbay - Telegram P2P Escrow Bot PRD
 
 ## Original Problem Statement
-Set up the existing LockBay Telegram Escrow Bot repo and install needed dependencies. Fix Railway deployment issues.
+1. Analyze repo and setup/install dependencies
+2. Fix: User sent $10 to bot wallet but only $8.71 was credited. Ensure same issue doesn't exist in escrow crypto payments.
 
 ## Architecture
-- **Backend**: Python FastAPI (port 8001) - serves webhook server + landing page
-- **Bot Framework**: python-telegram-bot v22.x
-- **Database**: PostgreSQL (Railway/Neon) with SQLAlchemy ORM (57 tables)
-- **Cache**: Redis (DB_BACKED fallback mode)
-- **Payment Integrations**: BlockBee, DynoPay, Fincra, Kraken
+- **Backend**: Python FastAPI (port 8001) + python-telegram-bot v22.6
+- **Database**: PostgreSQL 15 (SQLAlchemy ORM, 57 tables)
+- **Cache**: Redis (optional)
+- **Payments**: DynoPay, BlockBee, Kraken, Fincra
 - **Email**: Brevo (SendinBlue)
-- **SMS**: Twilio
 
-## What's Been Implemented (2026-02-08)
-- Installed all Python dependencies locally
-- Installed & configured local PostgreSQL 15 with 57 tables
-- Fixed Railway deployment issues:
-  1. Removed `replit>=4.1.2` from pyproject.toml (Replit-specific, fails on Railway)
-  2. Created `nixpacks.toml` to explicitly use `requirements.txt` for deps
-  3. Created `runtime.txt` for Python version
-  4. Removed stale `.railway.json` (pointed to wrong project/service)
-  5. Fixed `KRAKEN_PRIVATE_KEY` / `KRAKEN_SECRET_KEY` env var mismatch
-  6. Made bot initialization resilient (server continues if token fails)
-  7. Fixed duplicate index bug in PlatformRevenue model
+## What's Been Implemented
 
-## Railway Env Var Fix Needed
-- Add `KRAKEN_SECRET_KEY` with the value of `KRAKEN_PRIVATE_KEY` in Railway dashboard
+### Session 1 (Feb 2026) - Setup
+- [x] Installed Python dependencies, set up PostgreSQL 15 with lockbay DB
+- [x] Backend running on port 8001, health check passing
+
+### Session 2 (Feb 2026) - Bug Fix: Rate Discrepancy
+- **Root Cause**: DynoPay wallet deposit handler ignored `base_amount` (authoritative USD) field, re-converting crypto via FastForex causing ~13% loss
+- [x] Fixed dynopay_webhook.py `handle_wallet_deposit_webhook` to use `base_amount`
+- [x] Fixed simplified_payment_processor.py with `_extract_provider_usd_amount()` for BlockBee
+- [x] Verified escrow paths (3 locations) already use `base_amount` correctly
+- [x] All tests passing (100% backend, 5/5 unit tests)
 
 ## Prioritized Backlog
-### P0
-- Redeploy on Railway with fixes
-- Verify Telegram webhook connectivity
+### P0 - Critical
+- Configure BOT_TOKEN for Telegram bot
+- Set up payment provider API keys (DynoPay, BlockBee, FastForex)
 
-### P1
-- Configure Redis (or keep DB_BACKED fallback)
-- Test payment flows end-to-end
+### P1 - Important
+- Rate discrepancy monitoring/alerting
+- Configure webhook URLs for production
 
-### P2
-- Production monitoring & alerting setup
+### P2 - Nice to Have
+- Web admin dashboard
+- Automated financial reconciliation
