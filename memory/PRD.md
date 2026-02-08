@@ -1,36 +1,42 @@
 # LockBay Telegram Escrow Bot - PRD
 
 ## Original Problem Statement
-Set up, install dependencies and ensure the current pod URL is used for the webhook URL.
+Set up the existing LockBay Telegram Escrow Bot repo and install needed dependencies.
 
 ## Architecture
-- **Type**: Python Telegram Bot with FastAPI webhook server
-- **Database**: Neon PostgreSQL (production) + Railway PostgreSQL (backup)
-- **Bot Framework**: python-telegram-bot v22
-- **Web Framework**: FastAPI (served via uvicorn on port 8001)
-- **Integrations**: BlockBee (crypto), Fincra (NGN payments), DynoPay, Twilio (SMS), Brevo (email), Kraken
+- **Backend**: Python FastAPI (port 8001) - serves webhook server + landing page
+- **Bot Framework**: python-telegram-bot v22.x
+- **Database**: PostgreSQL (local, port 5432) with SQLAlchemy ORM (57 tables)
+- **Cache**: Redis (configured, not running locally)
+- **Payment Integrations**: BlockBee, DynoPay, Fincra, Kraken
+- **Email**: Brevo (SendinBlue)
+- **SMS**: Twilio
 
-## What's Been Implemented (2026-02-07)
-- Cloned repo from GitHub (Moxxcompany/LockbayPaymentFixing)
-- Created `.env` with all required environment variables
-- Updated WEBHOOK_URL and TELEGRAM_WEBHOOK_URL to current pod URL
-- Installed all Python dependencies from requirements.txt
-- Backend server running on port 8001 via supervisor
-- Database connected (65 tables verified)
-- Telegram webhook registered and confirmed
+## What's Been Implemented (2026-02-08)
+- Installed all Python dependencies (35+ packages)
+- Installed & configured local PostgreSQL 15
+- Created database `lockbay` with 57 tables via SQLAlchemy models
+- Created `.env` files (root, backend, frontend)
+- Fixed duplicate index issue in PlatformRevenue model
+- Made bot initialization resilient (server continues if Telegram token is invalid)
+- Backend FastAPI server running and serving landing page
 
 ## Core Requirements
-- Telegram bot for escrow trading
-- Multi-provider payment processing (crypto, NGN, fiat)
-- Webhook handling for payment callbacks
-- Admin dashboard and management tools
-- User wallet, ratings, disputes system
+- Valid Telegram BOT_TOKEN required for full bot functionality
+- DATABASE_URL for PostgreSQL (currently local dev)
+- Various API keys for integrations (Kraken, Fincra, BlockBee, Brevo, etc.)
 
 ## Prioritized Backlog
-- P0: All core features operational (DONE - setup complete)
-- P1: Monitor webhook delivery and bot responsiveness
-- P2: Email queue (currently in NO-OP mode - Redis/Replit KV not available)
+### P0 - Critical
+- Provide real Telegram BOT_TOKEN to enable bot functionality
+- Configure production DATABASE_URL (Neon PostgreSQL)
 
-## Next Tasks
-- Test bot interactions via Telegram
-- Verify payment webhook flows end-to-end
+### P1 - Important
+- Configure Redis for state management
+- Set up Brevo API key for email notifications
+- Configure payment provider keys (BlockBee, DynoPay, Fincra, Kraken)
+
+### P2 - Nice to Have
+- Configure Twilio for SMS
+- Set up webhook URL for Telegram
+- Production deployment configuration
