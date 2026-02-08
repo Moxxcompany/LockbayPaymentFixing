@@ -410,6 +410,25 @@ class FastForexService(APIAdapterRetry):
             )
             raise FastForexAPIError("Unexpected error occurred")
 
+    async def _fetch_fastforex_single_rate(self, mapped_symbol: str) -> Optional[Decimal]:
+        """Fetch a single crypto rate from FastForex API (paid, used as fallback)."""
+        if not self.api_key:
+            return None
+        try:
+            async with optimized_http_session() as session:
+                url = f"{self.base_url}/fetch-one"
+                params = {"from": mapped_symbol, "to": "USD", "api_key": self.api_key}
+                async with session.get(url, params=params) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        if "result" in data and "USD" in data["result"]:
+                            rate = Decimal(str(data["result"]["USD"]))
+                            logger.info(f"🔄 FastForex fallback {mapped_symbol}: ${float(rate):.4f} USD")
+                            return rate
+        except Exception as e:
+            logger.warning(f"FastForex single rate error for {mapped_symbol}: {e}")
+        return None
+
     async def get_multiple_rates(self, symbols: list) -> Dict[str, Decimal]:
         """Get multiple real-time cryptocurrency rates efficiently.
         Uses single batch CoinGecko call, then FastForex for any misses."""
