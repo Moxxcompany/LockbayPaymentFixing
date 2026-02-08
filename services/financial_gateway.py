@@ -486,45 +486,65 @@ class UnifiedFinancialGateway:
 
         return None
 
-    async def _fetch_coingecko_rate(self, crypto_symbol: str) -> Optional[Decimal]:
-        """Fetch cryptocurrency rate from CoinGecko as backup"""
+    async def _fetch_tatum_crypto_rate(self, crypto_symbol: str) -> Optional[Decimal]:
+        """Fetch cryptocurrency rate from Tatum API (primary source)"""
         try:
-            # CoinGecko symbol mapping
-            coingecko_map = {
-                "BTC": "bitcoin",
-                "ETH": "ethereum",
-                "LTC": "litecoin",
-                "DOGE": "dogecoin",
-                "BCH": "bitcoin-cash",
-                "BNB": "binancecoin",
-                "TRX": "tron",
-                "USDT": "tether",
-            }
-
-            coin_id = coingecko_map.get(crypto_symbol)
-            if not coin_id:
+            if not self.tatum_api_key:
                 return None
 
             async with aiohttp.ClientSession() as session:
-                params = {"ids": coin_id, "vs_currencies": "usd"}
+                params = {"symbol": crypto_symbol, "basePair": "USD"}
+                headers = {"x-api-key": self.tatum_api_key}
+                timeout = aiohttp.ClientTimeout(total=10)
 
                 async with session.get(
-                    self.coingecko_backup_url, params=params, timeout=aiohttp.ClientTimeout(total=10)
+                    self.tatum_api_url, params=params, headers=headers, timeout=timeout
                 ) as response:
                     if response.status == 200:
                         data = await response.json()
-                        if coin_id in data and "usd" in data[coin_id]:
+                        if "value" in data:
                             rate = MonetaryDecimal.to_decimal(
-                                data[coin_id]["usd"], "coingecko_rate"
+                                data["value"], "tatum_rate"
                             )
                             return MonetaryDecimal.quantize_rate(rate)
                     else:
-                        logger.warning(f"CoinGecko backup API error: {response.status}")
+                        logger.warning(f"Tatum crypto rate API error: {response.status}")
 
         except asyncio.TimeoutError:
-            logger.warning("CoinGecko backup API timeout")
+            logger.warning("Tatum crypto rate API timeout")
         except Exception as e:
-            logger.warning(f"CoinGecko backup API error: {e}")
+            logger.warning(f"Tatum crypto rate API error: {e}")
+
+        return None
+
+    async def _fetch_tatum_usd_to_ngn(self) -> Optional[Decimal]:
+        """Fetch USD to NGN rate from Tatum API"""
+        try:
+            if not self.tatum_api_key:
+                return None
+
+            async with aiohttp.ClientSession() as session:
+                params = {"symbol": "USD", "basePair": "NGN"}
+                headers = {"x-api-key": self.tatum_api_key}
+                timeout = aiohttp.ClientTimeout(total=10)
+
+                async with session.get(
+                    self.tatum_api_url, params=params, headers=headers, timeout=timeout
+                ) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        if "value" in data:
+                            rate = MonetaryDecimal.to_decimal(
+                                data["value"], "tatum_ngn_rate"
+                            )
+                            return MonetaryDecimal.quantize_rate(rate)
+                    else:
+                        logger.warning(f"Tatum USD-NGN API error: {response.status}")
+
+        except asyncio.TimeoutError:
+            logger.warning("Tatum USD-NGN API timeout")
+        except Exception as e:
+            logger.warning(f"Tatum USD-NGN API error: {e}")
 
         return None
 
