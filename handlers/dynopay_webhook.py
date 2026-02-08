@@ -517,8 +517,19 @@ class DynoPayWebhookHandler:
             # Initialize variables for return value (ensure they're always defined)
             usd_rate = None
             created_transaction_id = transaction_id
-            crypto_amount_decimal = Decimal(str(webhook_data.get('paid_amount') or webhook_data.get('amount') or 0))
-            usd_amount = Decimal('0')
+            
+            # Use DynoPay's base_amount (USD) when available, otherwise fall back to crypto amount
+            dynopay_base_amt = webhook_data.get('base_amount')
+            dynopay_base_curr = webhook_data.get('base_currency', '')
+            raw_crypto_amount = webhook_data.get('amount') or webhook_data.get('paid_amount') or 0
+            
+            crypto_amount_decimal = Decimal(str(raw_crypto_amount))
+            
+            if dynopay_base_amt and dynopay_base_curr == 'USD':
+                usd_amount = Decimal(str(dynopay_base_amt))
+                logger.info(f"📊 DYNOPAY_USD_DIRECT: Using base_amount=${usd_amount} (crypto: {crypto_amount_decimal} {webhook_data.get('currency', '?')})")
+            else:
+                usd_amount = Decimal('0')
             
             # Extract webhook data
             meta_data = webhook_data.get('meta_data', {})
