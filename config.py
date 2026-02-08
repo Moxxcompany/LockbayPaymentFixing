@@ -1567,7 +1567,7 @@ Available tokens:
 
     # Determine base URL for webhooks based on environment detection
     manual_webhook_url = os.getenv("WEBHOOK_URL", "")
-    production_url = "https://lockbayescrow-production.up.railway.app/webhook"
+    production_url = "https://flockbaypaymentfixing-production.up.railway.app/webhook"
     
     if manual_webhook_url:
         # Manual override takes highest priority
