@@ -6275,10 +6275,12 @@ async def show_payment_success_for_existing_escrow(query, context, escrow) -> in
         payment_confirmed_at = getattr(escrow, 'payment_confirmed_at', None)
         expires_at = getattr(escrow, 'expires_at', None)
         
-        # Calculate seller acceptance deadline
-        if not expires_at and payment_confirmed_at:
+        # Calculate seller acceptance deadline - ALWAYS recalculate from payment_confirmed_at
+        if payment_confirmed_at:
             seller_timeout_minutes = getattr(AppConfig, 'SELLER_RESPONSE_TIMEOUT_MINUTES', 1440)  # 24 hours
-            expires_at = payment_confirmed_at + timedelta(minutes=seller_timeout_minutes)
+            calculated_expires = payment_confirmed_at + timedelta(minutes=seller_timeout_minutes)
+            if not expires_at or calculated_expires > expires_at:
+                expires_at = calculated_expires
         
         # Format time remaining
         seller_time_msg = "⏰ Seller has 24h to accept"  # Fallback
