@@ -214,11 +214,12 @@ class UnifiedFinancialGateway:
     def __init__(self):
         # API Configuration with validation
         self.fastforex_api_key = api_validator.get_api_key("FASTFOREX_API_KEY")
+        self.tatum_api_key = api_validator.get_api_key("TATUM_API_KEY")
         self.backup_api_key = api_validator.get_api_key("BACKUP_FOREX_API_KEY")
 
         # API Endpoints
         self.fastforex_base_url = "https://api.fastforex.io"
-        self.coingecko_backup_url = "https://api.coingecko.com/api/v3/simple/price"
+        self.tatum_api_url = "https://api.tatum.io/v4/data/rate/symbol"
 
         # Caching
         self.rate_cache = SimpleCache(default_ttl=300)  # 5 minute cache for rates
