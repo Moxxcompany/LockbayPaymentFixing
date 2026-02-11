@@ -12,6 +12,7 @@ Maintains 100% functionality while reducing complexity by 83%.
 """
 
 import asyncio
+import os
 import logging
 from datetime import datetime, timedelta
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
