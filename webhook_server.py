@@ -106,67 +106,44 @@ async def enqueue_webhook_with_fallback(
     metadata: Optional[dict] = None
 ) -> tuple[bool, str, float]:
     """
-    Smart webhook enqueue with optimized SQLite-first, Redis-fallback strategy.
-    
-    Performance:
-    - SQLite (optimized): <20ms target (connection pooling, optimized PRAGMAs)
-    - Redis fallback: ~94ms (cross-cloud latency, reliable backup)
-    
-    Optimizations:
-    - Connection pooling (saves 15-20ms)
-    - No Python locks (saves 5ms)
-    - Optimized SQLite PRAGMAs (saves 10ms)
-    - Prepared statements (saves 3-5ms)
+    OPTIMIZED: Single-backend webhook enqueue (no dual-queue overhead).
+    Backend selected via WEBHOOK_QUEUE_BACKEND env var (sqlite or redis).
     
     Returns:
         (success, event_id, duration_ms)
     """
-    # Try optimized SQLite first (fast and local)
-    sqlite_error_msg = None
     try:
-        success, event_id, duration_ms = await fast_sqlite_webhook_queue.enqueue_webhook(
-            provider=provider,
-            endpoint=endpoint,
-            payload=payload,
-            headers=headers,
-            client_ip=client_ip,
-            priority=priority,
-            max_retries=max_retries,
-            signature=signature or "",
-            metadata=metadata or {}
-        )
-        
-        if success:
-            logger.debug(f"✅ SQLITE_ENQUEUE: {provider}/{endpoint} ({duration_ms:.2f}ms)")
-            return True, event_id, duration_ms
+        if _webhook_queue_backend == "redis":
+            success, event_id, duration_ms = await redis_webhook_queue.enqueue_webhook(
+                provider=provider,
+                endpoint=endpoint,
+                payload=payload,
+                headers=headers,
+                client_ip=client_ip,
+                priority=priority,
+                metadata=metadata,
+                signature=signature
+            )
         else:
-            logger.warning(f"⚠️ SQLITE_UNAVAILABLE: Falling back to Redis for {provider}/{endpoint}")
-            
-    except Exception as sqlite_error:
-        sqlite_error_msg = str(sqlite_error)
-        logger.warning(f"⚠️ SQLITE_ERROR: {sqlite_error_msg}, falling back to Redis")
-    
-    # Fallback to Redis (cross-cloud backup)
-    try:
-        redis_priority = RedisWebhookEventPriority(priority.value)
-        success, event_id, duration_ms = await redis_webhook_queue.enqueue_webhook(
-            provider=provider,
-            endpoint=endpoint,
-            payload=payload,
-            headers=headers,
-            client_ip=client_ip,
-            priority=redis_priority,
-            metadata=metadata,
-            signature=signature
-        )
+            success, event_id, duration_ms = await fast_sqlite_webhook_queue.enqueue_webhook(
+                provider=provider,
+                endpoint=endpoint,
+                payload=payload,
+                headers=headers,
+                client_ip=client_ip,
+                priority=priority,
+                max_retries=max_retries,
+                signature=signature or "",
+                metadata=metadata or {}
+            )
         
         if success:
-            logger.debug(f"✅ REDIS_ENQUEUE: {provider}/{endpoint} ({duration_ms:.2f}ms)")
+            logger.debug(f"✅ WEBHOOK_ENQUEUE ({_webhook_queue_backend}): {provider}/{endpoint} ({duration_ms:.2f}ms)")
         
         return success, event_id, duration_ms
         
-    except Exception as redis_error:
-        logger.error(f"❌ BOTH_QUEUES_FAILED: SQLite={sqlite_error_msg or 'N/A'}, Redis={redis_error}")
+    except Exception as e:
+        logger.error(f"❌ WEBHOOK_ENQUEUE_FAILED ({_webhook_queue_backend}): {provider}/{endpoint} - {e}")
         return False, "", 0.0
 
 # Lifespan handler for FastAPI (modern replacement for on_event)
