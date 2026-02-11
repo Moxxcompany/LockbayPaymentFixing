@@ -246,56 +246,72 @@ class ConsolidatedScheduler:
         )
         logger.info("✅ Webhook queue cleanup scheduled daily at 3 AM UTC")
 
-        # ===== DATABASE KEEP-ALIVE JOB (CRITICAL FOR NEON) =====
-        # Handles: Prevents Neon database suspension (5min idle timeout)
-        # Frequency: Every 4 minutes (stays under 5min suspension threshold)
-        # Impact: Eliminates 2-5 second cold start delays on buttons/webhooks
-        self.scheduler.add_job(
-            run_database_keepalive,
-            trigger=IntervalTrigger(minutes=4, start_date=datetime.now().replace(second=30, microsecond=0)),
-            id="database_keepalive",
-            name="💓 Database Keep-Alive - Prevent Neon Suspension",
-            max_instances=1,
-            coalesce=True,
-            misfire_grace_time=120,  # 2-minute grace for keep-alive
-            replace_existing=True
-        )
-        logger.info("✅ DATABASE_KEEPALIVE: Keep-alive job scheduled every 4 minutes to prevent Neon suspension")
+        # ===== DATABASE KEEP-ALIVE JOB (DISABLED — OPTIMIZATION) =====
+        # DISABLED: Only needed for Neon serverless (5min idle suspension).
+        # If using Railway PostgreSQL or any always-on database, this is unnecessary.
+        # Re-enable by setting ENABLE_DB_KEEPALIVE=true in environment.
+        if os.getenv("ENABLE_DB_KEEPALIVE", "false").lower() == "true":
+            self.scheduler.add_job(
+                run_database_keepalive,
+                trigger=IntervalTrigger(minutes=4, start_date=datetime.now().replace(second=30, microsecond=0)),
+                id="database_keepalive",
+                name="💓 Database Keep-Alive - Prevent Neon Suspension",
+                max_instances=1,
+                coalesce=True,
+                misfire_grace_time=120,
+                replace_existing=True
+            )
+            logger.info("✅ DATABASE_KEEPALIVE: Enabled via ENABLE_DB_KEEPALIVE=true")
+        else:
+            logger.info("🚫 DATABASE_KEEPALIVE: Disabled (set ENABLE_DB_KEEPALIVE=true for Neon serverless)")
 
-        # ===== UNIFIED DATABASE → RAILWAY BACKUP SYNC =====
-        # Handles: Automated backup sync from unified database to Railway (backup storage)
-        # Frequency: Twice daily at 6 AM and 6 PM UTC
-        # Purpose: Keep Railway database as backup storage for disaster recovery
-        
-        async def run_unified_db_to_railway_backup():
-            """Async wrapper for Unified DB → Railway Backup sync"""
-            try:
-                sync = RailwayNeonSync()
-                result = await sync.sync_source_to_backup()
-                
-                if result["success"]:
-                    logger.info(f"✅ Unified DB → Railway Backup completed in {result['duration_seconds']:.1f}s")
-                else:
-                    logger.error(f"❌ Unified DB → Railway Backup failed: {result.get('error')}")
+        # ===== UNIFIED DATABASE → RAILWAY BACKUP SYNC (DISABLED — OPTIMIZATION) =====
+        # DISABLED: Redundant if using Neon PITR or Railway's built-in backups.
+        # Full pg_dump/restore twice daily is CPU/memory intensive.
+        # Re-enable by setting ENABLE_RAILWAY_BACKUP_SYNC=true in environment.
+        if os.getenv("ENABLE_RAILWAY_BACKUP_SYNC", "false").lower() == "true":
+            async def run_unified_db_to_railway_backup():
+                """Async wrapper for Unified DB → Railway Backup sync"""
+                try:
+                    sync = RailwayNeonSync()
+                    result = await sync.sync_source_to_backup()
                     
-                return result
-            except Exception as e:
-                logger.error(f"❌ Unified DB → Railway Backup error: {e}")
-                return {"success": False, "error": str(e)}
-        
-        # Morning backup: 6 AM UTC
-        self.scheduler.add_job(
-            run_unified_db_to_railway_backup,
-            trigger=CronTrigger(hour=6, minute=0, timezone='UTC'),
-            id="unified_db_railway_backup_morning",
-            name="🔄 Unified DB → Railway Backup (6 AM UTC)",
-            max_instances=1,
-            coalesce=True,
-            misfire_grace_time=600,  # 10-minute grace for backup sync
-            replace_existing=True
-        )
-        
-        # Evening backup: 6 PM UTC
+                    if result["success"]:
+                        logger.info(f"✅ Unified DB → Railway Backup completed in {result['duration_seconds']:.1f}s")
+                    else:
+                        logger.error(f"❌ Unified DB → Railway Backup failed: {result.get('error')}")
+                        
+                    return result
+                except Exception as e:
+                    logger.error(f"❌ Unified DB → Railway Backup error: {e}")
+                    return {"success": False, "error": str(e)}
+            
+            # Morning backup: 6 AM UTC
+            self.scheduler.add_job(
+                run_unified_db_to_railway_backup,
+                trigger=CronTrigger(hour=6, minute=0, timezone='UTC'),
+                id="unified_db_railway_backup_morning",
+                name="🔄 Unified DB → Railway Backup (6 AM UTC)",
+                max_instances=1,
+                coalesce=True,
+                misfire_grace_time=600,
+                replace_existing=True
+            )
+            
+            # Evening backup: 6 PM UTC
+            self.scheduler.add_job(
+                run_unified_db_to_railway_backup,
+                trigger=CronTrigger(hour=18, minute=0, timezone='UTC'),
+                id="unified_db_railway_backup_evening",
+                name="🔄 Unified DB → Railway Backup (6 PM UTC)",
+                max_instances=1,
+                coalesce=True,
+                misfire_grace_time=600,
+                replace_existing=True
+            )
+            logger.info("✅ BACKUP_STORAGE: Railway Backup enabled via ENABLE_RAILWAY_BACKUP_SYNC=true")
+        else:
+            logger.info("🚫 RAILWAY_BACKUP_SYNC: Disabled (set ENABLE_RAILWAY_BACKUP_SYNC=true to enable)")
         self.scheduler.add_job(
             run_unified_db_to_railway_backup,
             trigger=CronTrigger(hour=18, minute=0, timezone='UTC'),
