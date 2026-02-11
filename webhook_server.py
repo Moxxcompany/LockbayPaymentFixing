@@ -65,16 +65,22 @@ def track_webhook_performance(processing_time_ms: float):
 # All webhook optimization layers eliminated for direct processing architecture
 # (Provider Confirmation → Wallet Credit → Immediate Notification)
 
-# PERFORMANCE OPTIMIZATION: Use optimized SQLite queue as primary (<20ms target)
-# Falls back to Redis if SQLite unavailable for reliability
-from webhook_queue.webhook_inbox.fast_sqlite_webhook_queue import (
-    fast_sqlite_webhook_queue,
-    WebhookEventPriority
-)
-from webhook_queue.webhook_inbox.redis_webhook_queue import (
-    redis_webhook_queue,
-    WebhookEventPriority as RedisWebhookEventPriority
-)
+# OPTIMIZATION: Single webhook queue backend (SQLite by default, Redis if configured)
+# Eliminates dual-queue overhead. Set WEBHOOK_QUEUE_BACKEND=redis to use Redis instead.
+_webhook_queue_backend = os.environ.get("WEBHOOK_QUEUE_BACKEND", "sqlite").lower()
+
+if _webhook_queue_backend == "redis":
+    from webhook_queue.webhook_inbox.redis_webhook_queue import (
+        redis_webhook_queue,
+        WebhookEventPriority as RedisWebhookEventPriority
+    )
+    # Re-export with unified name
+    WebhookEventPriority = RedisWebhookEventPriority
+else:
+    from webhook_queue.webhook_inbox.fast_sqlite_webhook_queue import (
+        fast_sqlite_webhook_queue,
+        WebhookEventPriority
+    )
 
 from utils.database_circuit_breaker import (
     CircuitBreakerOpenError
