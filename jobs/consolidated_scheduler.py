@@ -88,10 +88,10 @@ class ConsolidatedScheduler:
 
         # ===== CORE JOB 1: WORKFLOW RUNNER =====
         # Handles: UTE execution, outbox processing, saga orchestration
-        # Frequency: Every 30 seconds (high-frequency for transaction processing)
+        # Frequency: Every 90 seconds (OPTIMIZED from 30s — webhook direct processing is primary path)
         self.scheduler.add_job(
             run_workflow_processing,
-            trigger=IntervalTrigger(seconds=30, start_date=datetime.now().replace(second=5, microsecond=0)),
+            trigger=IntervalTrigger(seconds=90, start_date=datetime.now().replace(second=5, microsecond=0)),
             id="core_workflow_runner", 
             name="🔄 Core Workflow Runner - UTE & Outbox Processing",
             max_instances=1,
@@ -99,7 +99,7 @@ class ConsolidatedScheduler:
             misfire_grace_time=60,
             replace_existing=True
         )
-        logger.info("✅ Core Workflow Runner scheduled every 30 seconds")
+        logger.info("✅ Core Workflow Runner scheduled every 90 seconds (optimized from 30s)")
 
         # ===== CORE JOB 2: RETRY ENGINE =====
         # Handles: All retry logic, failed operations, backoff processing
@@ -204,36 +204,34 @@ class ConsolidatedScheduler:
 
         # ===== WEBHOOK OPTIMIZATION JOB =====
         # Handles: Background crypto rate refresh to eliminate webhook API call delays
-        # Frequency: Every 2 minutes (ensures coverage before 5-minute rapid cache expiry)
-        # CACHE STRATEGY: Rapid cache TTL is 5 minutes, so 2-minute refresh ensures no gaps
+        # Frequency: Every 5 minutes (OPTIMIZED from 2min — matches cache TTL, cuts API calls 60%)
         self.scheduler.add_job(
             run_crypto_rate_background_refresh,
-            trigger=IntervalTrigger(minutes=2, start_date=datetime.now().replace(second=0, microsecond=0)),
+            trigger=IntervalTrigger(minutes=5, start_date=datetime.now().replace(second=0, microsecond=0)),
             id="webhook_rate_refresh",
             name="🚀 Webhook Rate Refresh - Background Crypto Rate Updates",
             max_instances=1,
             coalesce=True,
-            misfire_grace_time=60,  # 1-minute grace for rate refresh
+            misfire_grace_time=120,
             replace_existing=True
         )
-        logger.info("✅ WEBHOOK_OPTIMIZATION: Background crypto rate refresh scheduled every 2 minutes")
+        logger.info("✅ WEBHOOK_OPTIMIZATION: Background crypto rate refresh scheduled every 5 minutes (optimized from 2min)")
 
         # ===== ADMIN NOTIFICATION QUEUE PROCESSOR =====
         # Handles: Admin email/telegram notifications from database queue
-        # Frequency: Every 2 minutes (prevents notification loss during rapid state changes)
-        # Purpose: Ensures guaranteed delivery via retry mechanism with dual-channel support
+        # Frequency: Every 10 minutes (OPTIMIZED from 2min — admin events are rare, saves scheduler overhead)
         from jobs.admin_notification_processor import run_admin_notification_processor
         self.scheduler.add_job(
             run_admin_notification_processor,
-            trigger=IntervalTrigger(minutes=2, start_date=datetime.now().replace(second=30, microsecond=0)),
+            trigger=IntervalTrigger(minutes=10, start_date=datetime.now().replace(second=30, microsecond=0)),
             id="admin_notification_processor",
             name="📧 Admin Notification Queue - Email & Telegram Delivery",
             max_instances=1,
             coalesce=True,
-            misfire_grace_time=60,
+            misfire_grace_time=120,
             replace_existing=True
         )
-        logger.info("✅ ADMIN_NOTIFICATIONS: Queue processor scheduled every 2 minutes for guaranteed delivery")
+        logger.info("✅ ADMIN_NOTIFICATIONS: Queue processor scheduled every 10 minutes (optimized from 2min)")
 
         # ===== WEBHOOK QUEUE CLEANUP (FIXES ISSUE #7) =====
         # Clean up old completed/failed webhook events daily
