@@ -494,11 +494,16 @@ async def _start_background_systems(application):
     except Exception as e:
         logger.warning(f"Email queue failed: {e}")
 
-    try:
-        from utils.realtime_monitor import start_realtime_monitoring
-        start_realtime_monitoring(application.bot)
-    except Exception as e:
-        logger.warning(f"Realtime monitoring failed: {e}")
+    # OPTIMIZATION: Realtime monitoring gated behind ENABLE_DEEP_MONITORING
+    if os.environ.get("ENABLE_DEEP_MONITORING", "false").lower() == "true":
+        try:
+            from utils.realtime_monitor import start_realtime_monitoring
+            start_realtime_monitoring(application.bot)
+            logger.info("Realtime monitoring started (ENABLE_DEEP_MONITORING=true)")
+        except Exception as e:
+            logger.warning(f"Realtime monitoring failed: {e}")
+    else:
+        logger.info("Realtime monitoring skipped (set ENABLE_DEEP_MONITORING=true to enable)")
 
     try:
         from services.auto_release_task_runner import start_auto_release_background_task
