@@ -33,26 +33,22 @@ except Exception as validator_error:
 if not Config.DATABASE_URL:
     raise ValueError("DATABASE_URL environment variable is required")
 
-# OPTIMIZED FOR CLOUD POSTGRESQL (Railway/Neon): Conservative connection pool
-# Cloud database plans often have strict connection limits (e.g., Railway Hobby ~50)
-# We account for BOTH sync+async pools:
-# Sync pool: 7 base + 15 overflow = 22 max
+# OPTIMIZED: Reduced sync pool — async is the primary path for this bot.
+# Sync pool: 3 base + 5 overflow = 8 max (down from 7+15=22)
 # Async pool: 7 base + 15 overflow = 22 max
-# Total: 44 connections max (safely under 50 limit with headroom for admin queries)
-# Combined with 4-minute keep-alive job to maintain database warmth
+# Total: 30 connections max (down from 44, frees 14 connections for admin/monitoring)
 engine = create_engine(
     Config.DATABASE_URL,
     poolclass=QueuePool,
-    pool_size=7,           # Base pool for cloud database
-    max_overflow=15,       # Burst capacity for cloud database
+    pool_size=3,           # Reduced sync base pool (async is primary)
+    max_overflow=5,        # Reduced sync burst capacity
     pool_pre_ping=True,    # Validate connections before use
     pool_recycle=3600,     # Recycle connections every hour
     pool_timeout=30,       # Wait max 30 seconds for connection during bursts
     echo=False,            # Set to True for SQL logging in development
-    # OPTIMIZED: Added connection monitoring and timeouts
     connect_args={
-        "connect_timeout": 10,  # Fail fast on slow connections
-        "application_name": "lockbay_telegram_bot",  # For monitoring in pg_stat_activity
+        "connect_timeout": 10,
+        "application_name": "lockbay_telegram_bot",
     }
 )
 
