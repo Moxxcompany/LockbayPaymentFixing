@@ -10,12 +10,14 @@ import logging
 import asyncio
 
 # Ensure the project root is on the Python path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, _project_root)
+os.chdir(_project_root)
 
-# Load .env from project root
+# Load .env from BOTH backend dir and project root (backend first, root overrides)
 from dotenv import load_dotenv
-load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env'))
+load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env'))
+load_dotenv(os.path.join(_project_root, '.env'), override=True)
 
 # Force webhook mode and port
 os.environ["USE_WEBHOOK"] = "true"
