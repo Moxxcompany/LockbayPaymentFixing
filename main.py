@@ -1125,10 +1125,13 @@ async def run_webhook_optimized(monitor):
             # Initialize webhook systems
             await initialize_webhook_systems_in_background()
             
-            # Start real-time monitoring
-            from utils.realtime_monitor import start_realtime_monitoring
-            start_realtime_monitoring(application.bot)
-            logger.info("✅ BACKGROUND: Real-time monitoring active")
+            # OPTIMIZATION: Realtime monitoring gated behind ENABLE_DEEP_MONITORING
+            if os.environ.get("ENABLE_DEEP_MONITORING", "false").lower() == "true":
+                from utils.realtime_monitor import start_realtime_monitoring
+                start_realtime_monitoring(application.bot)
+                logger.info("✅ BACKGROUND: Real-time monitoring active (ENABLE_DEEP_MONITORING=true)")
+            else:
+                logger.info("✅ BACKGROUND: Real-time monitoring skipped (set ENABLE_DEEP_MONITORING=true to enable)")
             
             # Initialize unified activity monitoring
             from utils.unified_activity_monitor import unified_monitor
