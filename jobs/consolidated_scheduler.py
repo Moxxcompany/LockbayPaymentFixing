@@ -312,17 +312,6 @@ class ConsolidatedScheduler:
             logger.info("✅ BACKUP_STORAGE: Railway Backup enabled via ENABLE_RAILWAY_BACKUP_SYNC=true")
         else:
             logger.info("🚫 RAILWAY_BACKUP_SYNC: Disabled (set ENABLE_RAILWAY_BACKUP_SYNC=true to enable)")
-        self.scheduler.add_job(
-            run_unified_db_to_railway_backup,
-            trigger=CronTrigger(hour=18, minute=0, timezone='UTC'),
-            id="unified_db_railway_backup_evening",
-            name="🔄 Unified DB → Railway Backup (6 PM UTC)",
-            max_instances=1,
-            coalesce=True,
-            misfire_grace_time=600,  # 10-minute grace for backup sync
-            replace_existing=True
-        )
-        logger.info("✅ BACKUP_STORAGE: Unified DB → Railway Backup scheduled twice daily (6 AM & 6 PM UTC)")
 
         # ===== UNIVERSAL WELCOME BONUS JOB (DISABLED) =====
         # DISABLED: Welcome bonus removed per user request
