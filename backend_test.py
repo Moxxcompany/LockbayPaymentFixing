@@ -1,26 +1,42 @@
+#!/usr/bin/env python3
 """
-Backend Testing for Payment Processing Fixes
+Backend Testing Script - LockBay Telegram Escrow Bot
+Railway Usage Optimizations Testing
 
-Tests the following fixes:
-1. DynoPay wallet deposit handler uses `base_amount` (USD) from webhook
-2. BlockBee simplified_payment_processor uses provider-supplied USD amount
-3. DynoPay escrow payment paths correctly use `base_amount` (regression check)
-4. Import validation for both modified modules
-5. Backend server health check
+Tests the 7 Railway optimizations:
+1) DB keepalive disabled (env-gated) 
+2) Crypto rate refresh 2min→5min
+3) Workflow runner 30s→90s
+4) Sync DB pool reduced 7→3 base
+5) Railway backup sync disabled (env-gated)
+6) Deep monitoring feature-flagged behind ENABLE_DEEP_MONITORING
+7) Webhook queue simplified to single-backend (env-gated WEBHOOK_QUEUE_BACKEND)
 """
 
 import requests
 import sys
 import json
-from decimal import Decimal
-from datetime import datetime
+import subprocess
+import time
+import logging
 import asyncio
 import os
+from typing import Dict, Any, List
+from decimal import Decimal
+from datetime import datetime
+
+# Add project root to path
+project_root = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, project_root)
+
+# Setup logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 # Get the backend URL from environment
-BACKEND_URL = "https://repo-analyzer-171.preview.emergentagent.com"
+BACKEND_URL = os.getenv('REACT_APP_BACKEND_URL', 'https://6611b7f7-b9c8-43c3-8628-a5ce0a4c273b.preview.emergentagent.com')
 
-class PaymentFixTester:
+class BackendTester:
     def __init__(self, base_url=BACKEND_URL):
         self.base_url = base_url.rstrip('/')
         self.tests_run = 0
