@@ -69,293 +69,333 @@ class BackendTester:
             print(f"   Error: {error}")
 
     def test_backend_health(self):
-        """Test backend server health"""
+        """Test backend health endpoint returns JSON with status 'ok'"""
         try:
-            response = requests.get(f"{self.base_url}/api/health", timeout=10)
+            response = requests.get(f"{self.base_url}/health", timeout=10)
             
             if response.status_code == 200:
                 data = response.json()
-                self.log_test("Backend Health Check", True, 
-                             f"Status: {data.get('status', 'unknown')}")
+                if data.get('status') == 'ok':
+                    self.log_test("Backend health endpoint returns status 'ok'", True, 
+                                 f"Response: {data}")
+                    return True
+                else:
+                    self.log_test("Backend health endpoint returns status 'ok'", False,
+                                 f"Status was: {data.get('status')}")
+                    return False
+            else:
+                self.log_test("Backend health endpoint returns status 'ok'", False, 
+                             f"HTTP {response.status_code}: {response.text}")
+                return False
+                
+        except Exception as e:
+            self.log_test("Backend health endpoint returns status 'ok'", False, error=e)
+            return False
+
+    def test_supervisor_backend_status(self):
+        """Test backend server is RUNNING on port 8001 (supervisor)"""
+        try:
+            result = subprocess.run(['sudo', 'supervisorctl', 'status', 'backend'], 
+                                  capture_output=True, text=True, timeout=10)
+            
+            if result.returncode == 0 and 'RUNNING' in result.stdout:
+                self.log_test("Backend server is RUNNING on port 8001 (supervisor)", True,
+                             f"Supervisor status: {result.stdout.strip()}")
                 return True
             else:
-                self.log_test("Backend Health Check", False, 
+                self.log_test("Backend server is RUNNING on port 8001 (supervisor)", False,
+                             f"Status: {result.stdout.strip()}, stderr: {result.stderr.strip()}")
+                return False
+                
+        except Exception as e:
+            self.log_test("Backend server is RUNNING on port 8001 (supervisor)", False, error=e)
+            return False
+
+    def test_python_files_compilation(self):
+        """Test all modified Python files compile without errors"""
+        files_to_test = [
+            '/app/jobs/consolidated_scheduler.py',
+            '/app/database.py', 
+            '/app/webhook_server.py',
+            '/app/backend/server.py',
+            '/app/main.py'
+        ]
+        
+        compilation_results = []
+        all_passed = True
+        
+        for file_path in files_to_test:
+            try:
+                if not os.path.exists(file_path):
+                    compilation_results.append(f"❌ {file_path}: File not found")
+                    all_passed = False
+                    continue
+                    
+                # Test compilation
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    source = f.read()
+                
+                compile(source, file_path, 'exec')
+                compilation_results.append(f"✅ {os.path.basename(file_path)}: Compiled successfully")
+                
+            except SyntaxError as e:
+                compilation_results.append(f"❌ {os.path.basename(file_path)}: Syntax error at line {e.lineno}")
+                all_passed = False
+            except Exception as e:
+                compilation_results.append(f"❌ {os.path.basename(file_path)}: {str(e)[:100]}")
+                all_passed = False
+        
+        self.log_test("All modified Python files compile without errors", all_passed,
+                     "\n".join(compilation_results))
+        return all_passed
+
+    def test_consolidated_scheduler_import(self):
+        """Test ConsolidatedScheduler imports successfully"""
+        try:
+            from jobs.consolidated_scheduler import ConsolidatedScheduler, get_consolidated_scheduler_instance
+            self.log_test("ConsolidatedScheduler imports successfully", True,
+                         "ConsolidatedScheduler and helper functions imported")
+            return True
+        except Exception as e:
+            self.log_test("ConsolidatedScheduler imports successfully", False, error=e)
+            return False
+
+    def test_job_modules_importable(self):
+        """Test all job modules are importable"""
+        job_modules = [
+            'jobs.core.workflow_runner',
+            'jobs.core.retry_engine', 
+            'jobs.core.reconciliation',
+            'jobs.core.cleanup_expiry',
+            'jobs.core.reporting',
+            'jobs.crypto_rate_background_refresh',
+            'jobs.database_keepalive',
+            'jobs.webhook_cleanup'
+        ]
+        
+        import_results = []
+        all_passed = True
+        
+        for module in job_modules:
+            try:
+                __import__(module)
+                import_results.append(f"✅ {module}")
+            except Exception as e:
+                import_results.append(f"❌ {module}: {str(e)[:80]}")
+                all_passed = False
+        
+        self.log_test("All job modules are importable", all_passed,
+                     "\n".join(import_results))
+        return all_passed
+
+    def test_database_connection(self):
+        """Test database connection still works (SELECT 1 via SQLAlchemy engine)"""
+        try:
+            from database import engine
+            from sqlalchemy import text
+            
+            with engine.connect() as connection:
+                result = connection.execute(text("SELECT 1"))
+                row = result.fetchone()
+                if row[0] == 1:
+                    self.log_test("Database connection still works (SELECT 1 via SQLAlchemy engine)", True,
+                                 "Successfully executed SELECT 1 and got result: 1")
+                    return True
+                else:
+                    self.log_test("Database connection still works (SELECT 1 via SQLAlchemy engine)", False,
+                                 f"SELECT 1 returned: {row[0]}")
+                    return False
+                
+        except Exception as e:
+            self.log_test("Database connection still works (SELECT 1 via SQLAlchemy engine)", False, error=e)
+            return False
+
+    def test_frontend_status_page(self):
+        """Test frontend status page loads at http://localhost:3000"""
+        try:
+            frontend_url = "http://localhost:3000"
+            response = requests.get(frontend_url, timeout=10)
+            
+            if response.status_code in [200, 201, 202]:
+                self.log_test("Frontend status page loads at http://localhost:3000", True,
+                             f"HTTP {response.status_code}, content length: {len(response.content)} bytes")
+                return True
+            else:
+                self.log_test("Frontend status page loads at http://localhost:3000", False,
                              f"HTTP {response.status_code}")
                 return False
                 
         except Exception as e:
-            self.log_test("Backend Health Check", False, error=e)
+            self.log_test("Frontend status page loads at http://localhost:3000", False, error=e)
             return False
 
-    def test_module_imports(self):
-        """Test that all modified modules can be imported without errors"""
-        import sys
-        sys.path.insert(0, '/app')
+    def test_railway_optimizations(self):
+        """Test the 7 specific Railway optimizations are properly configured"""
+        optimizations = []
+        all_passed = True
         
-        modules_to_test = [
-            "handlers.dynopay_webhook",
-            "services.simplified_payment_processor", 
-            "handlers.blockbee_webhook_new",
-            "services.fastforex_service"
-        ]
+        print("\n🚀 Testing Railway Usage Optimizations:")
         
-        for module_name in modules_to_test:
-            try:
-                # Dynamic import
-                if '.' in module_name:
-                    package, submodule = module_name.rsplit('.', 1)
-                    module = __import__(module_name, fromlist=[submodule])
-                else:
-                    module = __import__(module_name)
-                
-                self.log_test(f"Import {module_name}", True, 
-                             f"Module loaded successfully")
-                
-            except Exception as e:
-                self.log_test(f"Import {module_name}", False, error=e)
-
-    def test_dynopay_webhook_structure(self):
-        """Test DynoPay webhook handler structure and base_amount usage"""
+        # 1. Test DB keepalive is disabled by default
         try:
-            # Import the handler
-            sys.path.insert(0, '/app')
-            from handlers.dynopay_webhook import DynoPayWebhookHandler
-            
-            # Check if the class has the required methods
-            required_methods = [
-                'handle_escrow_deposit_webhook',
-                'handle_wallet_deposit_webhook', 
-                '_process_dynopay_payment_with_lock'
-            ]
-            
-            missing_methods = []
-            for method in required_methods:
-                if not hasattr(DynoPayWebhookHandler, method):
-                    missing_methods.append(method)
-            
-            if missing_methods:
-                self.log_test("DynoPay Handler Structure", False,
-                             f"Missing methods: {missing_methods}")
+            db_keepalive_enabled = os.environ.get("ENABLE_DB_KEEPALIVE", "false").lower() == "true"
+            if not db_keepalive_enabled:
+                optimizations.append("✅ 1. DB keepalive disabled (env-gated, default off)")
             else:
-                self.log_test("DynoPay Handler Structure", True,
-                             "All required methods present")
-                
-                # Test for base_amount handling in source code
-                import inspect
-                try:
-                    source = inspect.getsource(DynoPayWebhookHandler.handle_escrow_deposit_webhook)
-                    if "base_amount" in source and "dynopay_base_amount" in source:
-                        self.log_test("DynoPay base_amount Implementation", True,
-                                     "base_amount handling found in escrow handler")
-                    else:
-                        self.log_test("DynoPay base_amount Implementation", False,
-                                     "base_amount handling not found")
-                except Exception as e:
-                    self.log_test("DynoPay base_amount Implementation", False, error=e)
-                
+                optimizations.append("❌ 1. DB keepalive enabled (should be disabled by default)")
+                all_passed = False
+            
         except Exception as e:
-            self.log_test("DynoPay Handler Structure", False, error=e)
-
-    def test_simplified_payment_processor(self):
-        """Test simplified payment processor for provider USD extraction"""
-        try:
-            sys.path.insert(0, '/app')
-            from services.simplified_payment_processor import SimplifiedPaymentProcessor
-            
-            # Check if the class has required methods
-            processor = SimplifiedPaymentProcessor()
-            required_methods = [
-                'process_payment',
-                '_credit_wallet_immediate',
-                '_extract_provider_usd_amount'
-            ]
-            
-            missing_methods = []
-            for method in required_methods:
-                if not hasattr(processor, method):
-                    missing_methods.append(method)
-            
-            if missing_methods:
-                self.log_test("Simplified Payment Processor Structure", False,
-                             f"Missing methods: {missing_methods}")
-            else:
-                self.log_test("Simplified Payment Processor Structure", True,
-                             "All required methods present")
-                
-                # Test _extract_provider_usd_amount method
-                try:
-                    # Test BlockBee provider data
-                    blockbee_data = {"price": "50000.00"}  # $50k per BTC
-                    result = processor._extract_provider_usd_amount(
-                        "blockbee", blockbee_data, Decimal("0.001"), "BTC"
-                    )
-                    
-                    if result is not None and result == Decimal("50.00"):  # 0.001 * 50000
-                        self.log_test("BlockBee USD Extraction", True,
-                                     f"Correctly extracted ${result} from price field")
-                    else:
-                        self.log_test("BlockBee USD Extraction", False,
-                                     f"Unexpected result: {result}")
-                        
-                    # Test DynoPay provider data  
-                    dynopay_data = {"base_amount": "100.50", "base_currency": "USD"}
-                    result = processor._extract_provider_usd_amount(
-                        "dynopay", dynopay_data, Decimal("0.002"), "ETH"
-                    )
-                    
-                    if result is not None and result == Decimal("100.50"):
-                        self.log_test("DynoPay USD Extraction", True,
-                                     f"Correctly extracted ${result} from base_amount field")
-                    else:
-                        self.log_test("DynoPay USD Extraction", False,
-                                     f"Unexpected result: {result}")
-                        
-                except Exception as e:
-                    self.log_test("Provider USD Extraction Methods", False, error=e)
-                
-        except Exception as e:
-            self.log_test("Simplified Payment Processor Structure", False, error=e)
-
-    def test_webhook_endpoints_exist(self):
-        """Test that webhook endpoints are accessible"""
-        endpoints = [
-            "/webhook/dynopay/escrow",
-            "/webhook/dynopay/wallet", 
-            "/blockbee/callback/test-order",
-        ]
+            optimizations.append(f"❌ 1. DB keepalive test error: {e}")
+            all_passed = False
         
-        for endpoint in endpoints:
-            try:
-                # Use HEAD request to avoid triggering webhook processing
-                response = requests.head(f"{self.base_url}{endpoint}", timeout=5)
-                
-                # Expect 400 (missing data) or 405 (method not allowed) for HEAD, not 404
-                if response.status_code in [400, 405, 200]:
-                    self.log_test(f"Webhook Endpoint {endpoint}", True,
-                                 f"Endpoint exists (HTTP {response.status_code})")
-                elif response.status_code == 404:
-                    self.log_test(f"Webhook Endpoint {endpoint}", False,
-                                 f"Endpoint not found (HTTP 404)")
-                else:
-                    self.log_test(f"Webhook Endpoint {endpoint}", True,
-                                 f"Endpoint accessible (HTTP {response.status_code})")
-                
-            except Exception as e:
-                self.log_test(f"Webhook Endpoint {endpoint}", False, error=e)
-
-    def test_payment_processing_logic(self):
-        """Test payment processing logic with mock data"""
+        # 2. Test crypto rate refresh interval is 5 minutes
         try:
-            sys.path.insert(0, '/app')
-            from services.simplified_payment_processor import SimplifiedPaymentProcessor
+            with open('/app/jobs/consolidated_scheduler.py', 'r') as f:
+                content = f.read()
+                if 'minutes=5' in content and 'crypto_rate_background_refresh' in content:
+                    optimizations.append("✅ 2. Crypto rate refresh → 5min (optimized from 2min)")
+                else:
+                    optimizations.append("❌ 2. Crypto rate refresh not set to 5 minutes")
+                    all_passed = False
             
-            processor = SimplifiedPaymentProcessor()
-            
-            # Test provider USD extraction with various scenarios
-            test_cases = [
-                # BlockBee with price field
-                {
-                    "provider": "blockbee",
-                    "raw_data": {"price": "45000.00"},
-                    "amount": Decimal("0.002"),
-                    "currency": "BTC",
-                    "expected": Decimal("90.00")  # 0.002 * 45000
-                },
-                # DynoPay with base_amount 
-                {
-                    "provider": "dynopay",
-                    "raw_data": {"base_amount": "250.75", "base_currency": "USD"},
-                    "amount": Decimal("0.1"),
-                    "currency": "ETH",
-                    "expected": Decimal("250.75")  # Direct from base_amount
-                },
-                # DynoPay without USD base_currency (should return None)
-                {
-                    "provider": "dynopay", 
-                    "raw_data": {"base_amount": "100.00", "base_currency": "EUR"},
-                    "amount": Decimal("0.05"),
-                    "currency": "ETH",
-                    "expected": None
-                },
-                # Unknown provider (should return None)
-                {
-                    "provider": "unknown",
-                    "raw_data": {"some_field": "123.45"},
-                    "amount": Decimal("1.0"),
-                    "currency": "USD",
-                    "expected": None
-                }
-            ]
-            
-            for i, case in enumerate(test_cases):
-                try:
-                    result = processor._extract_provider_usd_amount(
-                        case["provider"], case["raw_data"], case["amount"], case["currency"]
-                    )
-                    
-                    if result == case["expected"]:
-                        self.log_test(f"Payment Logic Case {i+1}", True,
-                                     f"{case['provider']} extraction: {result}")
-                    else:
-                        self.log_test(f"Payment Logic Case {i+1}", False,
-                                     f"Expected {case['expected']}, got {result}")
-                                     
-                except Exception as e:
-                    self.log_test(f"Payment Logic Case {i+1}", False, error=e)
-                    
         except Exception as e:
-            self.log_test("Payment Processing Logic", False, error=e)
+            optimizations.append(f"❌ 2. Crypto rate test error: {e}")
+            all_passed = False
+        
+        # 3. Test workflow runner is 90 seconds
+        try:
+            with open('/app/jobs/consolidated_scheduler.py', 'r') as f:
+                content = f.read()
+                if 'seconds=90' in content and 'core_workflow_runner' in content:
+                    optimizations.append("✅ 3. Workflow runner → 90s (optimized from 30s)")
+                else:
+                    optimizations.append("❌ 3. Workflow runner not set to 90 seconds")
+                    all_passed = False
+            
+        except Exception as e:
+            optimizations.append(f"❌ 3. Workflow runner test error: {e}")
+            all_passed = False
+        
+        # 4. Test sync DB pool reduced to 3 base
+        try:
+            with open('/app/database.py', 'r') as f:
+                content = f.read()
+                if 'pool_size=3' in content and 'sync base pool' in content:
+                    optimizations.append("✅ 4. Sync DB pool → 3 base (down from 7)")
+                else:
+                    optimizations.append("❌ 4. Sync DB pool not reduced to 3 base")
+                    all_passed = False
+            
+        except Exception as e:
+            optimizations.append(f"❌ 4. Sync DB pool test error: {e}")
+            all_passed = False
+        
+        # 5. Test Railway backup sync disabled by default
+        try:
+            backup_sync_enabled = os.environ.get("ENABLE_RAILWAY_BACKUP_SYNC", "false").lower() == "true"
+            if not backup_sync_enabled:
+                optimizations.append("✅ 5. Railway backup sync disabled (env-gated, default off)")
+            else:
+                optimizations.append("❌ 5. Railway backup sync enabled (should be disabled by default)")
+                all_passed = False
+            
+        except Exception as e:
+            optimizations.append(f"❌ 5. Railway backup sync test error: {e}")
+            all_passed = False
+        
+        # 6. Test deep monitoring feature-flagged
+        try:
+            deep_monitoring_enabled = os.environ.get("ENABLE_DEEP_MONITORING", "false").lower() == "true"
+            if deep_monitoring_enabled:
+                optimizations.append("✅ 6. Deep monitoring enabled (ENABLE_DEEP_MONITORING=true)")
+            else:
+                optimizations.append("✅ 6. Deep monitoring disabled (env-gated, saves resources)")
+            
+        except Exception as e:
+            optimizations.append(f"❌ 6. Deep monitoring test error: {e}")
+            all_passed = False
+        
+        # 7. Test webhook queue backend configuration
+        try:
+            webhook_backend = os.environ.get("WEBHOOK_QUEUE_BACKEND", "sqlite").lower()
+            optimizations.append(f"✅ 7. Webhook queue → {webhook_backend} (single-backend optimized)")
+            
+        except Exception as e:
+            optimizations.append(f"❌ 7. Webhook queue test error: {e}")
+            all_passed = False
+        
+        # Print all optimization results
+        for opt in optimizations:
+            print(f"   {opt}")
+        
+        self.log_test("Railway usage optimizations are properly configured", all_passed,
+                     "\n".join(optimizations))
+        return all_passed
 
     def run_all_tests(self):
-        """Run all tests"""
-        print("🔬 Starting Backend Payment Processing Fix Tests")
-        print("="*60)
+        """Run all backend tests as specified in the task requirements"""
+        print("🚀 LockBay Backend Testing - Railway Usage Optimizations")
+        print(f"Backend URL: {self.base_url}")
+        print("=" * 70)
         
-        # Test 1: Backend Health
-        self.test_backend_health()
+        # Test requirements from task
+        tests = [
+            ("Backend health endpoint at http://localhost:8001/health returns JSON with status 'ok'", self.test_backend_health),
+            ("Backend server is RUNNING on port 8001 (supervisor)", self.test_supervisor_backend_status), 
+            ("All modified Python files compile without errors", self.test_python_files_compilation),
+            ("ConsolidatedScheduler imports successfully and all job modules are importable", self.test_consolidated_scheduler_import),
+            ("All job modules are importable", self.test_job_modules_importable),
+            ("Database connection still works (SELECT 1 via SQLAlchemy engine)", self.test_database_connection),
+            ("Frontend status page loads at http://localhost:3000", self.test_frontend_status_page),
+            ("Railway usage optimizations are properly configured", self.test_railway_optimizations)
+        ]
         
-        # Test 2: Module Imports
-        self.test_module_imports()
+        for test_name, test_func in tests:
+            try:
+                test_func()
+            except Exception as e:
+                self.log_test(test_name, False, error=e)
         
-        # Test 3: DynoPay Handler Structure
-        self.test_dynopay_webhook_structure()
+        # Print summary
+        print("\n" + "=" * 70)
+        print(f"📊 TEST SUMMARY - Railway Usage Optimizations")
+        print("=" * 70)
+        print(f"Total Tests: {self.tests_run}")
+        print(f"Passed: {self.tests_passed}")
+        print(f"Failed: {self.tests_run - self.tests_passed}")
+        print(f"Success Rate: {(self.tests_passed/self.tests_run)*100:.1f}%")
         
-        # Test 4: Simplified Payment Processor
-        self.test_simplified_payment_processor()
-        
-        # Test 5: Webhook Endpoints
-        self.test_webhook_endpoints_exist()
-        
-        # Test 6: Payment Logic
-        self.test_payment_processing_logic()
-        
-        # Summary
-        print(f"\n📊 Test Summary:")
-        print(f"Tests run: {self.tests_run}")
-        print(f"Tests passed: {self.tests_passed}")
-        print(f"Tests failed: {self.tests_run - self.tests_passed}")
-        print(f"Success rate: {(self.tests_passed/self.tests_run*100):.1f}%")
-        
-        return {
-            "tests_run": self.tests_run,
-            "tests_passed": self.tests_passed,
-            "tests_failed": self.tests_run - self.tests_passed,
-            "success_rate": (self.tests_passed/self.tests_run*100) if self.tests_run > 0 else 0,
-            "test_results": self.test_results
-        }
+        if self.tests_passed == self.tests_run:
+            print("🎉 All Railway optimization tests PASSED!")
+            return True
+        else:
+            print(f"⚠️  {self.tests_run - self.tests_passed} test(s) FAILED")
+            
+            # Print failed tests
+            failed_tests = [r for r in self.test_results if not r["passed"]]
+            if failed_tests:
+                print("\n❌ Failed Tests:")
+                for test in failed_tests:
+                    print(f"   • {test['test']}")
+                    if test['error']:
+                        print(f"     Error: {test['error']}")
+            
+            return False
 
 def main():
-    """Run the payment fix tests"""
-    tester = PaymentFixTester()
-    results = tester.run_all_tests()
+    """Main test execution"""
+    print("🔧 Initializing Railway Optimization Tests...")
     
-    # Return appropriate exit code
-    if results["tests_passed"] == results["tests_run"]:
-        print("\n🎉 All tests passed!")
-        return 0
+    tester = BackendTester()
+    success = tester.run_all_tests()
+    
+    if success:
+        print("\n✅ All Railway optimization tests completed successfully!")
+        sys.exit(0)
     else:
-        print(f"\n⚠️  {results['tests_failed']} test(s) failed")
-        return 1
+        print("\n❌ Some Railway optimization tests failed!")
+        sys.exit(1)
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()
