@@ -188,20 +188,23 @@ class ConsolidatedScheduler:
         
         logger.info("✅ Core Reporting (daily & weekly) scheduled")
 
-        # ===== TREND CALCULATION JOB =====
+        # ===== TREND CALCULATION JOB (GATED — OPTIMIZATION) =====
         # Handles: Completion time trend analysis, performance monitoring
-        # Frequency: Every 30 minutes (trend analysis and data collection verification)
-        self.scheduler.add_job(
-            run_trend_calculation,
-            trigger=IntervalTrigger(minutes=30, start_date=datetime.now().replace(minute=15, second=30, microsecond=0)),
-            id="trend_calculation",
-            name="📈 Trend Calculation - Performance Analysis & Monitoring",
-            max_instances=1,
-            coalesce=True,
-            misfire_grace_time=300,  # 5-minute grace for trend calculations
-            replace_existing=True
-        )
-        logger.info("✅ Trend Calculation scheduled every 30 minutes")
+        # Only runs when ENABLE_DEEP_MONITORING=true (non-critical for core functionality)
+        if os.getenv("ENABLE_DEEP_MONITORING", "false").lower() == "true":
+            self.scheduler.add_job(
+                run_trend_calculation,
+                trigger=IntervalTrigger(minutes=30, start_date=datetime.now().replace(minute=15, second=30, microsecond=0)),
+                id="trend_calculation",
+                name="📈 Trend Calculation - Performance Analysis & Monitoring",
+                max_instances=1,
+                coalesce=True,
+                misfire_grace_time=300,
+                replace_existing=True
+            )
+            logger.info("✅ Trend Calculation scheduled every 30 minutes (ENABLE_DEEP_MONITORING=true)")
+        else:
+            logger.info("🚫 Trend Calculation: Disabled (set ENABLE_DEEP_MONITORING=true to enable)")
 
         # ===== WEBHOOK OPTIMIZATION JOB =====
         # Handles: Background crypto rate refresh to eliminate webhook API call delays
