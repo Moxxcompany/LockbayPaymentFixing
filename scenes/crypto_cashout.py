@@ -230,7 +230,7 @@ crypto_cashout_scene = SceneDefinition(
         currency_selection_step,
         amount_input_step,
         address_selection_step,
-        otp_verification_step,
+        # otp_verification_step removed - OTP eliminated from all flows
         final_confirmation_step,
         processing_step,
         completed_step,
