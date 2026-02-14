@@ -36,8 +36,73 @@ logging.getLogger('telegram.ext').setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
 
-# Import the webhook FastAPI app from the project root
-from webhook_server import app, set_bot_application
+# Try to import the full webhook server; fall back to a minimal status app
+_full_bot_available = False
+set_bot_application = None
+
+try:
+    from webhook_server import app, set_bot_application
+    _full_bot_available = True
+    logger.info("Full LockBay webhook server loaded successfully")
+except Exception as import_err:
+    logger.warning(f"Could not load full webhook server: {import_err}")
+    logger.info("Starting minimal status server (configure DATABASE_URL & BOT_TOKEN for full bot)")
+
+    from fastapi import FastAPI, Request
+    from fastapi.responses import JSONResponse
+    import time
+
+    _server_start = time.time()
+
+    app = FastAPI(title="LockBay Status Server")
+
+    @app.middleware("http")
+    async def strip_api_prefix(request: Request, call_next):
+        if request.scope["path"].startswith("/api/"):
+            request.scope["path"] = request.scope["path"][4:]
+        elif request.scope["path"] == "/api":
+            request.scope["path"] = "/"
+        return await call_next(request)
+
+    _db_url = os.environ.get("DATABASE_URL")
+    _bot_token = os.environ.get("TELEGRAM_BOT_TOKEN") or os.environ.get("BOT_TOKEN")
+
+    @app.get("/")
+    async def root():
+        return {"message": "LockBay Telegram Escrow Bot - Status Server", "mode": "setup"}
+
+    @app.get("/health")
+    async def health_check():
+        return {
+            "status": "ok",
+            "service": "lockbay-status",
+            "mode": "setup",
+            "uptime_seconds": round(time.time() - _server_start, 2),
+            "config": {
+                "database_url": "configured" if _db_url else "missing",
+                "bot_token": "configured" if _bot_token else "missing",
+            },
+            "next_steps": [
+                s for s in [
+                    "Set DATABASE_URL (PostgreSQL) in /app/.env" if not _db_url else None,
+                    "Set TELEGRAM_BOT_TOKEN in /app/.env" if not _bot_token else None,
+                ] if s
+            ] or ["All required config is set - restart the server"]
+        }
+
+    @app.get("/status")
+    async def status():
+        return {
+            "app": "LockBay Telegram Escrow Bot",
+            "version": "1.0",
+            "environment": os.environ.get("ENVIRONMENT", "development"),
+            "components": {
+                "fastapi_server": "running",
+                "postgresql": "connected" if _db_url else "not configured",
+                "telegram_bot": "configured" if _bot_token else "not configured",
+                "redis": "optional",
+            }
+        }
 
 # Track if bot has been initialized
 _bot_initialized = False
@@ -45,7 +110,9 @@ _bot_initialized = False
 async def initialize_bot():
     """Initialize the Telegram bot application and register all handlers."""
     global _bot_initialized
-    if _bot_initialized:
+    if _bot_initialized or not _full_bot_available:
+        if not _full_bot_available:
+            logger.info("Skipping bot init - running in minimal status mode")
         return
 
     logger.info("Initializing LockBay Telegram bot...")
@@ -515,20 +582,21 @@ async def _start_background_systems(application):
     logger.info("Background systems initialized")
 
 
-# Patch the lifespan to include bot initialization
-from contextlib import asynccontextmanager
-from fastapi import FastAPI
+# Patch the lifespan to include bot initialization (only if full server loaded)
+if _full_bot_available:
+    from contextlib import asynccontextmanager
+    from fastapi import FastAPI
 
-_original_lifespan = app.router.lifespan_context
+    _original_lifespan = app.router.lifespan_context
 
-@asynccontextmanager
-async def _patched_lifespan(app_instance):
-    """Initialize bot before the webhook server starts accepting requests."""
-    try:
-        await initialize_bot()
-    except Exception as e:
-        logger.error(f"Bot initialization failed (server will continue): {e}")
-    async with _original_lifespan(app_instance) as state:
-        yield state
+    @asynccontextmanager
+    async def _patched_lifespan(app_instance):
+        """Initialize bot before the webhook server starts accepting requests."""
+        try:
+            await initialize_bot()
+        except Exception as e:
+            logger.error(f"Bot initialization failed (server will continue): {e}")
+        async with _original_lifespan(app_instance) as state:
+            yield state
 
-app.router.lifespan_context = _patched_lifespan
+    app.router.lifespan_context = _patched_lifespan
