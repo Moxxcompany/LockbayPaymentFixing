@@ -3,6 +3,7 @@ aiohttp==3.13.3
 aiohttp-retry==2.9.1
 aiosignal==1.4.0
 aiosqlite==0.22.1
+annotated-doc==0.0.4
 annotated-types==0.7.0
 anyio==4.12.1
 APScheduler==3.11.2
@@ -17,6 +18,7 @@ certifi==2026.1.4
 cffi==2.0.0
 charset-normalizer==3.4.4
 click==8.3.1
+coverage==7.13.4
 croniter==6.0.0
 cryptography==46.0.4
 cytoolz==1.1.0
@@ -28,7 +30,7 @@ emergentintegrations==0.1.0
 eth-hash==0.7.1
 eth-typing==5.2.1
 eth-utils==5.3.1
-fastapi==0.110.1
+fastapi==0.129.0
 fastuuid==0.14.0
 filelock==3.20.3
 filetype==1.2.0
@@ -46,7 +48,7 @@ googleapis-common-protos==1.72.0
 greenlet==3.3.1
 grpcio==1.76.0
 grpcio-status==1.71.2
-gunicorn==25.0.3
+gunicorn==25.1.0
 h11==0.16.0
 hf-xet==1.2.0
 httpcore==1.0.9
@@ -66,7 +68,7 @@ jsonschema==4.26.0
 jsonschema-specifications==2025.9.1
 librt==0.7.8
 litellm==1.80.0
-Markdown==3.10.1
+Markdown==3.10.2
 markdown-it-py==4.0.0
 MarkupSafe==3.0.3
 mccabe==0.7.0
@@ -83,7 +85,7 @@ packaging==26.0
 pandas==3.0.0
 passlib==1.7.4
 pathspec==1.0.4
-phonenumbers==9.0.23
+phonenumbers==9.0.24
 pillow==12.1.0
 platformdirs==4.5.1
 pluggy==1.6.0
@@ -105,6 +107,9 @@ PyJWT==2.11.0
 pymongo==4.5.0
 pyparsing==3.3.2
 pytest==9.0.2
+pytest-asyncio==1.3.0
+pytest-cov==7.0.0
+pytest-mock==3.15.1
 python-dateutil==2.9.0.post0
 python-dotenv==1.2.1
 python-http-client==3.3.7
@@ -116,10 +121,10 @@ pytokens==0.4.1
 pytz==2025.2
 PyYAML==6.0.3
 qrcode==8.2
-redis==7.1.0
+redis==7.1.1
 referencing==0.37.0
 regex==2026.1.15
-reportlab==4.4.9
+reportlab==4.4.10
 requests==2.32.5
 requests-oauthlib==2.0.0
 rich==14.3.2
@@ -133,8 +138,9 @@ sib-api-v3-sdk==7.6.0
 six==1.17.0
 sniffio==1.3.1
 SQLAlchemy==2.0.46
-starlette==0.37.2
+starlette==0.52.1
 stripe==14.3.0
+telegram==0.0.1
 tenacity==9.1.2
 tiktoken==0.12.0
 tokenizers==0.22.2
@@ -149,7 +155,7 @@ tzdata==2025.3
 tzlocal==5.3.1
 uritemplate==4.2.0
 urllib3==2.6.3
-uvicorn==0.25.0
+uvicorn==0.40.0
 watchfiles==1.1.1
 websockets==15.0.1
 Werkzeug==3.1.5
