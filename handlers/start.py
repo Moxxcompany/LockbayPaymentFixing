@@ -164,47 +164,40 @@ async def process_existing_user_async(
             
             logger.info(f"👤 EXISTING USER: {db_user.first_name} (ID: {db_user.id})")
             
-            # Check if user needs onboarding
+            # Check if user needs onboarding - SKIP: Auto-complete onboarding
             needs_onboarding = (
                 not hasattr(db_user, 'onboarding_completed') or 
                 not bool(db_user.onboarding_completed)
             )
             
             if needs_onboarding:
-                # Duplicate start prevention (SKIP for referral links - they're intentional)
-                is_referral_link = start_param and start_param.startswith("ref_")
-                
-                if not is_referral_link:
+                # Auto-complete onboarding instead of routing to onboarding flow
+                logger.info(f"🚀 Auto-completing onboarding for user {user.id} - skipping onboarding flow")
+                try:
+                    from sqlalchemy import update as sql_update
+                    from models import User
+                    await shared_session.execute(
+                        sql_update(User).where(User.id == db_user.id).values(onboarding_completed=True)
+                    )
+                    await shared_session.commit()
+                    db_user.onboarding_completed = True
+                    
+                    # Broadcast new user event to registered groups
                     try:
-                        current_time = time.time()
-                        
-                        if context.user_data is None:
-                            context.user_data = {}
-                        
-                        if '_last_start_time' not in context.user_data:
-                            context.user_data['_last_start_time'] = {}
-                        
-                        last_start_time = context.user_data['_last_start_time'].get(user.id, 0)
-                        time_since_last_start = current_time - last_start_time
-                        
-                        if time_since_last_start < 10:
-                            logger.info(f"🔄 DUPLICATE START PREVENTED: User {user.id} made request {time_since_last_start:.1f}s ago")
-                            await update.message.reply_text(
-                                "👋 Welcome back! Your onboarding is already in progress.\n\n"
-                                "Please continue with the email verification step above, or use /cancel if you need to restart.",
-                                reply_markup=None
-                            )
-                            return ConversationHandler.END
-                        
-                        context.user_data['_last_start_time'][user.id] = current_time
-                    except Exception as e:
-                        logger.error(f"Error checking duplicate start: {e}")
-                else:
-                    logger.info(f"🔗 REFERRAL LINK DETECTED: Skipping duplicate prevention for user {user.id}")
+                        from services.group_event_service import group_event_service
+                        asyncio.create_task(group_event_service.broadcast_new_user_onboarded({
+                            'first_name': db_user.first_name or 'New User',
+                            'username': db_user.username
+                        }))
+                    except Exception as grp_err:
+                        logger.error(f"Failed to broadcast new user event: {grp_err}")
+                    
+                    logger.info(f"✅ Auto-completed onboarding for user {user.id}")
+                except Exception as e:
+                    logger.error(f"Error auto-completing onboarding for user {user.id}: {e}")
                 
-                logger.info(f"🚀 Routing existing user {user.id} to onboarding router (incomplete)")
-                from handlers.onboarding_router import onboarding_router
-                await onboarding_router(update, context)
+                # Show main menu directly
+                await show_main_menu_optimized_async(update, context, db_user, shared_session)
                 return ConversationHandler.END
             
             # Extract user data BEFORE operations (needed for parallel execution)
