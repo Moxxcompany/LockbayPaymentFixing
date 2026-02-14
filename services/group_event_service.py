@@ -8,6 +8,8 @@ Events broadcasted:
 - Escrow completed (funds released)
 - Rating submitted
 - New user onboarded (first-time user)
+
+All messages include @bot_username and deeplink for maximum engagement.
 """
 
 import logging
@@ -20,6 +22,17 @@ from database import SessionLocal
 from sqlalchemy import select, update
 
 logger = logging.getLogger(__name__)
+
+
+def _bot_tag() -> str:
+    """Get the bot @username mention"""
+    return f"@{Config.BOT_USERNAME}" if Config.BOT_USERNAME else "@LockBayBot"
+
+
+def _bot_link() -> str:
+    """Get the bot deeplink URL"""
+    username = Config.BOT_USERNAME or "LockBayBot"
+    return f"https://t.me/{username}"
 
 
 class GroupEventService:
@@ -65,7 +78,8 @@ class GroupEventService:
                 await bot.send_message(
                     chat_id=chat_id,
                     text=message,
-                    parse_mode='HTML'
+                    parse_mode='HTML',
+                    disable_web_page_preview=True
                 )
                 sent_count += 1
             except Forbidden:
@@ -95,7 +109,7 @@ class GroupEventService:
             logger.error(f"Error deactivating group {chat_id}: {e}")
     
     # ============================================================================
-    # EVENT BROADCASTS
+    # EVENT BROADCASTS - Persuasive marketing messages with bot username + deeplink
     # ============================================================================
     
     async def broadcast_trade_created(self, data: Dict[str, Any]) -> int:
@@ -103,16 +117,18 @@ class GroupEventService:
         escrow_id = data.get('escrow_id', 'Unknown')
         amount = data.get('amount', 0)
         currency = data.get('currency', 'USD')
-        buyer_name = data.get('buyer_info', 'Anonymous')
+        buyer_name = data.get('buyer_info', 'A trader')
         
-        amount_display = f"${amount:.2f}" if currency == 'USD' else f"{amount} {currency}"
+        amount_display = f"${amount:,.2f}" if currency == 'USD' else f"{amount} {currency}"
         
         message = (
-            f"<b>New Trade Created</b>\n\n"
-            f"Trade ID: <code>{escrow_id}</code>\n"
-            f"Amount: {amount_display}\n"
-            f"Buyer: {buyer_name}\n\n"
-            f"Awaiting payment..."
+            f"\U0001f4e2 <b>New Escrow Trade Just Opened!</b>\n\n"
+            f"\U0001f4b0 <b>{amount_display}</b> deal secured in escrow\n"
+            f"\U0001f464 Buyer: {buyer_name}\n"
+            f"\U0001f4cb Trade: <code>{escrow_id}</code>\n\n"
+            f"Funds are locked and protected \u2014 waiting for a seller to accept.\n\n"
+            f"\u26a1 <b>Want to trade safely?</b> Start now \u27a1 {_bot_tag()}\n"
+            f"\U0001f517 {_bot_link()}"
         )
         
         count = await self._broadcast_to_groups(message)
@@ -125,16 +141,18 @@ class GroupEventService:
         escrow_id = data.get('escrow_id', 'Unknown')
         amount = data.get('amount', 0)
         currency = data.get('currency', 'USD')
-        buyer_name = data.get('buyer_info', 'Anonymous')
+        buyer_name = data.get('buyer_info', 'A trader')
         
-        amount_display = f"${amount:.2f}" if currency == 'USD' else f"{amount} {currency}"
+        amount_display = f"${amount:,.2f}" if currency == 'USD' else f"{amount} {currency}"
         
         message = (
-            f"<b>Trade Funded</b>\n\n"
-            f"Trade ID: <code>{escrow_id}</code>\n"
-            f"Amount: {amount_display}\n"
-            f"Buyer: {buyer_name}\n\n"
-            f"Payment confirmed. Waiting for seller to accept."
+            f"\u2705 <b>Trade Funded \u2014 Payment Confirmed!</b>\n\n"
+            f"\U0001f4b0 <b>{amount_display}</b> is now held in escrow\n"
+            f"\U0001f464 Buyer: {buyer_name}\n"
+            f"\U0001f4cb Trade: <code>{escrow_id}</code>\n\n"
+            f"The buyer's funds are locked securely. Seller can now accept and deliver.\n\n"
+            f"\U0001f6e1 <b>Trade with confidence on LockBay</b> \u27a1 {_bot_tag()}\n"
+            f"\U0001f517 {_bot_link()}"
         )
         
         count = await self._broadcast_to_groups(message)
@@ -147,16 +165,18 @@ class GroupEventService:
         escrow_id = data.get('escrow_id', 'Unknown')
         amount = data.get('amount', 0)
         currency = data.get('currency', 'USD')
-        seller_name = data.get('seller_info', 'Anonymous')
+        seller_name = data.get('seller_info', 'A seller')
         
-        amount_display = f"${amount:.2f}" if currency == 'USD' else f"{amount} {currency}"
+        amount_display = f"${amount:,.2f}" if currency == 'USD' else f"{amount} {currency}"
         
         message = (
-            f"<b>Seller Accepted Trade</b>\n\n"
-            f"Trade ID: <code>{escrow_id}</code>\n"
-            f"Amount: {amount_display}\n"
-            f"Seller: {seller_name}\n\n"
-            f"Trade is now active. Delivery in progress."
+            f"\U0001f91d <b>Seller Accepted \u2014 Trade is Live!</b>\n\n"
+            f"\U0001f4b0 <b>{amount_display}</b> deal in progress\n"
+            f"\U0001f464 Seller: {seller_name}\n"
+            f"\U0001f4cb Trade: <code>{escrow_id}</code>\n\n"
+            f"Both parties are engaged. Delivery is underway with escrow protection.\n\n"
+            f"\U0001f525 <b>Join the action</b> \u27a1 {_bot_tag()}\n"
+            f"\U0001f517 {_bot_link()}"
         )
         
         count = await self._broadcast_to_groups(message)
@@ -170,13 +190,16 @@ class GroupEventService:
         amount = data.get('amount', 0)
         currency = data.get('currency', 'USD')
         
-        amount_display = f"${amount:.2f}" if currency == 'USD' else f"{amount} {currency}"
+        amount_display = f"${amount:,.2f}" if currency == 'USD' else f"{amount} {currency}"
         
         message = (
-            f"<b>Trade Completed</b>\n\n"
-            f"Trade ID: <code>{escrow_id}</code>\n"
-            f"Amount: {amount_display}\n\n"
-            f"Funds released successfully. Trade closed."
+            f"\U0001f389 <b>Trade Completed Successfully!</b>\n\n"
+            f"\U0001f4b8 <b>{amount_display}</b> released to the seller\n"
+            f"\U0001f4cb Trade: <code>{escrow_id}</code>\n\n"
+            f"Another secure deal closed on LockBay. Both parties satisfied.\n\n"
+            f"\U0001f4aa <b>Zero scams. Zero stress.</b>\n"
+            f"Start your first escrow trade \u27a1 {_bot_tag()}\n"
+            f"\U0001f517 {_bot_link()}"
         )
         
         count = await self._broadcast_to_groups(message)
@@ -188,17 +211,27 @@ class GroupEventService:
         """Broadcast when a rating is submitted"""
         escrow_id = data.get('escrow_id', 'Unknown')
         rating = data.get('rating', 0)
-        reviewer_name = data.get('reviewer_info', 'Anonymous')
+        reviewer_name = data.get('reviewer_info', 'A trader')
         
         stars = int(rating)
-        star_display = "★" * stars + "☆" * (5 - stars)
+        star_display = "\u2b50" * stars + "\u2606" * (5 - stars)
+        
+        # Build social proof message based on rating
+        if stars >= 4:
+            sentiment = "Another happy trader on LockBay!"
+        elif stars >= 3:
+            sentiment = "Honest feedback helps our community grow."
+        else:
+            sentiment = "We're always working to improve the experience."
         
         message = (
-            f"<b>Trade Rated</b>\n\n"
-            f"Trade ID: <code>{escrow_id}</code>\n"
-            f"Rating: {star_display} ({rating}/5)\n"
-            f"By: {reviewer_name}\n\n"
-            f"Another successful trade on LockBay!"
+            f"\u2b50 <b>Trade Rated \u2014 {star_display}</b>\n\n"
+            f"\U0001f4cb Trade: <code>{escrow_id}</code>\n"
+            f"\U0001f464 Rated by: {reviewer_name}\n"
+            f"\U0001f31f Rating: <b>{rating}/5</b>\n\n"
+            f"{sentiment}\n\n"
+            f"\U0001f4ca <b>Build your reputation</b> \u2014 trade on {_bot_tag()}\n"
+            f"\U0001f517 {_bot_link()}"
         )
         
         count = await self._broadcast_to_groups(message)
@@ -208,17 +241,20 @@ class GroupEventService:
     
     async def broadcast_new_user_onboarded(self, data: Dict[str, Any]) -> int:
         """Broadcast when a new user joins LockBay"""
-        first_name = data.get('first_name', 'New User')
+        first_name = data.get('first_name', 'Someone new')
         username = data.get('username')
         
-        user_display = f"{first_name}"
+        user_display = first_name
         if username:
             user_display = f"{first_name} (@{username})"
         
         message = (
-            f"<b>New User Joined</b>\n\n"
-            f"Welcome {user_display} to LockBay!\n\n"
-            f"Our community grows stronger. Start your first secure trade today."
+            f"\U0001f680 <b>New Trader Joined LockBay!</b>\n\n"
+            f"Welcome <b>{user_display}</b> to the community!\n\n"
+            f"The LockBay network keeps growing \u2014 more traders means "
+            f"more opportunities and better deals for everyone.\n\n"
+            f"\U0001f91d <b>Join the community</b> \u27a1 {_bot_tag()}\n"
+            f"\U0001f517 {_bot_link()}"
         )
         
         count = await self._broadcast_to_groups(message)

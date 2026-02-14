@@ -514,6 +514,14 @@ def _register_all_critical_handlers(application):
     except Exception as e:
         logger.warning(f"Onboarding router failed: {e}")
 
+    # Group event handlers (auto-detect when bot is added/removed from groups)
+    try:
+        from handlers.group_handler import register_group_handlers
+        register_group_handlers(application)
+        logger.info("Registered group event handlers")
+    except Exception as e:
+        logger.warning(f"Group event handlers failed: {e}")
+
     # Refund commands
     try:
         from handlers.refund_command_registry import RefundCommandRegistry

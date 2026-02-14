@@ -36,25 +36,34 @@ async def handle_my_chat_member(update: Update, context: ContextTypes.DEFAULT_TY
         
         # Send welcome message to the group
         try:
+            from config import Config
+            bot_username = Config.BOT_USERNAME
+            bot_link = f"https://t.me/{bot_username}"
+            
             welcome_message = (
-                "<b>LockBay Escrow Bot Connected</b>\n\n"
-                "This group will now receive trade event updates:\n\n"
-                "- New trade created\n"
-                "- Trade funded\n"
-                "- Seller accepted\n"
-                "- Trade completed\n"
-                "- Trade rated\n"
-                "- New users joined\n\n"
-                "All trades on LockBay are secured with escrow protection."
+                "<b>LockBay Escrow Bot is Live Here!</b>\n\n"
+                "This group is now connected to <b>LockBay</b> \u2014 "
+                "the safest way to trade crypto peer-to-peer on Telegram.\n\n"
+                "<b>You'll see real-time updates for:</b>\n"
+                "\u2022 New escrow trades opening\n"
+                "\u2022 Payments confirmed & funded\n"
+                "\u2022 Sellers accepting trades\n"
+                "\u2022 Successful completions & payouts\n"
+                "\u2022 Trader ratings & reviews\n"
+                "\u2022 New community members joining\n\n"
+                "<b>Every trade is protected by escrow.</b> "
+                "No more trust issues \u2014 funds are held securely until both parties are satisfied.\n\n"
+                f"\u27a1\ufe0f <b>Start trading now:</b> @{bot_username}\n"
+                f"\u27a1\ufe0f <b>Open bot:</b> {bot_link}"
             )
             
-            from config import Config
             if Config.BOT_TOKEN:
                 bot = Bot(Config.BOT_TOKEN)
                 await bot.send_message(
                     chat_id=chat.id,
                     text=welcome_message,
-                    parse_mode='HTML'
+                    parse_mode='HTML',
+                    disable_web_page_preview=True
                 )
                 logger.info(f"Sent welcome message to group: {chat.title} ({chat.id})")
         except Exception as e:
