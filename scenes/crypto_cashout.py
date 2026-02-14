@@ -4,7 +4,7 @@ Crypto Cashout Scene Definition
 Declarative flow for cryptocurrency cashouts using the Scene Engine.
 Replaces wallet_direct.py crypto cashout handlers with simple configuration.
 
-Flow: Currency Selection → Amount Input → Address Selection → OTP Verification → Confirmation → Processing → Status
+Flow: Currency Selection → Amount Input → Address Selection → Confirmation → Processing → Status
 """
 
 from services.scene_engine import SceneDefinition, SceneStep, ComponentConfig, ComponentType
@@ -111,7 +111,7 @@ final_confirmation_step = SceneStep(
                 "show_summary": True,
                 "include_fees": True,
                 "include_network_info": True,
-                "require_otp": False,  # OTP handled in separate step
+                "require_otp": False,  # OTP removed from all flows
                 "confirmation_method": "crypto_cashout",
                 "include_risk_assessment": True,
                 "show_final_amount": True
@@ -128,7 +128,7 @@ final_confirmation_step = SceneStep(
     can_go_back=True
 )
 
-# Step 6: Processing
+# Step 5: Processing
 processing_step = SceneStep(
     step_id="processing",
     title="⏳ Processing Crypto Cashout",
@@ -152,7 +152,7 @@ processing_step = SceneStep(
     timeout_seconds=7200  # 2 hours
 )
 
-# Step 7: Completed
+# Step 6: Completed
 completed_step = SceneStep(
     step_id="completed",
     title="🎉 Crypto Cashout Completed",
@@ -172,7 +172,7 @@ completed_step = SceneStep(
     ]
 )
 
-# Step 8: Failed
+# Step 7: Failed
 failed_step = SceneStep(
     step_id="failed",
     title="❌ Crypto Cashout Failed",
@@ -201,7 +201,6 @@ crypto_cashout_scene = SceneDefinition(
         currency_selection_step,
         amount_input_step,
         address_selection_step,
-        # otp_verification_step removed - OTP eliminated from all flows
         final_confirmation_step,
         processing_step,
         completed_step,
@@ -213,7 +212,6 @@ crypto_cashout_scene = SceneDefinition(
         "kraken_service",
         "financial_gateway",
         "unified_transaction_engine", 
-        "conditional_otp_service",
         "percentage_cashout_fee_service",
         "crypto_address_validator"
     ]
