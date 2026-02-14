@@ -860,7 +860,7 @@ async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
                         # Send a gentle message instead of starting onboarding again
                         await update.message.reply_text(
                             "👋 Welcome back! Your onboarding is already in progress.\n\n"
-                            "Please continue with the email verification step above, or use /cancel if you need to restart.",
+                            "Please continue with the steps above, or use /cancel if you need to restart.",
                             reply_markup=None
                         )
                         return ConversationHandler.END

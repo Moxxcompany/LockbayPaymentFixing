@@ -99,36 +99,7 @@ address_selection_step = SceneStep(
     can_go_back=True
 )
 
-# Step 4: OTP Verification
-otp_verification_step = SceneStep(
-    step_id="otp_verification",
-    title="🔐 OTP Verification",
-    description="For your security, please verify this crypto transaction with OTP.",
-    components=[
-        ComponentConfig(
-            component_type=ComponentType.TEXT_INPUT,
-            config={
-                "input_type": "otp",
-                "length": 6,
-                "placeholder": "123456",
-                "auto_send": True,
-                "resend_timeout": 60,
-                "max_attempts": 3
-            },
-            validation={
-                "required": True,
-                "format": "numeric",
-                "length": 6
-            },
-            on_success="final_confirmation",
-            on_error="otp_verification"
-        )
-    ],
-    timeout_seconds=300,
-    can_go_back=True
-)
-
-# Step 5: Final Confirmation
+# Step 4: Final Confirmation
 final_confirmation_step = SceneStep(
     step_id="final_confirmation",
     title="✅ Confirm Crypto Cashout",
