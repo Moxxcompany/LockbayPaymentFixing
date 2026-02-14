@@ -1055,6 +1055,9 @@ class DynoPayWebhookHandler:
                                 asyncio.create_task(
                                     admin_notif_service.send_group_notification_payment_confirmed(payment_notification_data)
                                 )
+                                # Broadcast to all registered groups
+                                from services.group_event_service import group_event_service
+                                asyncio.create_task(group_event_service.broadcast_trade_funded(payment_notification_data))
                                 logger.info(f"✅ ADMIN_NOTIFICATION: Payment confirmed notification queued for crypto escrow {fresh_escrow.escrow_id}")
                             except Exception as notif_err:
                                 logger.error(f"❌ Failed to queue admin payment confirmed notification: {notif_err}")
