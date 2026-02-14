@@ -55,7 +55,8 @@ class EscrowExpiryService:
         }
         
         try:
-            cutoff_time = datetime.utcnow()
+            from datetime import timezone
+            cutoff_time = datetime.now(timezone.utc)
             
             # PHASE 1: Process escrows that need to be marked as expired
             logger.info("🔍 PHASE_1: Processing escrows that need expiry status update")
@@ -150,11 +151,13 @@ class EscrowExpiryService:
             # PHASE 2: CRITICAL FIX - Process escrows already in expired status for refunds/notifications
             logger.info("🔍 PHASE_2: Processing existing expired escrows for refunds and notifications")
             
-            # Get escrows already marked as expired that may need refunds or notifications
-            # Use processed_for_refund and notified_buyers fields to track processing state
+            # Get escrows already marked as expired that need refund or notification processing
+            # Use the actual DB columns refund_processed and expiry_notified for tracking
             already_expired_stmt = select(Escrow).where(
                 Escrow.status == EscrowStatus.EXPIRED.value,
-                Escrow.expires_at < cutoff_time
+                Escrow.expires_at < cutoff_time,
+                # Only pick escrows that still need processing
+                ((Escrow.refund_processed == False) | (Escrow.expiry_notified == False))
             ).limit(self.batch_size)
             
             expired_result = await session.execute(already_expired_stmt)
@@ -165,12 +168,12 @@ class EscrowExpiryService:
             # Process already expired escrows for refunds and notifications
             for escrow in already_expired_escrows:
                 try:
-                    # Check if this escrow needs refund processing (has payment but not processed)
+                    # Check if this escrow needs refund processing using actual DB column
                     needs_refund = (escrow.payment_confirmed_at is not None and 
-                                   not getattr(escrow, 'processed_for_refund', False))
+                                   not escrow.refund_processed)
                     
-                    # Check if buyer notification was sent
-                    needs_notification = not getattr(escrow, 'notified_buyers', False)
+                    # Check if notification was sent using actual DB column
+                    needs_notification = not escrow.expiry_notified
                     
                     if needs_refund or needs_notification:
                         escrow_data = {
