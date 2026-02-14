@@ -29,7 +29,7 @@ import time
 sys.path.insert(0, '/app')
 
 # Get the backend URL from frontend .env
-BACKEND_URL = "https://code-foundation-12.preview.emergentagent.com"
+BACKEND_URL = "https://onboarding-flow-51.preview.emergentagent.com"
 
 class TatumAPITester:
     def __init__(self, base_url=BACKEND_URL):
