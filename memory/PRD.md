@@ -1,7 +1,7 @@
 # LockBay Telegram Escrow Bot - PRD
 
 ## Original Problem Statement
-Setup the existing LockBay Telegram Escrow Bot repository code on the Emergent platform. Ensure group auto-detection, event broadcasting with bot username, and persuasive marketing messages.
+Setup the existing LockBay Telegram Escrow Bot repository code. Ensure group auto-detection and event broadcasting with bot username. Implement daily promotional messages to bot followers across timezones.
 
 ## Architecture
 - **Backend**: Python/FastAPI (port 8001) - webhook server for Telegram bot
@@ -9,69 +9,56 @@ Setup the existing LockBay Telegram Escrow Bot repository code on the Emergent p
 - **Database**: PostgreSQL via SQLAlchemy (requires external DATABASE_URL)
 - **Cache**: Redis (optional, with SQLite fallback)
 - **Bot Framework**: python-telegram-bot v22.6 (webhook mode)
-- **Deployment**: Supervisor-managed processes on Emergent platform
-
-## Tech Stack
-- Python 3.11 + FastAPI + SQLAlchemy + asyncpg
-- React 18 + react-scripts
-- PostgreSQL (Neon) + Redis (optional)
-- Telegram Bot API (webhook mode)
-
-## Core Requirements (Static)
-1. Telegram Escrow Bot for secure cryptocurrency trading
-2. Multi-currency wallet management (8 DynoPay cryptocurrencies)
-3. NGN bank transfers via Fincra
-4. Automated Kraken cashouts
-5. Admin dispute resolution and controls
-6. Group auto-detection and event broadcasting
+- **Scheduler**: APScheduler (AsyncIOScheduler) - 5 core jobs + promotional messages
 
 ## What's Been Implemented
 
 ### Session 1 - Repo Setup (Jan 2026)
-- [x] Repository code analyzed and set up on Emergent platform
-- [x] Python dependencies installed (164 packages)
-- [x] Frontend dependencies installed (React + react-scripts)
-- [x] Backend server with graceful fallback for missing DATABASE_URL/BOT_TOKEN
-- [x] Frontend updated with dynamic status checklist
-- [x] All services running (backend, frontend, mongodb)
+- [x] Repository analyzed, dependencies installed, services running
+- [x] Backend with graceful fallback for missing DATABASE_URL/BOT_TOKEN
 
 ### Session 2 - Group Event System Fixes (Jan 2026)
-- [x] Fixed: Group handler NOT registered in backend/server.py — added `register_group_handlers` to `_register_all_critical_handlers()`
-- [x] Fixed: Bot @username missing from ALL event messages — added `_bot_tag()` and `_bot_link()` to all 6 broadcast methods
-- [x] Fixed: Welcome message now includes @username, deeplink, value proposition
-- [x] Rewrote all 6 event messages to be marketing-persuasive with CTAs
-- [x] Verified `my_chat_member` in allowed_updates for webhook
-- [x] Verified BotGroup model has required fields
-- [x] Testing passed 100% (backend + integration)
+- [x] Group handler registered in backend/server.py
+- [x] All 6 event messages include @bot_username and deeplink
+- [x] Messages rewritten to be marketing-persuasive
 
-## Group Event Broadcasting System
-- **Auto-detection**: Bot registers groups via ChatMemberHandler.MY_CHAT_MEMBER
-- **6 Events**: trade_created, trade_funded, seller_accepted, escrow_completed, rating_submitted, new_user_onboarded
-- **Marketing**: All messages include @bot_username, deeplink, CTAs, social proof
-- **Cleanup**: Auto-deactivates groups when bot is removed (Forbidden error)
+### Session 3 - Promotional Messaging System (Jan 2026)
+- [x] **20 rotating messages**: 10 morning + 10 evening, all with @bot_username + deeplink + CTA
+- [x] **Timezone-aware delivery**: Morning batch ~10 AM local, evening batch ~6 PM local
+- [x] **Scheduler job**: Runs every 30 minutes, matches users by timezone offset
+- [x] **User timezone mapping**: 50+ timezone strings mapped to UTC offsets, WAT (UTC+1) as default
+- [x] **Opt-out/opt-in**: /promo_off and /promo_on commands, PromoOptOut table
+- [x] **Duplicate prevention**: PromoMessageLog with unique constraint (user_id, sent_date, session_type)
+- [x] **Message variety**: pick_message() avoids repeating the last sent message
+- [x] **Error handling**: Forbidden (user blocked) -> mark inactive, RetryAfter -> sleep, Telegram rate limiting
+- [x] **Opt-out footer**: Every message includes "Reply /promo_off to stop these messages"
+- [x] **Models**: PromoMessageLog + PromoOptOut tables added to models.py
+- [x] Testing: 100% pass rate on all 18 verification points
+
+## Promotional Message Topics
+Morning (motivation/opportunity): safe deals, scam prevention, reputation building, multi-currency, P2P trading, speed, seller protection, community growth
+Evening (urgency/social proof): active trades, deal closing, cashout features, referrals, dispute resolution, trader profiles, 24/7 availability, buyer protection, exchange
 
 ## Prioritized Backlog
 
 ### P0 - Required for Full Bot Activation
-- [ ] Configure DATABASE_URL (PostgreSQL connection string) in /app/.env
-- [ ] Configure TELEGRAM_BOT_TOKEN in /app/.env
-- [ ] Database tables creation (57 tables via SQLAlchemy)
+- [ ] Configure DATABASE_URL + TELEGRAM_BOT_TOKEN in /app/.env
+- [ ] Database tables creation (57+ tables)
 - [ ] Telegram webhook registration
+- [ ] Live test: promo messages to real users
 
-### P1 - External Service Integration
+### P1 - Enhancements
+- [ ] A/B test different promo message formats
+- [ ] Track click-through rate on promo deeplinks
+- [ ] Personalize messages based on user activity (new vs returning)
+- [ ] Weekly group digest summary
+
+### P2 - External Services
 - [ ] DynoPay/BlockBee crypto payment webhooks
 - [ ] Fincra NGN payment integration
-- [ ] Kraken withdrawal service
 - [ ] SendGrid/Brevo email service
-
-### P2 - Optional Enhancements
-- [ ] Redis cache for performance
-- [ ] A/B test different message formats in groups
-- [ ] Group-specific event filtering (admin config per group)
-- [ ] Weekly group summary digest
 
 ## Next Tasks
 1. User provides DATABASE_URL and TELEGRAM_BOT_TOKEN
-2. Full bot initialization and webhook registration
-3. Live test group auto-detection by adding bot to a test group
-4. Verify all 6 event broadcasts fire correctly in groups
+2. Live test promotional messages with real user base
+3. Monitor opt-out rates and adjust message frequency/content
