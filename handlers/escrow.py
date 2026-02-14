@@ -6041,6 +6041,9 @@ async def process_immediate_wallet_payment(query, context, user, total_amount, s
                     }
                     admin_notif_service = AdminTradeNotificationService()
                     asyncio.create_task(admin_notif_service.send_group_notification_payment_confirmed(payment_data))
+                    # Broadcast to all registered groups
+                    from services.group_event_service import group_event_service
+                    asyncio.create_task(group_event_service.broadcast_trade_funded(payment_data))
                     logger.info(f"📤 Queued group notification for payment confirmed: {escrow_public_id}")
                 except Exception as notif_err:
                     logger.error(f"❌ Failed to queue payment confirmed group notification: {notif_err}")
