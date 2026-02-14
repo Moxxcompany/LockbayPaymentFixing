@@ -585,7 +585,7 @@ def _register_all_critical_handlers(application):
     from telegram.ext import TypeHandler
     from telegram.ext.filters import ALL as ALL_FILTER
 
-    async def _group_chat_guard(update: Update, context):
+    async def _group_chat_guard(update, context):
         """Stop processing for non-private chats"""
         from telegram.ext import ApplicationHandlerStop as _Stop
         if update.effective_chat and update.effective_chat.type in ("group", "supergroup"):
