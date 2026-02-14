@@ -9799,22 +9799,8 @@ async def handle_confirm_crypto_cashout(update: Update, context: ContextTypes.DE
             result = await session.execute(stmt)
             user = result.scalar_one_or_none()
             
-            # Check if user has temp email (skip-email path)
-            user_email = as_str(user.email) if user else None
-            is_temp_email = user_email and user_email.startswith('temp_') and user_email.endswith('@onboarding.temp')
-            
-            # Only block if user has no email OR has real email but not verified
-            # Skip-email users (temp emails) are allowed to cashout
-            if not user or (not user_email) or (user_email and not is_temp_email and not as_bool(user.email_verified)):
-                await safe_edit_message_text(
-                    query,
-                    "❌ Email Required\n\nEmail verification is required for crypto cashouts.\n\nPlease set up and verify your email address first.",
-                    reply_markup=InlineKeyboardMarkup([
-                        [InlineKeyboardButton("📧 Set Email", callback_data="onboarding_email")],
-                        [InlineKeyboardButton("🔙 Back", callback_data="wallet_menu")]
-                    ])
-                )
-                return
+            # Email check removed - OTP eliminated, all users can cashout directly
+            logger.info(f"✅ User {user_id} proceeding with crypto cashout (email check removed)")
             
             # Create crypto cashout context for security binding
             from services.cashout_otp_flow import CashoutOTPFlow
