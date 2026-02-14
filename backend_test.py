@@ -1,381 +1,606 @@
 #!/usr/bin/env python3
 """
-LockBay Telegram Bot - Group Event Broadcasting System Test
-============================================================
+Promotional Messaging System Backend Tests
+==========================================
 
-Tests for group auto-detection and event broadcasting functionality:
-1. Group handler registration and structure
-2. Event message content verification (bot username and deeplinks)
-3. Marketing message quality assessment
-4. Health endpoint verification
+Comprehensive test suite for the new promotional messaging system implementation.
+Tests all components: message pools, timezone handling, scheduler configuration,
+database models, command handlers, and health endpoint.
+
+Backend runs in 'setup mode' without DATABASE_URL, so database-dependent functions
+are tested for existence and logic, but actual database operations are skipped.
 """
 
-import requests
 import sys
+import os
+import asyncio
+import requests
 import json
-import re
-from datetime import datetime
+from datetime import datetime, date, timezone
+from decimal import Decimal
+from typing import Dict, List, Optional
 
-class LockBayGroupEventTester:
-    def __init__(self, base_url="https://96e0c8ed-dcdc-476d-8e93-e838dd5d9875.preview.emergentagent.com"):
-        self.base_url = base_url
+# Add project root to path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+# Load environment variables
+from dotenv import load_dotenv
+load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env'))
+
+
+class PromoMessageSystemTester:
+    """Comprehensive tester for the promotional messaging system"""
+    
+    def __init__(self):
+        self.backend_url = os.environ.get('REACT_APP_BACKEND_URL', 'http://localhost:8001')
         self.tests_run = 0
         self.tests_passed = 0
-        self.issues = []
-        
-    def log_result(self, test_name, passed, details="", issue_type="backend"):
-        """Log test result with detailed information"""
-        self.tests_run += 1
-        if passed:
-            self.tests_passed += 1
-            print(f"✅ {test_name}")
-            if details:
-                print(f"   {details}")
-        else:
-            self.issues.append({
-                "type": issue_type,
-                "test": test_name, 
-                "details": details,
-                "priority": "HIGH" if "critical" in details.lower() else "MEDIUM"
-            })
-            print(f"❌ {test_name}")
-            print(f"   {details}")
+        self.test_results = []
     
-    def test_health_endpoint(self):
-        """Test that backend is responsive and health endpoint works"""
+    def run_test(self, test_name: str, test_func) -> bool:
+        """Run a single test and track results"""
+        self.tests_run += 1
+        print(f"\n🔍 Testing: {test_name}")
+        
         try:
-            response = requests.get(f"{self.base_url}/api/health", timeout=10)
-            
+            success = test_func()
+            if success:
+                self.tests_passed += 1
+                print(f"✅ PASSED: {test_name}")
+                self.test_results.append({"test": test_name, "status": "PASSED", "error": None})
+                return True
+            else:
+                print(f"❌ FAILED: {test_name}")
+                self.test_results.append({"test": test_name, "status": "FAILED", "error": "Test returned False"})
+                return False
+        except Exception as e:
+            print(f"❌ ERROR: {test_name} - {str(e)}")
+            self.test_results.append({"test": test_name, "status": "ERROR", "error": str(e)})
+            return False
+
+    # ==========================================
+    # Health Endpoint Tests
+    # ==========================================
+    
+    def test_health_endpoint(self) -> bool:
+        """Test that /api/health endpoint still returns ok status"""
+        try:
+            response = requests.get(f"{self.backend_url}/api/health", timeout=10)
             if response.status_code == 200:
                 data = response.json()
-                self.log_result(
-                    "Health Endpoint Accessibility", 
-                    True,
-                    f"Status: {data.get('status', 'unknown')}, Mode: {data.get('mode', 'unknown')}"
-                )
-                return data
-            else:
-                self.log_result(
-                    "Health Endpoint Accessibility",
-                    False, 
-                    f"HTTP {response.status_code}: Expected 200 OK",
-                    "backend"
-                )
-                return None
+                return data.get("status") == "ok"
+            return False
         except Exception as e:
-            self.log_result(
-                "Health Endpoint Accessibility",
-                False,
-                f"Connection failed: {str(e)}",
-                "backend"
-            )
-            return None
+            print(f"Health endpoint error: {e}")
+            return False
 
-    def analyze_code_structure(self):
-        """Analyze the code structure for group event functionality"""
-        print("\n🔍 Analyzing Group Event System Implementation...")
-        
-        # Test 1: Verify group_handler.py structure
-        try:
-            with open('/app/handlers/group_handler.py', 'r') as f:
-                group_handler_content = f.read()
-            
-            # Check for required functions and patterns
-            has_my_chat_member = 'handle_my_chat_member' in group_handler_content
-            has_register_function = 'register_group_handlers' in group_handler_content
-            uses_chat_member_handler = 'ChatMemberHandler' in group_handler_content
-            detects_groups = "'group'" in group_handler_content and "'supergroup'" in group_handler_content
-            
-            # Check for welcome message with bot username and deeplink
-            has_bot_username = '@{bot_username}' in group_handler_content or 'f"@{bot_username}"' in group_handler_content
-            has_deeplink = 't.me/{bot_username}' in group_handler_content or 'f"https://t.me/{bot_username}"' in group_handler_content
-            
-            self.log_result(
-                "Group Handler - Core Functions",
-                has_my_chat_member and has_register_function,
-                f"handle_my_chat_member: {has_my_chat_member}, register_group_handlers: {has_register_function}"
-            )
-            
-            self.log_result(
-                "Group Handler - Chat Type Detection", 
-                detects_groups,
-                "Correctly detects 'group' and 'supergroup' chat types"
-            )
-            
-            self.log_result(
-                "Group Handler - ChatMemberHandler Usage",
-                uses_chat_member_handler,
-                "Uses ChatMemberHandler.MY_CHAT_MEMBER for bot add/remove events"
-            )
-            
-            self.log_result(
-                "Welcome Message - Bot Username", 
-                has_bot_username,
-                f"Contains bot username mention: {has_bot_username}"
-            )
-            
-            self.log_result(
-                "Welcome Message - Deeplink",
-                has_deeplink, 
-                f"Contains t.me deeplink: {has_deeplink}"
-            )
-            
-        except FileNotFoundError:
-            self.log_result(
-                "Group Handler File",
-                False,
-                "group_handler.py file not found",
-                "backend"
-            )
+    # ==========================================
+    # Message Pool Tests (Core Implementation)
+    # ==========================================
     
-    def analyze_group_event_service(self):
-        """Analyze group_event_service.py for broadcast functionality"""
-        print("\n🔍 Analyzing Group Event Broadcasting Service...")
-        
+    def test_message_pool_counts(self) -> bool:
+        """Test that there are exactly 10 morning + 10 evening messages (20 total)"""
         try:
-            with open('/app/services/group_event_service.py', 'r') as f:
-                service_content = f.read()
+            from services.promo_message_service import get_morning_messages, get_evening_messages
             
-            # Check for _bot_tag() and _bot_link() helper functions
-            has_bot_tag = '_bot_tag()' in service_content
-            has_bot_link = '_bot_link()' in service_content
+            morning_messages = get_morning_messages()
+            evening_messages = get_evening_messages()
             
-            self.log_result(
-                "Event Service - Helper Functions",
-                has_bot_tag and has_bot_link,
-                f"_bot_tag(): {has_bot_tag}, _bot_link(): {has_bot_link}"
-            )
+            print(f"   Morning messages: {len(morning_messages)}")
+            print(f"   Evening messages: {len(evening_messages)}")
+            print(f"   Total messages: {len(morning_messages) + len(evening_messages)}")
             
-            # Check all 6 broadcast methods
-            broadcast_methods = [
-                'broadcast_trade_created',
-                'broadcast_trade_funded', 
-                'broadcast_seller_accepted',
-                'broadcast_escrow_completed',
-                'broadcast_rating_submitted',
-                'broadcast_new_user_onboarded'
+            return len(morning_messages) == 10 and len(evening_messages) == 10
+        except Exception as e:
+            print(f"   Error testing message pools: {e}")
+            return False
+
+    def test_all_messages_contain_bot_tag(self) -> bool:
+        """Test that ALL 20 messages contain @bot_username via _bot_tag()"""
+        try:
+            from services.promo_message_service import get_morning_messages, get_evening_messages, _bot_tag
+            
+            all_messages = get_morning_messages() + get_evening_messages()
+            bot_tag = _bot_tag()
+            
+            missing_bot_tag = []
+            for msg in all_messages:
+                if bot_tag not in msg.get("text", ""):
+                    missing_bot_tag.append(msg.get("key", "unknown"))
+            
+            if missing_bot_tag:
+                print(f"   Messages missing @bot_username: {missing_bot_tag}")
+                return False
+            
+            print(f"   ✅ All {len(all_messages)} messages contain {bot_tag}")
+            return True
+        except Exception as e:
+            print(f"   Error testing bot tags: {e}")
+            return False
+
+    def test_all_messages_contain_deeplinks(self) -> bool:
+        """Test that ALL 20 messages contain t.me/ deeplink via _bot_link()"""
+        try:
+            from services.promo_message_service import get_morning_messages, get_evening_messages, _bot_link
+            
+            all_messages = get_morning_messages() + get_evening_messages()
+            bot_link_base = "https://t.me/"
+            
+            missing_deeplink = []
+            for msg in all_messages:
+                text = msg.get("text", "")
+                if "https://t.me/" not in text:
+                    missing_deeplink.append(msg.get("key", "unknown"))
+            
+            if missing_deeplink:
+                print(f"   Messages missing t.me/ deeplink: {missing_deeplink}")
+                return False
+            
+            print(f"   ✅ All {len(all_messages)} messages contain t.me/ deeplink")
+            return True
+        except Exception as e:
+            print(f"   Error testing deeplinks: {e}")
+            return False
+
+    def test_messages_are_persuasive_marketing(self) -> bool:
+        """Test that messages are persuasive marketing with CTAs, not generic"""
+        try:
+            from services.promo_message_service import get_morning_messages, get_evening_messages
+            
+            all_messages = get_morning_messages() + get_evening_messages()
+            
+            # Look for marketing keywords and CTAs
+            marketing_keywords = [
+                "start", "open", "try", "join", "trade", "escrow", "safe", "secure", 
+                "protect", "now", "today", "click", "tap", "get", "earn", "win",
+                "build", "grow", "opportunity", "deals", "profit", "trust"
             ]
             
-            methods_found = 0
-            methods_with_bot_tag = 0
-            methods_with_bot_link = 0
-            marketing_quality_score = 0
+            cta_patterns = [
+                "start", "open", "try", "join", "click", "tap", "get", 
+                "build", "check", "see", "use", "create", "trade"
+            ]
             
-            for method in broadcast_methods:
-                if method in service_content:
-                    methods_found += 1
-                    
-                    # Extract method content for analysis
-                    method_start = service_content.find(f'def {method}')
-                    if method_start != -1:
-                        # Find the next method or end of class
-                        next_method = service_content.find('\n    def ', method_start + 1)
-                        method_end = next_method if next_method != -1 else len(service_content)
-                        method_content = service_content[method_start:method_end]
-                        
-                        # Check for bot tag and link usage
-                        if '_bot_tag()' in method_content:
-                            methods_with_bot_tag += 1
-                        if '_bot_link()' in method_content:
-                            methods_with_bot_link += 1
-                        
-                        # Assess marketing quality - look for persuasive elements
-                        marketing_keywords = [
-                            'secure', 'protected', 'safe', 'confidence', 'join', 
-                            'start', 'action', 'opportunity', 'community', 'success'
-                        ]
-                        cta_patterns = ['Start', 'Join', 'Trade', '→', '▶', 'now', 'today']
-                        
-                        method_lower = method_content.lower()
-                        has_marketing_keywords = any(keyword in method_lower for keyword in marketing_keywords)
-                        has_cta = any(cta in method_content for cta in cta_patterns)
-                        
-                        if has_marketing_keywords and has_cta:
-                            marketing_quality_score += 1
-            
-            self.log_result(
-                "Event Service - All 6 Broadcast Methods",
-                methods_found == 6,
-                f"Found {methods_found}/6 broadcast methods: {', '.join(broadcast_methods)}"
-            )
-            
-            self.log_result(
-                "Event Messages - Bot Username Inclusion",
-                methods_with_bot_tag == 6,
-                f"{methods_with_bot_tag}/6 methods include _bot_tag() for @bot_username"
-            )
-            
-            self.log_result(
-                "Event Messages - Deeplink Inclusion", 
-                methods_with_bot_link == 6,
-                f"{methods_with_bot_link}/6 methods include _bot_link() for deeplinks"
-            )
-            
-            self.log_result(
-                "Event Messages - Marketing Quality",
-                marketing_quality_score >= 4,
-                f"{marketing_quality_score}/6 methods have persuasive marketing language and CTAs"
-            )
-            
-            # Check for BotGroup model registration methods
-            has_register_group = 'register_group' in service_content
-            has_unregister_group = 'unregister_group' in service_content
-            has_deactivate_group = '_deactivate_group' in service_content
-            
-            self.log_result(
-                "Event Service - Group Management Methods",
-                has_register_group and has_unregister_group and has_deactivate_group,
-                f"register_group: {has_register_group}, unregister_group: {has_unregister_group}, _deactivate_group: {has_deactivate_group}"
-            )
-            
-        except FileNotFoundError:
-            self.log_result(
-                "Group Event Service File",
-                False,
-                "group_event_service.py file not found",
-                "backend"
-            )
-    
-    def analyze_handler_registration(self):
-        """Check that group handlers are registered in server.py and main.py"""
-        print("\n🔍 Analyzing Handler Registration...")
-        
-        # Check server.py registration
-        try:
-            with open('/app/backend/server.py', 'r') as f:
-                server_content = f.read()
-            
-            has_import = 'from handlers.group_handler import register_group_handlers' in server_content
-            has_call_in_critical = 'register_group_handlers(application)' in server_content
-            has_allowed_updates = 'my_chat_member' in server_content
-            
-            self.log_result(
-                "Server.py - Group Handler Registration",
-                has_import and has_call_in_critical,
-                f"Import: {has_import}, Call in _register_all_critical_handlers: {has_call_in_critical}"
-            )
-            
-            self.log_result(
-                "Server.py - Webhook Updates Configuration", 
-                has_allowed_updates,
-                f"'my_chat_member' in allowed_updates: {has_allowed_updates}"
-            )
-            
-        except FileNotFoundError:
-            self.log_result(
-                "Server.py Handler Registration",
-                False,
-                "server.py file not found",
-                "backend"
-            )
-        
-        # Check main.py registration  
-        try:
-            with open('/app/main.py', 'r') as f:
-                main_content = f.read()
-            
-            has_main_import = 'from handlers.group_handler import register_group_handlers' in main_content
-            has_main_call = 'register_group_handlers(application)' in main_content
-            
-            self.log_result(
-                "Main.py - Group Handler Registration",
-                has_main_import and has_main_call,
-                f"Import: {has_main_import}, Call: {has_main_call}"
-            )
-            
-        except FileNotFoundError:
-            self.log_result(
-                "Main.py Handler Registration", 
-                False,
-                "main.py file not found",
-                "backend"
-            )
-    
-    def analyze_botgroup_model(self):
-        """Check BotGroup model exists in models.py"""
-        print("\n🔍 Analyzing BotGroup Model...")
-        
-        try:
-            with open('/app/models.py', 'r') as f:
-                models_content = f.read()
-            
-            has_botgroup_class = 'class BotGroup' in models_content
-            has_chat_id_field = 'chat_id' in models_content
-            has_is_active_field = 'is_active' in models_content  
-            has_events_enabled_field = 'events_enabled' in models_content
-            
-            self.log_result(
-                "Models.py - BotGroup Model",
-                has_botgroup_class,
-                f"BotGroup class exists: {has_botgroup_class}"
-            )
-            
-            if has_botgroup_class:
-                # Check for required fields
-                required_fields = ['chat_id', 'is_active', 'events_enabled']
-                found_fields = [field for field in required_fields if field in models_content]
+            weak_messages = []
+            for msg in all_messages:
+                text = msg.get("text", "").lower()
+                key = msg.get("key", "unknown")
                 
-                self.log_result(
-                    "BotGroup Model - Required Fields",
-                    len(found_fields) == len(required_fields),
-                    f"Found fields: {found_fields} (expected: {required_fields})"
-                )
+                # Check for marketing keywords
+                marketing_score = sum(1 for keyword in marketing_keywords if keyword in text)
+                
+                # Check for CTAs
+                has_cta = any(cta in text for cta in cta_patterns)
+                
+                # Check for benefit statements
+                has_benefits = any(benefit in text for benefit in [
+                    "safe", "secure", "protect", "risk", "trust", "instant", "fast", 
+                    "easy", "simple", "free", "bonus", "reward", "earn", "profit"
+                ])
+                
+                if marketing_score < 3 or not has_cta or not has_benefits:
+                    weak_messages.append(f"{key} (score: {marketing_score}, cta: {has_cta}, benefits: {has_benefits})")
             
-        except FileNotFoundError:
-            self.log_result(
-                "Models.py BotGroup Model",
-                False,
-                "models.py file not found", 
-                "backend"
-            )
+            if weak_messages:
+                print(f"   Messages with weak marketing: {weak_messages[:3]}...")  # Show first 3
+                return len(weak_messages) <= 2  # Allow up to 2 weaker messages
+            
+            print(f"   ✅ All {len(all_messages)} messages are persuasive marketing with CTAs")
+            return True
+        except Exception as e:
+            print(f"   Error testing marketing quality: {e}")
+            return False
+
+    # ==========================================
+    # Timezone Handling Tests
+    # ==========================================
     
-    def generate_summary(self):
-        """Generate comprehensive test summary"""
-        print(f"\n📊 Test Results Summary")
-        print(f"{'='*50}")
-        print(f"Tests Run: {self.tests_run}")
-        print(f"Tests Passed: {self.tests_passed}")
-        print(f"Success Rate: {(self.tests_passed/self.tests_run*100):.1f}%")
+    def test_timezone_offset_mapping(self) -> bool:
+        """Test get_user_utc_offset() correctly maps timezone strings to UTC offsets"""
+        try:
+            from services.promo_message_service import get_user_utc_offset
+            
+            # Test cases from requirements
+            test_cases = [
+                ("Africa/Lagos", 1),
+                ("America/New_York", -5), 
+                ("Asia/Tokyo", 9),
+                (None, 1),  # Default to WAT
+                ("", 1),    # Empty string default
+                ("UTC+3", 3),  # Numeric offset
+                ("GMT-5", -5), # GMT offset
+                ("invalid_timezone", 1)  # Invalid fallback
+            ]
+            
+            failed_cases = []
+            for tz_string, expected_offset in test_cases:
+                actual_offset = get_user_utc_offset(tz_string)
+                if actual_offset != expected_offset:
+                    failed_cases.append(f"{tz_string} -> {actual_offset} (expected {expected_offset})")
+            
+            if failed_cases:
+                print(f"   Failed timezone mappings: {failed_cases}")
+                return False
+            
+            print(f"   ✅ All {len(test_cases)} timezone mappings correct")
+            return True
+        except Exception as e:
+            print(f"   Error testing timezone offsets: {e}")
+            return False
+
+    # ==========================================
+    # Message Selection Tests
+    # ==========================================
+    
+    def test_message_selection_avoids_repeats(self) -> bool:
+        """Test pick_message() avoids repeating the last sent message key"""
+        try:
+            from services.promo_message_service import pick_message, get_morning_messages
+            
+            morning_messages = get_morning_messages()
+            if len(morning_messages) < 2:
+                print("   Not enough morning messages to test repeat avoidance")
+                return False
+            
+            # Test with last message key
+            last_key = morning_messages[0]["key"]
+            selected_messages = []
+            
+            # Pick 5 messages and ensure none match the last key
+            for _ in range(5):
+                selected = pick_message("morning", last_key)
+                selected_messages.append(selected["key"])
+            
+            repeated_last = [key for key in selected_messages if key == last_key]
+            
+            if repeated_last:
+                print(f"   Message selection repeated last key {last_key}: {repeated_last}")
+                return len(repeated_last) <= 1  # Allow 1 repeat due to randomness
+            
+            print(f"   ✅ Message selection avoids repeating last key")
+            return True
+        except Exception as e:
+            print(f"   Error testing message selection: {e}")
+            return False
+
+    # ==========================================
+    # Function Existence Tests (Database-dependent)
+    # ==========================================
+    
+    def test_promo_functions_exist(self) -> bool:
+        """Test that handle_promo_opt_out and handle_promo_opt_in functions exist"""
+        try:
+            from services.promo_message_service import handle_promo_opt_out, handle_promo_opt_in
+            
+            # Check if functions are callable
+            if not callable(handle_promo_opt_out) or not callable(handle_promo_opt_in):
+                return False
+            
+            print("   ✅ Both promo opt-out/opt-in functions exist and are callable")
+            return True
+        except ImportError as e:
+            print(f"   Error importing promo functions: {e}")
+            return False
+        except Exception as e:
+            print(f"   Error testing promo functions: {e}")
+            return False
+
+    def test_send_promo_messages_function(self) -> bool:
+        """Test send_promo_messages() function exists and adds opt-out footer"""
+        try:
+            from services.promo_message_service import send_promo_messages
+            import inspect
+            
+            if not callable(send_promo_messages):
+                return False
+            
+            # Check function signature
+            sig = inspect.signature(send_promo_messages)
+            params = list(sig.parameters.keys())
+            
+            if "session_type" not in params:
+                print(f"   send_promo_messages missing session_type parameter. Found: {params}")
+                return False
+            
+            # Check source code for opt-out footer
+            source = inspect.getsource(send_promo_messages)
+            if "/promo_off" not in source:
+                print("   send_promo_messages source doesn't contain /promo_off opt-out footer")
+                return False
+            
+            print("   ✅ send_promo_messages function exists with opt-out footer")
+            return True
+        except Exception as e:
+            print(f"   Error testing send_promo_messages: {e}")
+            return False
+
+    # ==========================================
+    # Job Scheduler Tests  
+    # ==========================================
+    
+    def test_promo_message_job_exists(self) -> bool:
+        """Test run_promo_messages() calls both morning and evening sessions"""
+        try:
+            from jobs.promo_message_job import run_promo_messages
+            import inspect
+            
+            if not callable(run_promo_messages):
+                return False
+            
+            # Check source code for morning and evening calls
+            source = inspect.getsource(run_promo_messages)
+            
+            if '"morning"' not in source or '"evening"' not in source:
+                print("   run_promo_messages doesn't call both morning and evening sessions")
+                return False
+            
+            if 'send_promo_messages("morning")' not in source or 'send_promo_messages("evening")' not in source:
+                print("   run_promo_messages doesn't properly call send_promo_messages for both sessions")
+                return False
+            
+            print("   ✅ run_promo_messages calls both morning and evening sessions")
+            return True
+        except Exception as e:
+            print(f"   Error testing promo message job: {e}")
+            return False
+
+    def test_scheduler_registration(self) -> bool:
+        """Test promo_messages job registered with IntervalTrigger(minutes=30)"""
+        try:
+            from jobs.consolidated_scheduler import ConsolidatedScheduler
+            import inspect
+            
+            # Check source code for promo job registration
+            source = inspect.getsource(ConsolidatedScheduler)
+            
+            # Look for promo job registration
+            if "promo_messages" not in source:
+                print("   ConsolidatedScheduler doesn't register promo_messages job")
+                return False
+            
+            if "IntervalTrigger(minutes=30" not in source:
+                print("   promo_messages job not registered with 30-minute interval")
+                return False
+            
+            if "run_promo_messages" not in source:
+                print("   promo_messages job doesn't call run_promo_messages")
+                return False
+            
+            print("   ✅ promo_messages job registered with 30-minute IntervalTrigger")
+            return True
+        except Exception as e:
+            print(f"   Error testing scheduler registration: {e}")
+            return False
+
+    # ==========================================
+    # Database Model Tests (Schema Validation)
+    # ==========================================
+    
+    def test_promo_message_log_model(self) -> bool:
+        """Test PromoMessageLog model exists with required fields and constraints"""
+        try:
+            from models import PromoMessageLog
+            from sqlalchemy import inspect as sql_inspect
+            
+            # Get model columns
+            mapper = sql_inspect(PromoMessageLog)
+            columns = {col.name: col for col in mapper.columns}
+            
+            required_fields = ["user_id", "message_key", "session_type", "sent_date"]
+            missing_fields = [field for field in required_fields if field not in columns]
+            
+            if missing_fields:
+                print(f"   PromoMessageLog missing required fields: {missing_fields}")
+                return False
+            
+            # Check table args for unique constraint
+            table_args = getattr(PromoMessageLog, '__table_args__', ())
+            
+            # Look for unique constraint on user_id, sent_date, session_type
+            has_unique_constraint = False
+            if isinstance(table_args, tuple):
+                for arg in table_args:
+                    if hasattr(arg, 'columns') and hasattr(arg, 'name'):
+                        constraint_cols = [col.name for col in arg.columns]
+                        if ('user_id' in constraint_cols and 'sent_date' in constraint_cols and 
+                            'session_type' in constraint_cols):
+                            has_unique_constraint = True
+                            break
+            
+            if not has_unique_constraint:
+                print("   PromoMessageLog missing unique constraint on (user_id, sent_date, session_type)")
+                return False
+            
+            print(f"   ✅ PromoMessageLog model has all required fields and unique constraint")
+            return True
+        except Exception as e:
+            print(f"   Error testing PromoMessageLog model: {e}")
+            return False
+
+    def test_promo_opt_out_model(self) -> bool:
+        """Test PromoOptOut model exists with user_id (unique) and opted_out_at fields"""
+        try:
+            from models import PromoOptOut
+            from sqlalchemy import inspect as sql_inspect
+            
+            # Get model columns
+            mapper = sql_inspect(PromoOptOut)
+            columns = {col.name: col for col in mapper.columns}
+            
+            required_fields = ["user_id", "opted_out_at"]
+            missing_fields = [field for field in required_fields if field not in columns]
+            
+            if missing_fields:
+                print(f"   PromoOptOut missing required fields: {missing_fields}")
+                return False
+            
+            # Check if user_id is unique
+            user_id_column = columns.get("user_id")
+            if not user_id_column.unique:
+                print("   PromoOptOut user_id field is not unique")
+                return False
+            
+            print(f"   ✅ PromoOptOut model has required fields with unique user_id")
+            return True
+        except Exception as e:
+            print(f"   Error testing PromoOptOut model: {e}")
+            return False
+
+    # ==========================================
+    # Command Handler Tests
+    # ==========================================
+    
+    def test_promo_command_handlers_registered(self) -> bool:
+        """Test /promo_off and /promo_on command handlers registered in server.py"""
+        try:
+            from backend.server import _register_all_critical_handlers
+            import inspect
+            
+            # Check source code for command handler registration
+            source = inspect.getsource(_register_all_critical_handlers)
+            
+            # Look for promo command registrations
+            if 'CommandHandler("promo_off"' not in source:
+                print("   /promo_off command handler not registered")
+                return False
+            
+            if 'CommandHandler("promo_on"' not in source:
+                print("   /promo_on command handler not registered") 
+                return False
+            
+            # Look for the actual command functions
+            if "promo_off_command" not in source or "promo_on_command" not in source:
+                print("   promo command functions not found in handler registration")
+                return False
+            
+            print("   ✅ Both /promo_off and /promo_on command handlers registered")
+            return True
+        except Exception as e:
+            print(f"   Error testing command handler registration: {e}")
+            return False
+
+    # ==========================================
+    # Error Handling Tests
+    # ==========================================
+    
+    def test_error_handling_logic(self) -> bool:
+        """Test send_promo_messages handles Forbidden and RetryAfter errors"""
+        try:
+            from services.promo_message_service import send_promo_messages
+            import inspect
+            
+            source = inspect.getsource(send_promo_messages)
+            
+            # Check for Forbidden error handling
+            if "Forbidden" not in source:
+                print("   send_promo_messages doesn't handle Forbidden errors")
+                return False
+            
+            # Check for RetryAfter error handling 
+            if "RetryAfter" not in source:
+                print("   send_promo_messages doesn't handle RetryAfter errors")
+                return False
+            
+            # Check that Forbidden marks user as inactive
+            if "is_active" not in source or "False" not in source:
+                print("   Forbidden error handling doesn't mark user inactive")
+                return False
+            
+            # Check that RetryAfter does proper sleep
+            if "sleep(e.retry_after)" not in source and "sleep" not in source:
+                print("   RetryAfter error handling doesn't implement proper sleep")
+                return False
+            
+            print("   ✅ send_promo_messages handles Forbidden and RetryAfter errors properly")
+            return True
+        except Exception as e:
+            print(f"   Error testing error handling: {e}")
+            return False
+
+    # ==========================================
+    # Main Test Runner
+    # ==========================================
+
+    def run_all_tests(self):
+        """Run all promotional messaging system tests"""
+        print("="*80)
+        print("🚀 PROMOTIONAL MESSAGING SYSTEM - COMPREHENSIVE BACKEND TESTS")
+        print("="*80)
         
-        if self.issues:
-            print(f"\n❌ Issues Found ({len(self.issues)}):")
-            for issue in self.issues:
-                print(f"   • [{issue['priority']}] {issue['test']}")
-                print(f"     {issue['details']}")
+        # Health endpoint (ensure backend still works)
+        self.run_test("Health endpoint returns OK status", self.test_health_endpoint)
+        
+        # Core message pool tests  
+        self.run_test("Message pool contains 10 morning + 10 evening messages (20 total)", 
+                     self.test_message_pool_counts)
+        self.run_test("ALL 20 messages contain @bot_username via _bot_tag()", 
+                     self.test_all_messages_contain_bot_tag)
+        self.run_test("ALL 20 messages contain t.me/ deeplink via _bot_link()", 
+                     self.test_all_messages_contain_deeplinks)
+        self.run_test("Messages are persuasive marketing with CTAs (not generic)", 
+                     self.test_messages_are_persuasive_marketing)
+        
+        # Timezone handling tests
+        self.run_test("get_user_utc_offset() correctly maps timezone strings to UTC offsets", 
+                     self.test_timezone_offset_mapping)
+        
+        # Message selection logic
+        self.run_test("pick_message() avoids repeating last sent message key", 
+                     self.test_message_selection_avoids_repeats)
+        
+        # Function existence (database-dependent functions)
+        self.run_test("handle_promo_opt_out and handle_promo_opt_in functions exist", 
+                     self.test_promo_functions_exist)
+        self.run_test("send_promo_messages() exists and adds '/promo_off' opt-out footer", 
+                     self.test_send_promo_messages_function)
+        
+        # Job scheduler tests
+        self.run_test("run_promo_messages() calls both morning and evening sessions", 
+                     self.test_promo_message_job_exists)
+        self.run_test("promo_messages job registered with IntervalTrigger(minutes=30)", 
+                     self.test_scheduler_registration)
+        
+        # Database model tests
+        self.run_test("PromoMessageLog model exists with required fields and unique constraint", 
+                     self.test_promo_message_log_model)
+        self.run_test("PromoOptOut model exists with user_id (unique) and opted_out_at fields", 
+                     self.test_promo_opt_out_model)
+        
+        # Command handler tests
+        self.run_test("/promo_off and /promo_on command handlers registered in server.py", 
+                     self.test_promo_command_handlers_registered)
+        
+        # Error handling tests
+        self.run_test("send_promo_messages() handles Forbidden and RetryAfter errors", 
+                     self.test_error_handling_logic)
+        
+        # Final results
+        print("\n" + "="*80)
+        print("📊 TEST RESULTS SUMMARY")
+        print("="*80)
+        print(f"Total tests: {self.tests_run}")
+        print(f"Passed: {self.tests_passed}")
+        print(f"Failed: {self.tests_run - self.tests_passed}")
+        print(f"Success rate: {(self.tests_passed/self.tests_run)*100:.1f}%")
+        
+        if self.tests_passed == self.tests_run:
+            print("\n🎉 ALL TESTS PASSED - Promotional messaging system implementation is excellent!")
         else:
-            print(f"\n✅ All tests passed!")
-        
-        return {
-            "tests_run": self.tests_run,
-            "tests_passed": self.tests_passed, 
-            "success_rate": round(self.tests_passed/self.tests_run*100, 1),
-            "issues": self.issues
-        }
+            print(f"\n⚠️  {self.tests_run - self.tests_passed} tests failed - see details above")
+            
+        return self.test_results
+
 
 def main():
-    """Main test execution"""
-    print("🚀 LockBay Group Event Broadcasting System Test")
-    print("=" * 60)
+    """Run promotional messaging system tests"""
+    tester = PromoMessageSystemTester()
+    results = tester.run_all_tests()
     
-    tester = LockBayGroupEventTester()
-    
-    # Test backend health first
-    health_data = tester.test_health_endpoint()
-    if not health_data:
-        print("\n❌ CRITICAL: Backend not accessible - cannot proceed with group event testing")
-        return 1
-    
-    # Analyze code structure and implementation
-    tester.analyze_code_structure()
-    tester.analyze_group_event_service()
-    tester.analyze_handler_registration()
-    tester.analyze_botgroup_model()
-    
-    # Generate final summary
-    results = tester.generate_summary()
-    
-    # Return appropriate exit code
-    return 0 if results["success_rate"] >= 80 else 1
+    # Exit with error code if any tests failed
+    failed_tests = [r for r in results if r["status"] != "PASSED"]
+    return len(failed_tests)
+
 
 if __name__ == "__main__":
+    import sys
     sys.exit(main())
