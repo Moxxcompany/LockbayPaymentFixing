@@ -1,64 +1,69 @@
 # LockBay Telegram Escrow Bot - PRD
 
 ## Original Problem Statement
-Setup the existing LockBay Telegram Escrow Bot repository code. Ensure group auto-detection and event broadcasting with bot username. Implement daily promotional messages to bot followers across timezones.
+Analyze and setup the existing LockBay Telegram Escrow Bot codebase on Emergent platform.
 
 ## Architecture
-- **Backend**: Python/FastAPI (port 8001) - webhook server for Telegram bot
-- **Frontend**: React (port 3000) - status/monitoring page
+- **Backend**: Python/FastAPI (port 8001) - webhook server for Telegram bot with graceful fallback to minimal status server
+- **Frontend**: React (port 3000) - status/monitoring dashboard
 - **Database**: PostgreSQL via SQLAlchemy (requires external DATABASE_URL)
-- **Cache**: Redis (optional, with SQLite fallback)
+- **Cache**: Redis (optional, with SQLite/in-memory fallback)
 - **Bot Framework**: python-telegram-bot v22.6 (webhook mode)
 - **Scheduler**: APScheduler (AsyncIOScheduler) - 5 core jobs + promotional messages
 
+## User Personas
+- **Bot Admin**: Configures DATABASE_URL, BOT_TOKEN, manages trades via Telegram
+- **Traders**: Use Telegram bot for P2P escrow trading (crypto, NGN, USD)
+- **Sellers**: List trades, receive payments, manage reputation
+
+## Core Requirements (Static)
+- Telegram bot webhook server on FastAPI
+- Escrow trade lifecycle (create, fund, deliver, release, dispute)
+- Multi-currency support (USD, NGN, crypto)
+- Payment integrations (DynoPay, BlockBee, Fincra, Kraken)
+- Admin dashboard via Telegram commands
+- User rating and reputation system
+- Referral system
+- Promotional messaging system (timezone-aware)
+
 ## What's Been Implemented
 
-### Session 1 - Repo Setup (Jan 2026)
-- [x] Repository analyzed, dependencies installed, services running
-- [x] Backend with graceful fallback for missing DATABASE_URL/BOT_TOKEN
+### Session - Codebase Setup (Feb 14, 2026)
+- [x] Repository analyzed - massive codebase with 200+ Python files, 100+ handlers
+- [x] Backend dependencies installed (pip install from requirements.txt)
+- [x] Frontend dependencies installed (yarn install)
+- [x] Fixed stale preview URL in frontend/.env
+- [x] Both services running: backend (port 8001) + frontend (port 3000)
+- [x] Backend running in minimal status mode (DATABASE_URL and BOT_TOKEN not configured)
+- [x] Frontend status page loads correctly showing setup checklist
+- [x] All tests passing: 100% backend, 100% frontend, 100% integration
 
-### Session 2 - Group Event System Fixes (Jan 2026)
-- [x] Group handler registered in backend/server.py
-- [x] All 6 event messages include @bot_username and deeplink
-- [x] Messages rewritten to be marketing-persuasive
-
-### Session 3 - Promotional Messaging System (Jan 2026)
-- [x] **20 rotating messages**: 10 morning + 10 evening, all with @bot_username + deeplink + CTA
-- [x] **Timezone-aware delivery**: Morning batch ~10 AM local, evening batch ~6 PM local
-- [x] **Scheduler job**: Runs every 30 minutes, matches users by timezone offset
-- [x] **User timezone mapping**: 50+ timezone strings mapped to UTC offsets, WAT (UTC+1) as default
-- [x] **Opt-out/opt-in**: /promo_off and /promo_on commands, PromoOptOut table
-- [x] **Duplicate prevention**: PromoMessageLog with unique constraint (user_id, sent_date, session_type)
-- [x] **Message variety**: pick_message() avoids repeating the last sent message
-- [x] **Error handling**: Forbidden (user blocked) -> mark inactive, RetryAfter -> sleep, Telegram rate limiting
-- [x] **Opt-out footer**: Every message includes "Reply /promo_off to stop these messages"
-- [x] **Models**: PromoMessageLog + PromoOptOut tables added to models.py
-- [x] Testing: 100% pass rate on all 18 verification points
-
-## Promotional Message Topics
-Morning (motivation/opportunity): safe deals, scam prevention, reputation building, multi-currency, P2P trading, speed, seller protection, community growth
-Evening (urgency/social proof): active trades, deal closing, cashout features, referrals, dispute resolution, trader profiles, 24/7 availability, buyer protection, exchange
+## Current Status
+- **Backend**: Running in setup/minimal mode (needs DATABASE_URL + BOT_TOKEN for full bot)
+- **Frontend**: Running, showing status dashboard with setup checklist
+- **Health endpoint**: /api/health returns proper JSON with status and config info
 
 ## Prioritized Backlog
 
 ### P0 - Required for Full Bot Activation
-- [ ] Configure DATABASE_URL + TELEGRAM_BOT_TOKEN in /app/.env
+- [ ] Configure DATABASE_URL (PostgreSQL) in /app/.env
+- [ ] Configure TELEGRAM_BOT_TOKEN in /app/.env
 - [ ] Database tables creation (57+ tables)
 - [ ] Telegram webhook registration
-- [ ] Live test: promo messages to real users
 
 ### P1 - Enhancements
-- [ ] A/B test different promo message formats
-- [ ] Track click-through rate on promo deeplinks
-- [ ] Personalize messages based on user activity (new vs returning)
-- [ ] Weekly group digest summary
+- [ ] Configure payment processors (DynoPay, BlockBee, Fincra)
+- [ ] Configure Kraken for crypto withdrawals
+- [ ] Set up Redis for production state management
+- [ ] Configure Brevo for email notifications
 
-### P2 - External Services
-- [ ] DynoPay/BlockBee crypto payment webhooks
-- [ ] Fincra NGN payment integration
-- [ ] SendGrid/Brevo email service
+### P2 - Nice to Have
+- [ ] A/B test promotional messages
+- [ ] Enhanced admin dashboard
+- [ ] Performance optimization
 
 ## Next Tasks
-1. User provides DATABASE_URL and TELEGRAM_BOT_TOKEN
-2. Live test promotional messages with real user base
-3. Monitor opt-out rates and adjust message frequency/content
+1. User provides DATABASE_URL (PostgreSQL connection string)
+2. User provides TELEGRAM_BOT_TOKEN (from @BotFather)
+3. Full bot activation and webhook registration
+4. Configure payment integrations as needed
