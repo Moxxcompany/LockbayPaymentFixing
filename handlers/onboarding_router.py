@@ -746,7 +746,21 @@ async def onboarding_router(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
             # Handle new user creation
             if is_new:
-                # Send admin notification for new user onboarding started
+                # Auto-complete onboarding for new users - skip onboarding flow
+                logger.info(f"🚀 Auto-completing onboarding for new user {user.id}")
+                try:
+                    from database import SessionLocal as SyncSessionLocal
+                    from models import User as UserModel
+                    with SyncSessionLocal() as sync_sess:
+                        sync_sess.query(UserModel).filter(UserModel.id == user.id).update(
+                            {"onboarding_completed": True}
+                        )
+                        sync_sess.commit()
+                    logger.info(f"✅ Onboarding auto-completed for new user {user.id}")
+                except Exception as auto_err:
+                    logger.error(f"Error auto-completing onboarding for new user {user.id}: {auto_err}")
+                
+                # Send admin notification for new user
                 asyncio.create_task(
                     admin_trade_notifications.notify_user_onboarding_started({
                         'user_id': user_data['id'],
@@ -757,9 +771,22 @@ async def onboarding_router(update: Update, context: ContextTypes.DEFAULT_TYPE) 
                         'started_at': datetime.utcnow()
                     })
                 )
-                # Clean async cache invalidation - properly awaited
+                
+                # Broadcast new user joined to groups
+                try:
+                    from services.group_event_service import group_event_service
+                    asyncio.create_task(group_event_service.broadcast_new_user_onboarded({
+                        'first_name': user_data.get('first_name', 'New User'),
+                        'username': user_data.get('username')
+                    }))
+                except Exception as grp_err:
+                    logger.error(f"Failed to broadcast new user event: {grp_err}")
+                
+                # Clean async cache invalidation
                 await run_background_task(invalidate_user_cache_async(str(user.id)))
-                await _handle_new_user_start(update, context, user_data)
+                # Show main menu directly instead of onboarding
+                user_data['onboarding_completed'] = True
+                await _show_main_menu(update, context, user_data)
                 return
 
             # Check if already completed onboarding
