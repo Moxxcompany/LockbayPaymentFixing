@@ -16,11 +16,7 @@ import asyncio
 import random
 from datetime import datetime, date, timezone, timedelta
 from typing import List, Dict, Optional, Tuple
-from telegram import Bot
-from telegram.error import TelegramError, Forbidden, RetryAfter
 from config import Config
-from database import SessionLocal
-from sqlalchemy import select, and_, exists, func as sql_func
 
 logger = logging.getLogger(__name__)
 
