@@ -91,7 +91,7 @@ address_selection_step = SceneStep(
                 "format_validation": True,
                 "network_validation": True
             },
-            on_success="otp_verification",
+            on_success="final_confirmation",
             on_error="address_selection"
         )
     ],
