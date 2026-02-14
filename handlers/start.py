@@ -621,57 +621,10 @@ async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
                         )
                         return await show_main_menu(update, context, db_user)
                 
-                # Check email verification using cached data
-                # Skip verification check for users with temporary skip-email addresses
-                user_email = cached_onboarding.get('email')
-                is_temp_email = user_email and user_email.startswith('temp_') and user_email.endswith('@onboarding.temp')
-                
-                if not cached_onboarding.get('email_verified') and not is_temp_email:
-                    logger.warning(f"🔒 SECURITY: User {cached_onboarding.get('user_id')} attempting access without email verification")
-                    
-                    if user_email:
-                        logger.info(f"🔒 User has email but not verified - redirecting to verification")
-                        
-                        # Check for existing verification record
-                        from models import EmailVerification
-                        from datetime import datetime, timezone
-                        from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-                        
-                        async with async_managed_session() as session:
-                            result = await session.execute(
-                                select(EmailVerification).filter(
-                                    EmailVerification.user_id == cached_onboarding.get('user_id'),
-                                    EmailVerification.purpose == "registration",  # FIX: Align with OnboardingService
-                                    EmailVerification.expires_at > datetime.now(timezone.utc)
-                                )
-                            )
-                            existing_verification = result.scalar_one_or_none()
-                        
-                        if existing_verification:
-                            await update.message.reply_text(
-                                f"🔐 Email Verification Required\n\n"
-                                f"Please enter the 6-digit code sent to:\n"
-                                f"📧 {user_email}\n\n"
-                                f"💡 Check your inbox and spam folder",
-                                parse_mode="Markdown",
-                                reply_markup=InlineKeyboardMarkup([
-                                    [InlineKeyboardButton("🔄 Resend Code", callback_data="resend_otp_onboarding")],
-                                    [InlineKeyboardButton("✏️ Change Email", callback_data="change_email_onboarding")]
-                                ])
-                            )
-                            logger.info(f"🔒 Redirected unverified user to complete email verification")
-                            return OnboardingStates.VERIFYING_EMAIL_OTP
-                        else:
-                            logger.info(f"🔒 No valid verification record - restarting onboarding")
-                            await update.message.reply_text(
-                                "🔐 Email Verification Expired\n\n"
-                                "Your verification code has expired. Let's restart the verification process.",
-                                parse_mode="Markdown"
-                            )
-                            return await start_onboarding(update, context)
-                    else:
-                        logger.info(f"🔒 User has no email - starting fresh onboarding")
-                        return await start_onboarding(update, context)
+                # EMAIL VERIFICATION REMOVED: OTP was removed from onboarding flow.
+                # Users go directly to main menu regardless of email_verified status.
+                # Previously this block redirected unverified users to email verification.
+                logger.info(f"✅ Skipping email verification check (OTP removed from onboarding) for user {cached_onboarding.get('user_id')}")
                 
                 # Show main menu using cached data
                 from types import SimpleNamespace
