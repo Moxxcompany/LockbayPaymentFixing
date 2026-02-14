@@ -579,17 +579,20 @@ def _register_all_critical_handlers(application):
     from utils.update_interceptor import register_update_interceptor
     register_update_interceptor(application)
 
-    # GROUP CHAT GUARD: Ignore all messages in groups/supergroups
-    # The bot is designed for private chats only. This stops processing
-    # before any command/text handler can respond in groups.
+    # GROUP CHAT GUARD: Ignore all messages/commands in groups/supergroups
+    # The bot should NOT respond to any messages in groups, but MUST still
+    # process group events (bot added/removed, chat_member updates).
     from telegram.ext import TypeHandler
     from telegram.ext.filters import ALL as ALL_FILTER
 
     async def _group_chat_guard(update, context):
-        """Stop processing for non-private chats"""
+        """Block messages/commands in groups but allow event triggers through"""
         from telegram.ext import ApplicationHandlerStop as _Stop
         if update.effective_chat and update.effective_chat.type in ("group", "supergroup"):
-            logger.debug(f"🚫 Group guard: Ignoring update in {update.effective_chat.type} chat {update.effective_chat.id}")
+            # Allow event-type updates (my_chat_member, chat_member) to pass through
+            if update.my_chat_member or update.chat_member:
+                return
+            # Block everything else (messages, commands, callbacks, etc.)
             raise _Stop
 
     from telegram.ext import MessageHandler as MH
