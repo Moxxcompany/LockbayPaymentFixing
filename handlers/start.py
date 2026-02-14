@@ -1048,64 +1048,10 @@ async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
                     if context.user_data is not None:
                         context.user_data["pending_invitations"] = pending_invitation
 
-        # SECURITY: Check email verification status before allowing access
-        # Skip verification check for users with temporary skip-email addresses
-        is_temp_email = user_email and user_email.startswith('temp_') and user_email.endswith('@onboarding.temp')
-        
-        if not user_email_verified and not is_temp_email:
-            logger.warning(f"🔒 SECURITY: User {user_id_db} attempting access without email verification")
-            
-            # Check if user has email set but not verified
-            if user_email:
-                logger.info(f"🔒 User {user_id_db} has email {user_email} but not verified - redirecting to verification")
-                
-                # ASYNC FIX: Check for existing verification record with async session
-                from models import EmailVerification
-                from datetime import datetime, timezone
-                from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-                
-                existing_verification = None
-                async with async_managed_session() as session:
-                    result = await session.execute(
-                        select(EmailVerification).filter(
-                            EmailVerification.user_id == user_id_db,
-                            EmailVerification.purpose == "registration",  # FIX: Align with OnboardingService
-                            EmailVerification.expires_at > datetime.now(timezone.utc)
-                        )
-                    )
-                    existing_verification = result.scalar_one_or_none()
-                
-                if existing_verification:
-                    # Resume verification process
-                    await update.message.reply_text(
-                        f"🔐 Email Verification Required\n\n"
-                        f"Please enter the 6-digit code sent to:\n"
-                        f"📧 {user_email}\n\n"
-                        f"💡 Check your inbox and spam folder",
-                        parse_mode="Markdown",
-                        reply_markup=InlineKeyboardMarkup([
-                            [InlineKeyboardButton("🔄 Resend Code", callback_data="resend_otp_onboarding")],
-                            [InlineKeyboardButton("✏️ Change Email", callback_data="change_email_onboarding")]
-                        ])
-                    )
-                    logger.info(f"🔒 Redirected unverified user {user_id_db} to complete email verification")
-                    return OnboardingStates.VERIFYING_EMAIL_OTP
-                else:
-                    # No valid verification record - restart onboarding
-                    logger.info(f"🔒 No valid verification record for user {user_id_db} - restarting onboarding")
-                    await update.message.reply_text(
-                        "🔐 Email Verification Expired\n\n"
-                        "Your verification code has expired. Let's restart the verification process.",
-                        parse_mode="Markdown"
-                    )
-                    total_elapsed = time.time() - handler_start_time
-                    logger.info(f"⏱️ PERF: START HANDLER completed in {total_elapsed*1000:.2f}ms - starting onboarding")
-                    return await start_onboarding(update, context)
-            else:
-                # No email set - start fresh onboarding
-                total_elapsed = time.time() - handler_start_time
-                logger.info(f"⏱️ PERF: START HANDLER completed in {total_elapsed*1000:.2f}ms - User {user_id_db} has no email - starting fresh onboarding")
-                return await start_onboarding(update, context)
+        # EMAIL VERIFICATION REMOVED: OTP was removed from onboarding flow.
+        # Users go directly to main menu regardless of email_verified status.
+        # Previously this block redirected unverified users to email verification.
+        logger.info(f"✅ Skipping email verification check (OTP removed from onboarding) for user {user_id_db}")
         
         # Typing indicator already sent at the beginning - no need to send again
         total_elapsed = time.time() - handler_start_time
