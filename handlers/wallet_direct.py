@@ -2635,55 +2635,46 @@ async def proceed_to_ngn_otp_verification(update: Update, context: ContextTypes.
             # Define user_id for later use
             user_id = as_int(user.id)
             
-            # ===== CONDITIONAL OTP: Check email verification status =====
-            if not as_bool(user.email_verified):
-                # Unverified user - proceed without OTP (no limits)
-                from decimal import Decimal
-                
-                amount_ngn_decimal = Decimal(str(rate_lock.get('ngn_amount', 0)))
-                
-                # Proceed without OTP for unverified users
-                logger.info(f"📝 UNVERIFIED_CASHOUT: User {user_id} cashout ₦{amount_ngn_decimal:,.2f} (no OTP required)")
-                
-                # Show security warning
-                warning_text = f"""⚠️ <b>Security Notice</b>
+            # ===== SKIP OTP: Proceed directly to cashout confirmation =====
+            # OTP verification has been removed - users proceed directly
+            from decimal import Decimal
+            
+            amount_ngn_decimal = Decimal(str(rate_lock.get('ngn_amount', 0)))
+            cashout_amount_usd = Decimal(str(rate_lock.get('usd_amount', cashout_data.get('amount', 0))))
+            
+            logger.info(f"📝 DIRECT_CASHOUT: User {user_id} cashout ₦{amount_ngn_decimal:,.2f} (OTP removed)")
+            
+            # Show confirmation screen without OTP
+            confirm_text = f"""<b>Confirm Cashout</b>
 
-Your account is <b>unverified</b>.
+<b>Amount:</b> ₦{amount_ngn_decimal:,.2f}
+<b>Bank:</b> {selected_account['bank_name']}
+<b>Account:</b> ****{selected_account['account_number'][-4:]}
+<b>Rate:</b> ₦{rate_lock.get('exchange_rate', 'N/A')} / $1
 
-<b>Cashout Details:</b>
-Amount: ₦{amount_ngn_decimal:,.2f}
-Bank: {selected_account['bank_name']}
-Account: ****{selected_account['account_number'][-4:]}
+<b>Rate lock expires in {remaining_minutes}m {remaining_seconds % 60}s</b>
 
-⚠️ <i>No OTP protection (unverified account)</i>
-
-💡 <b>Tip:</b> Verify your email in Settings for OTP-protected cashouts.
-
-Proceed with cashout?"""
-                
-                keyboard = InlineKeyboardMarkup([
-                    [InlineKeyboardButton("✅ Confirm Cashout", callback_data=f"confirm_unverified_cashout_{cashout_id}")],
-                    [InlineKeyboardButton("🔒 Verify Email First", callback_data="settings_verify_email")],
-                    [InlineKeyboardButton("❌ Cancel", callback_data="wallet_menu")]
-                ])
-                await safe_edit_message_text(query, warning_text, parse_mode="HTML", reply_markup=keyboard)
-                
-                # Store cashout context for confirmation
-                if not context.user_data:
-                    context.user_data = {}
-                context.user_data['pending_unverified_cashout'] = {
-                    'cashout_id': cashout_id,
-                    'amount': str(amount_ngn_decimal),
-                    'bank_account_id': selected_account.get('id'),
-                    'bank_name': selected_account['bank_name'],
-                    'account_number': selected_account['account_number'],
-                    'bank_code': selected_account['bank_code'],
-                    'rate_lock': rate_lock
-                }
-                return
-            else:
-                # Verified user - existing OTP flow
-                logger.info(f"✅ VERIFIED_CASHOUT: User {user_id} starting OTP verification")
+Proceed with this cashout?"""
+            
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("Confirm Cashout", callback_data=f"confirm_unverified_cashout_{cashout_id}")],
+                [InlineKeyboardButton("Cancel", callback_data="wallet_menu")]
+            ])
+            await safe_edit_message_text(query, confirm_text, parse_mode="HTML", reply_markup=keyboard)
+            
+            # Store cashout context for confirmation
+            if not context.user_data:
+                context.user_data = {}
+            context.user_data['pending_unverified_cashout'] = {
+                'cashout_id': cashout_id,
+                'amount': str(amount_ngn_decimal),
+                'bank_account_id': selected_account.get('id'),
+                'bank_name': selected_account['bank_name'],
+                'account_number': selected_account['account_number'],
+                'bank_code': selected_account['bank_code'],
+                'rate_lock': rate_lock
+            }
+            return
             
             # Send OTP email with proper session
             from services.email_verification_service import EmailVerificationService
