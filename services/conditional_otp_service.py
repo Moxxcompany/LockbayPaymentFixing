@@ -52,21 +52,10 @@ class ConditionalOTPService:
     @staticmethod
     def requires_otp_enum(transaction_type: UnifiedTransactionType) -> bool:
         """
-        Determine if OTP is required for a transaction type (enum version)
-        
-        Args:
-            transaction_type: UnifiedTransactionType enum
-            
-        Returns:
-            bool: True if OTP required, False otherwise
+        OTP has been removed from all flows - always returns False.
         """
-        # Simple binary logic per document specification
-        if transaction_type == UnifiedTransactionType.WALLET_CASHOUT:
-            logger.debug(f"🔐 OTP Required: {transaction_type.value} - wallet balance cashout")
-            return True
-        else:
-            logger.debug(f"✅ No OTP Required: {transaction_type.value} - exchange/escrow transaction")
-            return False
+        logger.debug(f"✅ No OTP Required: {transaction_type.value} - OTP removed from all flows")
+        return False
     
     @staticmethod
     def get_otp_flow_status(transaction_type: str) -> str:
