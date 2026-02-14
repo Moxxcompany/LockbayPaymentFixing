@@ -4212,6 +4212,11 @@ Payment Address:
                 asyncio.create_task(
                     admin_trade_notifications.send_group_notification_escrow_created(escrow_notification_data)
                 )
+                # Broadcast to all registered groups
+                from services.group_event_service import group_event_service
+                asyncio.create_task(
+                    group_event_service.broadcast_trade_created(escrow_notification_data)
+                )
                 logger.info(f"Admin notification queued for escrow creation: {saved_escrow_id}")
                 
             except Exception as e:
