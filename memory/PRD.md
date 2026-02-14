@@ -39,15 +39,28 @@ Analyze and setup the existing LockBay Telegram Escrow Bot codebase on Emergent 
 - [x] All tests passing: 100% backend, 100% frontend, 100% integration
 
 ### Bug Fix - Email Verification Expired on /start (Feb 14, 2026)
-- [x] **Root cause**: Two code paths in `handlers/start.py` (lines ~624-674 and ~1098-1155) checked `email_verified` flag and showed "Email Verification Expired" when no valid OTP record found
-- [x] **Why it happened**: OTP was removed from onboarding (users go directly to main menu), but `email_verified` was never set to `True` for existing users. The old email verification gate was still active.
-- [x] **Fix**: Removed both email verification gate blocks in `start_handler`. Since OTP is no longer part of onboarding, users proceed directly to main menu regardless of `email_verified` status.
-- [x] Files modified: `/app/handlers/start.py`
+- [x] Removed stale email verification gates in `handlers/start.py`
+- [x] Users proceed directly to main menu regardless of `email_verified` status
+
+### Bug Fix - Group Chat Behavior (Feb 14, 2026)
+- [x] Centralized guard in `server.py` and `main.py` blocks bot from responding in group chats
+- [x] Bot still processes `ChatMemberHandler` events (add/remove from groups)
+
+### Feature - OTP Removal (Feb 14, 2026)
+- [x] `ConditionalOTPService.requires_otp()` returns `False` for all transaction types
+- [x] OTP gates removed from crypto cashout and NGN cashout flows
+- [x] Redundant email check removed from NGN cashout flow
+
+### Dead Code Cleanup - OTP Remnants (Feb 14, 2026)
+- [x] Removed unused `otp_verification_step` from `scenes/crypto_cashout.py`
+- [x] Updated scene flow description and step numbering
+- [x] Removed `conditional_otp_service` from scene integrations (no longer needed)
+- [x] Fixed misleading "email verification step" messages in duplicate start prevention
 
 ## Current Status
 - **Backend**: Running in setup/minimal mode (needs DATABASE_URL + BOT_TOKEN for full bot)
 - **Frontend**: Running, showing status dashboard with setup checklist
-- **Bug Fix**: "Email Verification Expired" on /start — FIXED
+- **OTP**: Fully disabled across all flows
 
 ## Prioritized Backlog
 
@@ -56,12 +69,14 @@ Analyze and setup the existing LockBay Telegram Escrow Bot codebase on Emergent 
 - [ ] Configure TELEGRAM_BOT_TOKEN in /app/.env
 - [ ] Database tables creation (57+ tables)
 - [ ] Telegram webhook registration
+- [ ] End-to-end testing of crypto and NGN cashout flows (blocked on credentials)
 
 ### P1 - Enhancements
 - [ ] Configure payment processors (DynoPay, BlockBee, Fincra)
 - [ ] Configure Kraken for crypto withdrawals
 - [ ] Set up Redis for production state management
 - [ ] Configure Brevo for email notifications
+- [ ] Remove dead OTP resend handlers in wallet_direct.py (handle_resend_crypto_otp, handle_resend_ngn_otp)
 
 ### P2 - Nice to Have
 - [ ] A/B test promotional messages
@@ -72,4 +87,5 @@ Analyze and setup the existing LockBay Telegram Escrow Bot codebase on Emergent 
 1. User provides DATABASE_URL (PostgreSQL connection string)
 2. User provides TELEGRAM_BOT_TOKEN (from @BotFather)
 3. Full bot activation and webhook registration
-4. Configure payment integrations as needed
+4. End-to-end testing of cashout flows
+5. Configure payment integrations as needed
