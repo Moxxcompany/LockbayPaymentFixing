@@ -9589,6 +9589,9 @@ async def handle_confirm_release_funds(update: TelegramUpdate, context: ContextT
                             }
                             admin_notif_service = AdminTradeNotificationService()
                             asyncio.create_task(admin_notif_service.send_group_notification_funds_released(release_data))
+                            # Broadcast to all registered groups
+                            from services.group_event_service import group_event_service
+                            asyncio.create_task(group_event_service.broadcast_escrow_completed(release_data))
                             logger.info(f"📤 Queued group notification for funds released: {escrow_id_str}")
                         except Exception as notif_err:
                             logger.error(f"❌ Failed to queue funds released group notification: {notif_err}")
