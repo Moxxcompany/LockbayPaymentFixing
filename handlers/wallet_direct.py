@@ -2592,10 +2592,10 @@ async def proceed_to_ngn_otp_verification(update: Update, context: ContextTypes.
             stmt = select(User).where(User.telegram_id == int(update.effective_user.id))
             result = await session.execute(stmt)
             user = result.scalar_one_or_none()
-            if not user or not as_str(user.email):
+            if not user:
                 await safe_edit_message_text(
                     query,
-                    "❌ Email Required\n\nPlease set up your email address first to proceed with cashout.",
+                    "❌ User not found. Please try again.",
                     reply_markup=InlineKeyboardMarkup([
                         [InlineKeyboardButton("🔙 Back", callback_data="back_to_method_selection")]
                     ])
