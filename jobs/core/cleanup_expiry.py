@@ -227,7 +227,8 @@ class CleanupExpiryEngine:
             
             # CRITICAL FIX: Generate STRICTLY DETERMINISTIC refund cycle ID that matches RefundService
             # ARCHITECT'S FIX: Removed date component to prevent multiple refunds across different days
-            refund_reason = "expired_timeout"
+            # FIX: Use "expired" (not "expired_timeout") to match RefundService.process_escrow_refunds
+            refund_reason = "expired"
             cycle_data = f"{internal_id}_{refund_reason}"  # NO DATE COMPONENT - uses internal DB ID
             import hashlib
             cycle_hash = hashlib.sha256(cycle_data.encode()).hexdigest()[:16]
