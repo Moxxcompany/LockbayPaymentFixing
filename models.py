@@ -2961,3 +2961,21 @@ class PartnerApplication(Base):
         Index('idx_partner_app_status', 'status', 'created_at'),
         Index('idx_partner_app_email', 'email'),
     )
+
+
+class BotGroup(Base):
+    """Tracks Telegram groups the bot has been added to for event broadcasting"""
+    __tablename__ = 'bot_groups'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    chat_id = Column(BigInteger, unique=True, nullable=False, index=True)
+    chat_title = Column(String(255), nullable=True)
+    chat_type = Column(String(20), nullable=False)  # group, supergroup, channel
+    is_active = Column(Boolean, default=True, nullable=False)
+    added_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    removed_at = Column(DateTime(timezone=True), nullable=True)
+    events_enabled = Column(Boolean, default=True, nullable=False)
+    
+    __table_args__ = (
+        Index('ix_bot_groups_active', 'is_active'),
+    )
