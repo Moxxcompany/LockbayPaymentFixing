@@ -794,17 +794,23 @@ async def onboarding_router(update: Update, context: ContextTypes.DEFAULT_TYPE) 
                 await _show_main_menu(update, context, user_data)
                 return
 
-            # Ensure existing user has active onboarding session
-            user_id = user_data["id"]
+            # Auto-complete onboarding for existing users who haven't completed it
+            logger.info(f"🚀 Auto-completing onboarding for existing user {user_data['id']}")
+            try:
+                from database import SessionLocal as SyncSessionLocal
+                from models import User as UserModel
+                with SyncSessionLocal() as sync_sess:
+                    sync_sess.query(UserModel).filter(UserModel.id == user_data['id']).update(
+                        {"onboarding_completed": True}
+                    )
+                    sync_sess.commit()
+                user_data['onboarding_completed'] = True
+                logger.info(f"✅ Onboarding auto-completed for existing user {user_data['id']}")
+            except Exception as auto_err:
+                logger.error(f"Error auto-completing onboarding: {auto_err}")
             
-            # PERFORMANCE: Parallel DB queries (reduced from ~400ms to ~150ms)
-            t4 = time.time()
-            current_step, session_info = await asyncio.gather(
-                OnboardingService.get_current_step(user_id),
-                OnboardingService.get_session_info(user_id)
-            )
-            t5 = time.time()
-            logger.info(f"⏱️ PERF [onboarding_router]: Parallel queries took {(t5-t4)*1000:.1f}ms")
+            await _show_main_menu(update, context, user_data)
+            return
             
             if current_step is None:
                 # No active session found - show welcome page like new users
