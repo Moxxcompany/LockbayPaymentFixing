@@ -2979,3 +2979,30 @@ class BotGroup(Base):
     __table_args__ = (
         Index('ix_bot_groups_active', 'is_active'),
     )
+
+
+class PromoMessageLog(Base):
+    """Tracks promotional messages sent to users to prevent duplicates"""
+    __tablename__ = 'promo_message_logs'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(BigInteger, ForeignKey('users.id'), nullable=False, index=True)
+    message_key = Column(String(50), nullable=False)  # Identifies which message template was sent
+    session_type = Column(String(10), nullable=False)  # 'morning' or 'evening'
+    sent_date = Column(Date, nullable=False, index=True)  # Date (UTC) the message was sent
+    sent_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    
+    __table_args__ = (
+        Index('ix_promo_log_user_date_session', 'user_id', 'sent_date', 'session_type', unique=True),
+        Index('ix_promo_log_user_message', 'user_id', 'message_key'),
+    )
+
+
+class PromoOptOut(Base):
+    """Users who have opted out of promotional messages"""
+    __tablename__ = 'promo_opt_outs'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(BigInteger, ForeignKey('users.id'), nullable=False, unique=True, index=True)
+    opted_out_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
