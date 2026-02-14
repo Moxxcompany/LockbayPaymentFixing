@@ -575,6 +575,10 @@ class PromoMessageSystemTester:
         self.run_test("send_promo_messages() handles Forbidden and RetryAfter errors", 
                      self.test_error_handling_logic)
         
+        # User filtering logic test
+        self.run_test("get_users_for_session() filters by is_active, is_blocked, onboarding_completed, opt-out, timezone", 
+                     self.test_user_filtering_logic)
+        
         # Final results
         print("\n" + "="*80)
         print("📊 TEST RESULTS SUMMARY")
