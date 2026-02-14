@@ -338,6 +338,9 @@ def get_users_for_session(session_type: str, current_utc_hour: int) -> List[Dict
     
     Returns list of {user_id, telegram_id, first_name, timezone, last_message_key}
     """
+    from database import SessionLocal
+    from sqlalchemy import select, and_
+    
     target_local_hour = 10 if session_type == "morning" else 18
     
     today = date.today()
@@ -412,6 +415,7 @@ def pick_message(session_type: str, last_key: Optional[str]) -> Dict:
 def log_sent_message(user_id: int, message_key: str, session_type: str):
     """Record that a promo message was sent to a user."""
     try:
+        from database import SessionLocal
         from models import PromoMessageLog
         with SessionLocal() as db:
             log = PromoMessageLog(
@@ -439,6 +443,10 @@ async def send_promo_messages(session_type: str) -> Dict:
     if not Config.BOT_TOKEN:
         logger.debug("Bot token not configured — skipping promo messages")
         return {"sent": 0, "failed": 0, "skipped": 0, "reason": "no_bot_token"}
+    
+    from telegram import Bot
+    from telegram.error import TelegramError, Forbidden, RetryAfter
+    from database import SessionLocal
     
     current_utc_hour = datetime.now(timezone.utc).hour
     users = get_users_for_session(session_type, current_utc_hour)
@@ -509,6 +517,7 @@ async def send_promo_messages(session_type: str) -> Dict:
 async def handle_promo_opt_out(user_id: int) -> bool:
     """Opt a user out of promotional messages."""
     try:
+        from database import SessionLocal
         from models import PromoOptOut
         with SessionLocal() as db:
             existing = db.query(PromoOptOut).filter(PromoOptOut.user_id == user_id).first()
@@ -525,6 +534,7 @@ async def handle_promo_opt_out(user_id: int) -> bool:
 async def handle_promo_opt_in(user_id: int) -> bool:
     """Opt a user back in to promotional messages."""
     try:
+        from database import SessionLocal
         from models import PromoOptOut
         with SessionLocal() as db:
             db.query(PromoOptOut).filter(PromoOptOut.user_id == user_id).delete()
