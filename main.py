@@ -362,6 +362,19 @@ async def run_webhook_optimized(monitor):
     from utils.update_interceptor import register_update_interceptor
     register_update_interceptor(application)
     logger.info("✅ Update interceptor registered - maintenance mode and audit logging active")
+
+    # GROUP CHAT GUARD: Ignore all messages in groups/supergroups
+    # The bot is designed for private chats only.
+    from telegram.ext import MessageHandler as _MH
+    from telegram.ext.filters import ALL as _ALL
+
+    async def _group_chat_guard(update, context):
+        from telegram.ext import ApplicationHandlerStop as _Stop
+        if update.effective_chat and update.effective_chat.type in ("group", "supergroup"):
+            raise _Stop
+
+    application.add_handler(_MH(_ALL, _group_chat_guard), group=-99)
+    logger.info("✅ Group chat guard registered at priority -99")
     
     monitor.log_stage("Application_created")
     
