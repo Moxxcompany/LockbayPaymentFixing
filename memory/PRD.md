@@ -28,7 +28,7 @@ Analyze and setup the existing LockBay Telegram Escrow Bot codebase on Emergent 
 
 ## What's Been Implemented
 
-### Session - Codebase Setup (Feb 14, 2026)
+### Session 1 - Codebase Setup (Feb 14, 2026)
 - [x] Repository analyzed - massive codebase with 200+ Python files, 100+ handlers
 - [x] Backend dependencies installed (pip install from requirements.txt)
 - [x] Frontend dependencies installed (yarn install)
@@ -38,10 +38,16 @@ Analyze and setup the existing LockBay Telegram Escrow Bot codebase on Emergent 
 - [x] Frontend status page loads correctly showing setup checklist
 - [x] All tests passing: 100% backend, 100% frontend, 100% integration
 
+### Bug Fix - Email Verification Expired on /start (Feb 14, 2026)
+- [x] **Root cause**: Two code paths in `handlers/start.py` (lines ~624-674 and ~1098-1155) checked `email_verified` flag and showed "Email Verification Expired" when no valid OTP record found
+- [x] **Why it happened**: OTP was removed from onboarding (users go directly to main menu), but `email_verified` was never set to `True` for existing users. The old email verification gate was still active.
+- [x] **Fix**: Removed both email verification gate blocks in `start_handler`. Since OTP is no longer part of onboarding, users proceed directly to main menu regardless of `email_verified` status.
+- [x] Files modified: `/app/handlers/start.py`
+
 ## Current Status
 - **Backend**: Running in setup/minimal mode (needs DATABASE_URL + BOT_TOKEN for full bot)
 - **Frontend**: Running, showing status dashboard with setup checklist
-- **Health endpoint**: /api/health returns proper JSON with status and config info
+- **Bug Fix**: "Email Verification Expired" on /start — FIXED
 
 ## Prioritized Backlog
 
