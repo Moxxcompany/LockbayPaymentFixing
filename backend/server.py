@@ -341,6 +341,36 @@ def _register_all_critical_handlers(application):
     application.add_handler(CommandHandler("broadcast", create_blocking_aware_command_handler(handle_broadcast_command)), group=0)
     application.add_handler(CommandHandler("telemetry", create_blocking_aware_command_handler(view_telemetry_stats)), group=0)
 
+    # Promo opt-out / opt-in commands
+    async def promo_off_command(update, context):
+        from services.promo_message_service import handle_promo_opt_out
+        user_id = update.effective_user.id
+        success = await handle_promo_opt_out(user_id)
+        if success:
+            await update.message.reply_text(
+                "You've been unsubscribed from promotional messages.\n"
+                "You can re-enable them anytime with /promo_on",
+                parse_mode="HTML"
+            )
+        else:
+            await update.message.reply_text("Something went wrong. Please try again later.")
+
+    async def promo_on_command(update, context):
+        from services.promo_message_service import handle_promo_opt_in
+        user_id = update.effective_user.id
+        success = await handle_promo_opt_in(user_id)
+        if success:
+            await update.message.reply_text(
+                "Welcome back! You'll receive daily trading tips and opportunities.\n"
+                "Use /promo_off anytime to unsubscribe.",
+                parse_mode="HTML"
+            )
+        else:
+            await update.message.reply_text("Something went wrong. Please try again later.")
+
+    application.add_handler(CommandHandler("promo_off", promo_off_command), group=0)
+    application.add_handler(CommandHandler("promo_on", promo_on_command), group=0)
+
     # Menu commands
     from handlers.commands import menu_command, wallet_command, escrow_command, profile_command, help_command, orders_command, settings_command, support_command, show_account_settings, show_cashout_settings
     for cmd, func in [("menu", menu_command), ("wallet", wallet_command), ("escrow", escrow_command),
