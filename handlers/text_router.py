@@ -304,9 +304,9 @@ class UnifiedTextRouter:
 
 # Create the message handler for registration
 def create_unified_text_handler() -> MessageHandler:
-    """Create the unified text message handler"""
+    """Create the unified text message handler - PRIVATE CHATS ONLY"""
     return MessageHandler(
-        filters.TEXT & ~filters.COMMAND,
+        filters.TEXT & ~filters.COMMAND & filters.ChatType.PRIVATE,
         UnifiedTextRouter.route_text_message,
         block=True  # Block to prevent concurrent processing
     )
