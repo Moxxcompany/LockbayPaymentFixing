@@ -7768,6 +7768,9 @@ async def handle_seller_invitation_response(
                     }
                     admin_notif_service = AdminTradeNotificationService()
                     asyncio.create_task(admin_notif_service.send_group_notification_seller_accepted(acceptance_data))
+                    # Broadcast to all registered groups
+                    from services.group_event_service import group_event_service
+                    asyncio.create_task(group_event_service.broadcast_seller_accepted(acceptance_data))
                     logger.info(f"📤 Queued group notification for seller accepted: {escrow.escrow_id}")
                 except Exception as notif_err:
                     logger.error(f"❌ Failed to queue seller accepted group notification: {notif_err}")
