@@ -317,6 +317,22 @@ class ConsolidatedScheduler:
         else:
             logger.info("🚫 RAILWAY_BACKUP_SYNC: Disabled (set ENABLE_RAILWAY_BACKUP_SYNC=true to enable)")
 
+        # ===== PROMOTIONAL MESSAGES JOB =====
+        # Sends 2 messages/day per user (morning ~10 AM + evening ~6 PM local time)
+        # Runs every 30 minutes, matches users by timezone
+        from jobs.promo_message_job import run_promo_messages
+        self.scheduler.add_job(
+            run_promo_messages,
+            trigger=IntervalTrigger(minutes=30, start_date=datetime.now().replace(minute=5, second=0, microsecond=0)),
+            id="promo_messages",
+            name="Promotional Messages - Daily User Engagement (2/day)",
+            max_instances=1,
+            coalesce=True,
+            misfire_grace_time=300,
+            replace_existing=True
+        )
+        logger.info("Promotional Messages scheduled every 30 minutes (2 messages/day per user, timezone-aware)")
+
         # ===== UNIVERSAL WELCOME BONUS JOB (DISABLED) =====
         # DISABLED: Welcome bonus removed per user request
         # Handles: $3 welcome bonus for all users 30 minutes after onboarding
