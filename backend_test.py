@@ -69,7 +69,7 @@ class BackendAPITester:
     def test_health_endpoint(self):
         """Test 1: Backend health endpoint /api/health returns 200 with status ok"""
         try:
-            url = f"{self.base_url}/health"
+            url = f"{self.base_url}/api/health"
             response = self.session.get(url)
             
             if response.status_code == 200:
