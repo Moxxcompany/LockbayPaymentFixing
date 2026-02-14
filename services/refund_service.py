@@ -708,6 +708,9 @@ class RefundService:
                             results["refunded_count"] += 1
                             results["refunded_amount"] += refund_result["amount_refunded"]
                             
+                            # CRITICAL FIX: Mark escrow as refund_processed to prevent re-processing
+                            escrow_obj.refund_processed = True
+                            
                             # CRITICAL FIX: Add refund details for notification system
                             results["successful_refunds"].append({
                                 "escrow_id": escrow_obj.escrow_id,
