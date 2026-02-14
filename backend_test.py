@@ -347,11 +347,12 @@ class PromoMessageSystemTester:
     def test_scheduler_registration(self) -> bool:
         """Test promo_messages job registered with IntervalTrigger(minutes=30)"""
         try:
-            from jobs.consolidated_scheduler import ConsolidatedScheduler
-            import inspect
+            # Read the scheduler source file directly to avoid import issues
+            scheduler_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 
+                                        'jobs', 'consolidated_scheduler.py')
             
-            # Check source code for promo job registration
-            source = inspect.getsource(ConsolidatedScheduler)
+            with open(scheduler_file, 'r') as f:
+                source = f.read()
             
             # Look for promo job registration
             if "promo_messages" not in source:
