@@ -135,6 +135,19 @@ class CleanupExpiryEngine:
                             "errors": len(notification_results.get("errors", [])),
                             "deduplication_skipped": len(expired_escrows) - len(escrows_needing_notification)
                         }
+                        
+                        # Mark notified escrows in DB to prevent re-processing
+                        for escrow_data in escrows_needing_notification:
+                            try:
+                                internal_id = escrow_data.get("internal_id") or escrow_data.get("id")
+                                if internal_id:
+                                    from sqlalchemy import update as sql_update
+                                    await session.execute(
+                                        sql_update(Escrow).where(Escrow.id == internal_id).values(expiry_notified=True)
+                                    )
+                            except Exception as mark_err:
+                                logger.error(f"Failed to mark expiry_notified for escrow {escrow_data.get('escrow_id')}: {mark_err}")
+                        await session.commit()
                     else:
                         logger.info("✅ NOTIFICATION_DEDUPLICATION: All expired escrows already have notification records")
                         results["notification_dispatch"] = {
