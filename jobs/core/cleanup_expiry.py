@@ -342,7 +342,8 @@ class CleanupExpiryEngine:
         
         try:
             # Find expired escrows using the correct expires_at field and current time
-            current_time = datetime.utcnow()
+            from datetime import timezone
+            current_time = datetime.now(timezone.utc)
             
             result = await session.execute(
                 select(Escrow).where(
