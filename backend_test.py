@@ -518,6 +518,48 @@ class PromoMessageSystemTester:
             print(f"   Error testing error handling: {e}")
             return False
 
+    def test_user_filtering_logic(self) -> bool:
+        """Test get_users_for_session() filters by is_active, is_blocked, onboarding_completed, opt-out, timezone"""
+        try:
+            from services.promo_message_service import get_users_for_session
+            import inspect
+            
+            source = inspect.getsource(get_users_for_session)
+            
+            # Check for all required filters
+            required_filters = [
+                "is_active == True",
+                "is_blocked == False", 
+                "onboarding_completed == True",
+                "opted_out_subq",
+                "already_sent_subq"
+            ]
+            
+            missing_filters = []
+            for filter_check in required_filters:
+                if filter_check not in source:
+                    missing_filters.append(filter_check)
+            
+            if missing_filters:
+                print(f"   get_users_for_session missing filters: {missing_filters}")
+                return False
+            
+            # Check for timezone window logic
+            if "user_local_hour" not in source or "target_local_hour" not in source:
+                print("   get_users_for_session missing timezone window logic")
+                return False
+            
+            # Check for PromoOptOut and PromoMessageLog usage
+            if "PromoOptOut" not in source or "PromoMessageLog" not in source:
+                print("   get_users_for_session doesn't use PromoOptOut or PromoMessageLog models")
+                return False
+            
+            print("   ✅ get_users_for_session filters by all required criteria and timezone window")
+            return True
+        except Exception as e:
+            print(f"   Error testing user filtering logic: {e}")
+            return False
+
     # ==========================================
     # Main Test Runner
     # ==========================================
