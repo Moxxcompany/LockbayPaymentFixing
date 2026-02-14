@@ -2570,11 +2570,11 @@ async def proceed_to_ngn_otp_verification(update: Update, context: ContextTypes.
         # Show loading message with rate lock status
         await safe_edit_message_text(
             query,
-            f"🔐 Sending verification code...\n\n📊 Rate locked (expires in {remaining_minutes}m {remaining_seconds % 60}s)\n\nPlease wait while we send a security code to your email.",
+            f"🔐 Processing cashout...\n\n📊 Rate locked (expires in {remaining_minutes}m {remaining_seconds % 60}s)\n\nPlease wait while we prepare your cashout.",
             reply_markup=None
         )
         
-        # Get user information for OTP sending
+        # Get user information
         async with async_managed_session() as session:
             # Add null check for effective_user
             if not update.effective_user:
