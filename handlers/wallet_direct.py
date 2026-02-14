@@ -9831,141 +9831,34 @@ async def handle_confirm_crypto_cashout(update: Update, context: ContextTypes.DE
                     network_fee=str(network_fee)
                 )
                 
-                # ===== CONDITIONAL OTP: Check email verification status =====
-                # Skip-email users (temp emails) bypass OTP verification
-                if is_temp_email:
-                    logger.info(f"✅ SKIP_EMAIL_USER: User {user_id} bypassing OTP (no verified email) - showing direct confirmation")
-                    
-                    # Show direct confirmation for skip-email users (no OTP required)
-                    # Note: gross_amount is a string, total_fee and net_amount are already formatted strings
-                    text = f"""💰 {currency} ({network}) Cashout
+                # ===== SKIP OTP: Proceed directly to cashout confirmation =====
+                # OTP verification has been removed - all users proceed directly
+                logger.info(f"✅ DIRECT_CRYPTO_CASHOUT: User {user_id} proceeding without OTP (OTP removed)")
+                
+                text = f"""💰 {currency} ({network}) Cashout
 
 📤 ${gross_amount} - ${total_fee} fee = ${net_amount}
 📍 `{address[:20]}...{address[-10:] if len(address) > 30 else address[20:]}`
 
 ⚠️ Verify address carefully!"""
-                    
-                    # Store crypto context for processing (same as OTP flow)
-                    # Skip-email users don't have fingerprint/verification_id (no OTP)
-                    if not context.user_data:
-                        context.user_data = {}
-                    context.user_data.setdefault('cashout_data', {})['crypto_context'] = crypto_context
-                    # Mark as skip-email user (no OTP verification required)
-                    context.user_data.setdefault('cashout_data', {})['skip_email_user'] = True
-                    
-                    keyboard = [
-                        [InlineKeyboardButton("💰 Process Cashout", callback_data="process_crypto_cashout")],
-                        [InlineKeyboardButton("🔙 Cancel", callback_data="wallet_menu")]
-                    ]
-                    
-                    await safe_edit_message_text(
-                        query,
-                        text,
-                        reply_markup=InlineKeyboardMarkup(keyboard),
-                        parse_mode="Markdown"
-                    )
-                    return
                 
-                elif not as_bool(user.email_verified):
-                    # Real email but unverified - crypto cashouts require verification (no limit bypass for crypto)
-                    logger.warning(f"⚠️ CRYPTO_UNVERIFIED: User {user_id} attempted crypto cashout without email verification")
-                    
-                    error_text = f"""⚠️ <b>Email Verification Required</b>
-
-<b>Crypto cashouts require email verification.</b>
-
-🔒 <b>Verify your email to unlock:</b>
-✅ Crypto withdrawals
-✅ OTP-protected cashouts
-✅ Unlimited cashout amounts  
-✅ Trade notifications
-✅ Account recovery
-
-💡 <b>Quick Setup:</b> Just 2 minutes
-
-Ready to verify your email?"""
-                    
-                    keyboard = InlineKeyboardMarkup([
-                        [InlineKeyboardButton("🔒 Verify Email Now", callback_data="settings_verify_email")],
-                        [InlineKeyboardButton("← Back", callback_data="wallet_menu")]
-                    ])
-                    await safe_edit_message_text(query, error_text, parse_mode="HTML", reply_markup=keyboard)
-                    return
-                else:
-                    # Verified user - proceed with OTP flow
-                    logger.info(f"✅ VERIFIED_CRYPTO_CASHOUT: User {user_id} starting OTP verification")
+                # Store crypto context for processing
+                if not context.user_data:
+                    context.user_data = {}
+                context.user_data.setdefault('cashout_data', {})['crypto_context'] = crypto_context
+                context.user_data.setdefault('cashout_data', {})['skip_email_user'] = True
                 
-                # Start OTP verification (only for verified users)
-                otp_result = await CashoutOTPFlow.start_otp_verification(
-                    user_id=as_int(user.id),
-                    email=as_str(user.email),
-                    channel=str('crypto'),
-                    context=crypto_context,
-                    ip_address=str(context.user_data.get('ip_address')) if context.user_data and context.user_data.get('ip_address') else None
+                keyboard = [
+                    [InlineKeyboardButton("💰 Process Cashout", callback_data="process_crypto_cashout")],
+                    [InlineKeyboardButton("🔙 Cancel", callback_data="wallet_menu")]
+                ]
+                
+                await safe_edit_message_text(
+                    query,
+                    text,
+                    reply_markup=InlineKeyboardMarkup(keyboard),
+                    parse_mode="Markdown"
                 )
-                
-                if otp_result['success']:
-                    # Store crypto context and fingerprint for verification
-                    if not context.user_data:
-                        context.user_data = {}
-                    context.user_data.setdefault('cashout_data', {})['crypto_context'] = crypto_context
-                    if not context.user_data:
-                        context.user_data = {}
-                    context.user_data.setdefault('cashout_data', {})['fingerprint'] = otp_result['fingerprint']
-                    if not context.user_data:
-                        context.user_data = {}
-                    context.user_data.setdefault('cashout_data', {})['verification_id'] = otp_result['verification_id']
-                    
-                    # Set wallet state to wait for OTP verification
-                    if not context.user_data:
-                        context.user_data = {}
-                    await set_wallet_state(user_id, context, 'verifying_crypto_otp')
-                    
-                    # Show OTP verification UI - consistent with onboarding
-                    user_email = as_str(user.email)
-                    text = f"""📧 Code sent to {user_email}
-
-🪙 {currency} • ${net_amount} (fee: ${total_fee})
-📍 `{address[:12]}...{address[-8:]}`
-
-Enter verification code:"""
-                    
-                    keyboard = [
-                        [InlineKeyboardButton("📧 Resend Code", callback_data="resend_crypto_otp")],
-                        [InlineKeyboardButton("🔙 Cancel", callback_data="wallet_menu")]
-                    ]
-                    
-                    await safe_edit_message_text(
-                        query,
-                        text,
-                        reply_markup=InlineKeyboardMarkup(keyboard),
-                        parse_mode="Markdown"
-                    )
-                    
-                    logger.info(f"✅ Crypto OTP sent successfully for cashout verification to user {user_id}")
-                
-                else:
-                    error_msg = otp_result.get('error', 'Failed to send verification code')
-                    can_retry = otp_result.get('can_retry', True)
-                    
-                    if can_retry:
-                        keyboard = [
-                            [InlineKeyboardButton("🔄 Try Again", callback_data="confirm_crypto_cashout")],
-                            [InlineKeyboardButton("🔙 Back", callback_data="wallet_menu")]
-                        ]
-                    else:
-                        keyboard = [
-                            [InlineKeyboardButton("🔙 Back", callback_data="wallet_menu")]
-                        ]
-                    
-                    # Use branded error message for verification failure
-                    branded_error = BrandingUtils.get_branded_error_message("validation", f"Email verification failed: {error_msg}")
-                    await safe_edit_message_text(
-                        query,
-                        branded_error,
-                        parse_mode='Markdown',
-                        reply_markup=InlineKeyboardMarkup(keyboard)
-                    )
             
             except Exception as otp_error:
                 logger.error(f"Error during OTP verification: {otp_error}")
