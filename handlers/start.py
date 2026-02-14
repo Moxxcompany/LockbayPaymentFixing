@@ -558,7 +558,7 @@ async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
                                 logger.info(f"🔄 DUPLICATE START PREVENTED: User {user.id} made request {time_since_last_start:.1f}s ago")
                                 await update.message.reply_text(
                                     "👋 Welcome back! Your onboarding is already in progress.\n\n"
-                                    "Please continue with the email verification step above, or use /cancel if you need to restart.",
+                                    "Please continue with the steps above, or use /cancel if you need to restart.",
                                     reply_markup=None
                                 )
                                 return ConversationHandler.END
