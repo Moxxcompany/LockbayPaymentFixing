@@ -265,53 +265,8 @@ async def process_existing_user_async(
                     logger.info(f"📬 Stored pending invitations for main menu badge")
             
             # STEP 4: Check email verification status using shared session
-            # Skip verification check for users with temporary skip-email addresses
-            is_temp_email = user_email and user_email.startswith('temp_') and user_email.endswith('@onboarding.temp')
-            
-            if not user_email_verified and not is_temp_email:
-                logger.warning(f"🔒 SECURITY: User {user_id_db} attempting access without email verification")
-                
-                if user_email:
-                    logger.info(f"🔒 User {user_id_db} has email {user_email} but not verified")
-                    
-                    # Check for existing verification record with shared session
-                    verify_start = time.time()
-                    result = await shared_session.execute(
-                        select(EmailVerification).filter(
-                            EmailVerification.user_id == user_id_db,
-                            EmailVerification.purpose == "registration",  # FIX: Align with OnboardingService
-                            EmailVerification.expires_at > datetime.now(timezone.utc)
-                        )
-                    )
-                    existing_verification = result.scalar_one_or_none()
-                    verify_time = time.time() - verify_start
-                    logger.info(f"⚡ SHARED_SESSION: Email verification check completed in {verify_time*1000:.1f}ms")
-                    
-                    if existing_verification:
-                        await update.message.reply_text(
-                            f"🔐 Email Verification Required\n\n"
-                            f"Please enter the 6-digit code sent to:\n"
-                            f"📧 {user_email}\n\n"
-                            f"💡 Check your inbox and spam folder",
-                            parse_mode="Markdown",
-                            reply_markup=InlineKeyboardMarkup([
-                                [InlineKeyboardButton("🔄 Resend Code", callback_data="resend_otp_onboarding")],
-                                [InlineKeyboardButton("✏️ Change Email", callback_data="change_email_onboarding")]
-                            ])
-                        )
-                        logger.info(f"🔒 Redirected unverified user {user_id_db} to complete email verification")
-                        return OnboardingStates.VERIFYING_EMAIL_OTP
-                    else:
-                        logger.info(f"🔒 No valid verification record for user {user_id_db} - restarting onboarding")
-                        await update.message.reply_text(
-                            "🔐 Email Verification Expired\n\n"
-                            "Your verification code has expired. Let's restart the verification process.",
-                            parse_mode="Markdown"
-                        )
-                        return await start_onboarding(update, context)
-                else:
-                    logger.info(f"🔒 User {user_id_db} has no email - starting fresh onboarding")
-                    return await start_onboarding(update, context)
+            # Skip email verification check - users can access dashboard without email verification
+            # Email verification is optional and can be done later from Settings
             
             # STEP 5: Show main menu using shared session
             menu_start = time.time()
