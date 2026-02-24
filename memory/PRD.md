@@ -1,55 +1,50 @@
-# Lockbay - Telegram Escrow Bot PRD
+# Lockbay Telegram Escrow Bot - PRD
 
 ## Original Problem Statement
-1. Analyze code and set it up and install dependencies
-2. Replace CoinGecko and FastForex rate providers with Tatum API
+User requested: "set up" - analyze code and setup the environment, update .env with all required environment variables and use current pod URL for webhooks.
 
 ## Architecture
-- **Type**: Telegram Bot (python-telegram-bot v22.6) + FastAPI webhook server
-- **Database**: PostgreSQL (SQLAlchemy ORM, 57 tables)
-- **Cache**: Redis (optional, fallback to in-memory)
-- **Language**: Python 3.11
+- **App Type**: Telegram Escrow Bot (Python, FastAPI webhook server)
+- **Tech Stack**: Python 3.11, FastAPI, python-telegram-bot, SQLAlchemy, PostgreSQL (Railway + Neon)
+- **Payment Integrations**: DynoPay, Fincra, BlockBee, Kraken, Flutterwave
+- **Email**: Brevo (Sendinblue)
+- **SMS**: Twilio
+- **Entry Point**: `/app/backend/server.py` -> imports `/app/webhook_server.py` and initializes the Telegram bot
+- **Database**: PostgreSQL (Railway: `yamabiko.proxy.rlwy.net:44505/railway`)
 
-## What's Been Implemented
+## What's Been Implemented (Feb 24, 2026)
+1. **Environment Setup Complete**:
+   - All 80+ environment variables configured in `/app/backend/.env`
+   - Webhook URLs updated to current pod URL: `https://ea5cd6ed-ea21-4b31-9411-9ec52b5c0b12.preview.emergentagent.com/api/webhook`
+   - DynoPay webhook URL: `.../api/webhook/dynopay`
+   - Python dependencies installed from `backend/requirements.txt`
+   - Frontend dependencies installed (yarn)
+2. **Services Running**:
+   - Backend (FastAPI + Telegram Bot): Running
+   - Frontend (React): Running
+   - Telegram webhook registered and confirmed
+   - All handlers registered (escrow, wallet, admin, support, rating, etc.)
+   - Background schedulers running (reconciliation, cleanup, auto-release)
 
-### Setup (Feb 8, 2026)
-- Analyzed full codebase (~500+ files)
-- Installed all Python dependencies
-- Set up local PostgreSQL 15 database
-- Backend running on port 8001
+## Known Issues
+- Fincra authentication fails: `'Invalid authentication credentials'` - may need key rotation
+- Redis/Replit Key-Value Store not available - falling back to DB-backed mode
+- Email queue in NO-OP/degraded mode (no Redis/Replit KV store)
 
-### Tatum API Migration (Feb 8, 2026)
-- **Replaced CoinGecko + FastForex** with **Tatum API** as primary rate provider
-- Tatum API key: configured in `.env` as `TATUM_API_KEY`
-- Endpoint: `GET https://api.tatum.io/v4/data/rate/symbol?symbol=BTC&basePair=USD`
+## Prioritized Backlog
+### P0 (Critical)
+- Verify Telegram bot responds to /start commands via the bot
+- Monitor webhook delivery from Telegram
 
-#### Files Modified:
-- `/app/.env` — Added `TATUM_API_KEY`
-- `/app/config.py` — Added `TATUM_API_KEY` config
-- `/app/services/fastforex_service.py` — Full rewrite: Tatum primary, FastForex legacy fallback
-- `/app/services/financial_gateway.py` — Added Tatum methods, replaced CoinGecko
-- `/app/utils/exchange_rate_fallback.py` — Added Tatum as primary source
-- `/app/utils/exchange_prefetch.py` — Added Tatum as primary source
-- `/app/services/api_resilience_service.py` — Added Tatum health monitoring
+### P1 (Important)  
+- Investigate Fincra API key validity
+- Set up proper Redis for email queue and caching
 
-#### Rate Priority Chain:
-1. Cache (in-memory) → 2. Tatum API (primary) → 3. FastForex (legacy fallback)
+### P2 (Nice to have)
+- Enable deep monitoring (ENABLE_DEEP_MONITORING=true)
+- Performance tuning for background jobs blocking event loop on startup
 
-#### Verified Working:
-- Crypto rates: BTC, ETH, LTC, DOGE, TRX, XRP
-- Kraken symbol mapping: XXBT→BTC, XETH→ETH, etc.
-- Fiat rates: USD→NGN
-- Markup calculations
-- Batch rate fetching
-- Conversions (crypto↔USD, USD↔NGN)
-
-## Required External Credentials (Not Yet Configured)
-- `BOT_TOKEN` — Telegram bot token (from @BotFather)
-- `BREVO_API_KEY` — Email notifications
-- `KRAKEN_API_KEY` / `KRAKEN_SECRET_KEY` — Crypto withdrawals
-- `FINCRA_SECRET_KEY` / `FINCRA_PUBLIC_KEY` — NGN payments
-
-## Backlog
-- P0: Configure real Telegram BOT_TOKEN
-- P1: Configure payment provider API keys
-- P2: Remove deprecated FastForex/CoinGecko code entirely (currently kept as fallback)
+## Next Tasks
+- Test bot interaction via Telegram (@lockbaybot)
+- Verify payment webhook flows end-to-end
+- Check if Fincra credentials need updating
