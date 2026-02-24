@@ -621,6 +621,10 @@ class Escrow(Base):
     warning_2h_sent = Column(Boolean, default=False, nullable=False)  # 2-hour warning sent
     warning_30m_sent = Column(Boolean, default=False, nullable=False)  # 30-minute warning sent
     
+    # Refund and expiry tracking
+    refund_processed = Column(Boolean, default=False, nullable=False)  # Whether refund has been processed
+    expiry_notified = Column(Boolean, default=False, nullable=False)  # Whether expiry notification was sent
+    
     # Admin and dispute
     admin_notes = Column(Text, nullable=True)
     dispute_reason = Column(Text, nullable=True)
