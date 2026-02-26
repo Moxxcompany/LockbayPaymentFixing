@@ -23,11 +23,17 @@ Lockbay is a Telegram-based escrow bot for secure trading, supporting crypto pay
 
 ## What's Been Implemented - Feb 26, 2026
 1. Created `/app/.env` with all required environment variables (Telegram, payment providers, database, etc.)
-2. Updated `WEBHOOK_URL` to use current pod URL with `/api/webhook` path
+2. Updated `WEBHOOK_URL` to use current pod URL with `/api/webhook` path (UUID-based URL for proper API routing)
 3. Updated `DYNOPAY_WEBHOOK_URL` to use current pod URL
 4. Installed all Python dependencies from requirements.txt
 5. Backend started, database connected (68 tables), Telegram webhook registered successfully
 6. Verified end-to-end: health endpoint, webhook POST, Telegram API confirmation
+
+### Bug Fix - Feb 26, 2026: DIRECT_WALLET_HANDLERS Not Registered
+- **Root Cause**: `server.py` startup path never called `CriticalOperationsManager.setup_critical_infrastructure()` from `background_operations.py`, which is the only place that registers 53 `DIRECT_WALLET_HANDLERS` (view_rates, quick_cashout_all, quick_crypto, show_qr, bank handlers, etc.)
+- **Impact**: Users could /start and see wallet menu, but clicking any wallet button (add funds, rates, cashout, etc.) resulted in silent no-op — the interceptor logged the callback but no handler matched
+- **Fix**: Added DIRECT_WALLET_HANDLERS registration block in `server.py`'s `_register_all_critical_handlers()` function, handling both dict-based and direct handler formats
+- **Verified**: All 53 handlers now registered, bot fully initialized
 
 ## Key Integrations
 - Telegram Bot API (webhook mode)
