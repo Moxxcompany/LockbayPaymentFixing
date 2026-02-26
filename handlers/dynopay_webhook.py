@@ -1836,7 +1836,7 @@ To: {seller_identifier}{referral_section}
                 logger.error(f"Failed to parse user_id from reference {reference_id}: {e}")
                 return {"status": "error", "message": f"Invalid wallet reference: {reference_id}"}
             
-            logger.info(f"💰 WALLET_DEPOSIT: Processing deposit for user {user_id}, {paid_amount} {paid_currency}, txid: {transaction_id}")
+            logger.info(f"💰 WALLET_DEPOSIT: Processing deposit for user {user_id}, {crypto_amount} {paid_currency} (base_amount=${dynopay_base_amount}), txid: {transaction_id}")
             
             # CRITICAL FIX: For wallet deposits, always credit ACTUAL crypto received converted to USD
             # base_amount is only the invoice amount, NOT the actual received value.
