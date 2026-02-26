@@ -520,6 +520,25 @@ def _register_all_critical_handlers(application):
         except Exception as e:
             logger.warning(f"Failed to register {attr_name}: {e}")
 
+    # Register DIRECT_WALLET_HANDLERS (dict-based format from wallet_direct.py)
+    try:
+        from handlers.wallet_direct import DIRECT_WALLET_HANDLERS
+        registered_count = 0
+        for handler_item in DIRECT_WALLET_HANDLERS:
+            if isinstance(handler_item, dict):
+                pattern = handler_item.get('pattern')
+                handler = handler_item.get('handler')
+                if handler is not None:
+                    application.add_handler(CallbackQueryHandler(handler, pattern=pattern), group=0)
+                    registered_count += 1
+            else:
+                group = -2 if hasattr(handler_item, 'filters') and 'TEXT' in str(handler_item.filters) else 0
+                application.add_handler(handler_item, group=group)
+                registered_count += 1
+        logger.info(f"✅ Registered {registered_count} DIRECT_WALLET_HANDLERS")
+    except Exception as e:
+        logger.error(f"❌ Failed to register DIRECT_WALLET_HANDLERS: {e}")
+
     # Admin maintenance
     try:
         from handlers.admin_maintenance import register_maintenance_handlers
