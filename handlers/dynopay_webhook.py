@@ -1838,27 +1838,38 @@ To: {seller_identifier}{referral_section}
             
             logger.info(f"💰 WALLET_DEPOSIT: Processing deposit for user {user_id}, {paid_amount} {paid_currency}, txid: {transaction_id}")
             
-            # CRITICAL FIX: Use DynoPay's base_amount (USD) when available
-            # This mirrors the escrow handler's approach and prevents rate discrepancy losses
+            # CRITICAL FIX: For wallet deposits, always credit ACTUAL crypto received converted to USD
+            # base_amount is only the invoice amount, NOT the actual received value.
+            # Users should be credited for what they actually sent.
             from services.fastforex_service import FastForexService
             forex_service = FastForexService()
             
-            if dynopay_base_amount and dynopay_base_currency == 'USD':
-                # DynoPay already provided authoritative USD value - use it directly
-                usd_amount = Decimal(str(dynopay_base_amount))
-                logger.info(f"💱 WALLET_USD_AUTHORITATIVE: Using DynoPay base_amount=${usd_amount:.2f} (crypto: {crypto_amount} {paid_currency})")
-            elif paid_currency == 'USD':
+            actual_crypto_received = Decimal(str(crypto_amount or 0))
+            
+            if paid_currency == 'USD':
                 usd_amount = Decimal(str(paid_amount or 0))
                 logger.info(f"💱 WALLET_USD: Direct USD deposit: ${usd_amount:.2f}")
+            elif actual_crypto_received > 0:
+                # Use DynoPay's exchange_rate if available (most accurate for this transaction)
+                dynopay_rate = webhook_data.get('exchange_rate')
+                if dynopay_rate:
+                    usd_amount = actual_crypto_received * Decimal(str(dynopay_rate))
+                    logger.info(f"💱 WALLET_USD_ACTUAL: {actual_crypto_received} {paid_currency} × ${dynopay_rate} = ${usd_amount:.2f} USD (DynoPay rate, base_amount was ${dynopay_base_amount})")
+                else:
+                    # Fallback: Convert crypto to USD using cached rate
+                    crypto_rate = await forex_service.get_crypto_to_usd_rate(paid_currency)
+                    if crypto_rate is None:
+                        logger.error(f"❌ WALLET_RATE_UNAVAILABLE: No rate available for {paid_currency}")
+                        return {"status": "retry", "message": f"Exchange rate unavailable for {paid_currency}"}
+                    usd_amount = actual_crypto_received * Decimal(str(crypto_rate))
+                    logger.info(f"💱 WALLET_USD_ACTUAL_FALLBACK: {actual_crypto_received} {paid_currency} × ${crypto_rate} = ${usd_amount:.2f} USD (cached rate, base_amount was ${dynopay_base_amount})")
+            elif dynopay_base_amount and dynopay_base_currency == 'USD':
+                # Last resort: no crypto amount available, use base_amount
+                usd_amount = Decimal(str(dynopay_base_amount))
+                logger.info(f"💱 WALLET_USD_BASE_FALLBACK: Using base_amount=${usd_amount:.2f} (no crypto amount available)")
             else:
-                # Fallback: Convert crypto to USD using cached rate (only when no base_amount)
-                crypto_rate = await forex_service.get_crypto_to_usd_rate(paid_currency)
-                if crypto_rate is None:
-                    logger.error(f"❌ WALLET_RATE_UNAVAILABLE: No rate available for {paid_currency}")
-                    return {"status": "retry", "message": f"Exchange rate unavailable for {paid_currency}"}
-                
-                usd_amount = Decimal(str(paid_amount or 0)) * Decimal(str(crypto_rate))
-                logger.info(f"💱 WALLET_USD_CONVERSION_FALLBACK: Converted {paid_amount} {paid_currency} to ${usd_amount:.2f} USD (rate: ${crypto_rate:.2f})")
+                logger.error(f"❌ WALLET_AMOUNT_ERROR: Cannot determine USD amount - no crypto amount or base_amount")
+                return {"status": "error", "message": "Cannot determine deposit amount"}
             
             # Use async session to credit wallet
             from models import Wallet, CryptoDeposit, CryptoDepositStatus
