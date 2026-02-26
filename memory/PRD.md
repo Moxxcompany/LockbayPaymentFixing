@@ -29,7 +29,11 @@ Lockbay is a Telegram-based escrow bot for secure trading, supporting crypto pay
 5. Backend started, database connected (68 tables), Telegram webhook registered successfully
 6. Verified end-to-end: health endpoint, webhook POST, Telegram API confirmation
 
-### Bug Fix - Feb 26, 2026: DIRECT_WALLET_HANDLERS Not Registered
+### Bug Fix - Feb 26, 2026: Wallet Deposit Crediting Only Invoice Amount (Not Actual Received)
+- **Root Cause**: `dynopay_webhook.py` line 1846-1849 used DynoPay's `base_amount` (the invoice/requested amount, e.g. $10) as the wallet credit, ignoring the actual crypto received. When users overpay or DynoPay adds fees to the crypto amount, the user gets short-changed.
+- **Example**: User sent 0.00685 ETH (~$13.88), DynoPay received 0.006253 ETH (~$12.67 after network fee), but wallet only credited $10.00 (the invoice base_amount).
+- **Fix**: Changed wallet deposit handler to calculate USD from `actual_crypto_received × exchange_rate` instead of using `base_amount`. Uses DynoPay's webhook exchange_rate first, falls back to cached rate, with base_amount as last resort only if no crypto amount is available.
+- **Result**: Same deposit would now credit ~$12.67 (actual received value) instead of $10.00
 - **Root Cause**: `server.py` startup path never called `CriticalOperationsManager.setup_critical_infrastructure()` from `background_operations.py`, which is the only place that registers 53 `DIRECT_WALLET_HANDLERS` (view_rates, quick_cashout_all, quick_crypto, show_qr, bank handlers, etc.)
 - **Impact**: Users could /start and see wallet menu, but clicking any wallet button (add funds, rates, cashout, etc.) resulted in silent no-op — the interceptor logged the callback but no handler matched
 - **Fix**: Added DIRECT_WALLET_HANDLERS registration block in `server.py`'s `_register_all_critical_handlers()` function, handling both dict-based and direct handler formats
