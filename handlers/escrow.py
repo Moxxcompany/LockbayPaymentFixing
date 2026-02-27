@@ -10747,6 +10747,15 @@ async def handle_buyer_cancel_confirmed(update: TelegramUpdate, context: Context
                 amount_decimal = Decimal(str(amount))
                 new_balance = current_balance + amount_decimal
                 usd_wallet.available_balance = new_balance  # type: ignore
+                
+                # Invalidate balance caches after escrow refund
+                try:
+                    from utils.balance_cache_invalidation import balance_cache_invalidation_service
+                    balance_cache_invalidation_service.invalidate_user_balance_caches(user.id, "escrow_refund")
+                except Exception:
+                    pass
+                if context and context.user_data:
+                    context.user_data.pop("wallet_prefetch", None)
             else:
                 # payment_pending status - no payment made yet, no refund needed
                 trade_amount = Decimal(str(getattr(escrow, 'amount', 0)))
