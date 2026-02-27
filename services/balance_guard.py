@@ -1351,7 +1351,7 @@ class BalanceGuard:
         Returns:
             Comprehensive monitoring results with alert status
         """
-        logger.info("🛡️ BALANCE_GUARD_MONITORING: Starting comprehensive balance check")
+        logger.debug("🛡️ BALANCE_GUARD_MONITORING: Starting comprehensive balance check")
         
         monitoring_start = datetime.utcnow()
         snapshots = []
