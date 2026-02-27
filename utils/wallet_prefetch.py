@@ -342,7 +342,9 @@ def cache_wallet_data(context_user_data: Dict, prefetch_data: WalletPrefetchData
         prefetch_data: Prefetched wallet context
     """
     if context_user_data is not None:
-        context_user_data["wallet_prefetch"] = prefetch_data.to_dict()
+        data = prefetch_data.to_dict()
+        data["_cached_at"] = time.time()
+        context_user_data["wallet_prefetch"] = data
         logger.info(f"✅ WALLET_CACHE: Stored prefetch data for user {prefetch_data.user_id}")
 
 
