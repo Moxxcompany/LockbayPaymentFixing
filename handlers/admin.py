@@ -2593,6 +2593,13 @@ async def complete_cashout_approval(cashout_id: str, admin_id: int, transaction_
             
             session.commit()
             
+            # Invalidate balance caches after admin cashout completion
+            try:
+                from utils.balance_cache_invalidation import balance_cache_invalidation_service
+                balance_cache_invalidation_service.invalidate_user_balance_caches(cashout.user_id, "admin_cashout_complete")
+            except Exception:
+                pass
+            
             # ===== PHASE 3B: MILESTONE TRACKING & RECEIPT GENERATION =====
             try:
                 from services.milestone_tracking_service import MilestoneTrackingService
