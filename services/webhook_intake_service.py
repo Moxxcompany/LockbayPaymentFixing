@@ -232,8 +232,14 @@ class WebhookIntakeService:
                     logger.info(f"✅ WEBHOOK_INTAKE: DynoPay wallet webhook already processing - passing through")
                     return {"status": "already_processing", "message": result.get('message')}
                 else:
-                    logger.warning(f"⚠️ WEBHOOK_INTAKE: DynoPay wallet webhook returned error: {result}")
-                    return {"status": "retry", "message": result.get('message', 'Unknown error')}
+                    # Check if error is permanent (missing fields = bad payload, never retryable)
+                    error_msg = result.get('message', 'Unknown error')
+                    if 'missing' in error_msg.lower() or 'invalid' in error_msg.lower():
+                        logger.warning(f"⚠️ WEBHOOK_INTAKE: DynoPay wallet webhook permanent failure (no retry): {result}")
+                        return {"status": "error", "message": error_msg}
+                    else:
+                        logger.warning(f"⚠️ WEBHOOK_INTAKE: DynoPay wallet webhook returned error (will retry): {result}")
+                        return {"status": "retry", "message": error_msg}
             else:
                 logger.info(f"✅ WEBHOOK_INTAKE: DynoPay wallet webhook processed (no specific result)")
                 return {"status": "success"}
