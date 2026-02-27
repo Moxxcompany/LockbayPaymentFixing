@@ -313,7 +313,19 @@ def get_cached_wallet_data(context_user_data: Optional[Dict]) -> Optional[Dict[s
     if not context_user_data:
         return None
     
-    return context_user_data.get("wallet_prefetch")
+    cached = context_user_data.get("wallet_prefetch")
+    if not cached:
+        return None
+    
+    # TTL check: invalidate prefetch data older than 30 seconds
+    import time
+    cached_at = cached.get("_cached_at", 0)
+    if time.time() - cached_at > 30:
+        context_user_data.pop("wallet_prefetch", None)
+        logger.info("🗑️ WALLET_CACHE: Prefetch data expired (>30s TTL)")
+        return None
+    
+    return cached
 
 
 def cache_wallet_data(context_user_data: Dict, prefetch_data: WalletPrefetchData) -> None:
