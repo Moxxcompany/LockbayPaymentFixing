@@ -20,7 +20,7 @@ Analyze and setup the existing LockBay Telegram escrow bot codebase. Update .env
 
 ## What's Been Implemented (2026-02-27)
 - Created `/app/.env` with all 80+ environment variables
-- Updated `WEBHOOK_URL` to use current pod URL: `https://onboarding-flow-51.preview.emergentagent.com/api/webhook`
+- Updated `WEBHOOK_URL` to use current pod URL: `https://config-init-preview.preview.emergentagent.com/api/webhook`
 - Installed all missing Python dependencies (orjson, psutil, python-telegram-bot, etc.)
 - Full bot server running with webhook registered with Telegram
 - Database connected to Railway PostgreSQL
@@ -29,7 +29,7 @@ Analyze and setup the existing LockBay Telegram escrow bot codebase. Update .env
 - Background systems (email queue, auto-release, webhook processing) all running
 
 ## Configuration Summary
-- **Telegram Webhook**: `https://onboarding-flow-51.preview.emergentagent.com/api/webhook` (registered with Telegram)
+- **Telegram Webhook**: `https://config-init-preview.preview.emergentagent.com/api/webhook` (registered with Telegram)
 - **DynoPay Webhook**: `https://lockbaypaymentfixing-production.up.railway.app/webhook/dynopay` (kept as-is per user request)
 - **Environment**: Production mode
 - **Bot Username**: @lockbaybot
