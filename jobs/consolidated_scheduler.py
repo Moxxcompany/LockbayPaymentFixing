@@ -89,18 +89,18 @@ class ConsolidatedScheduler:
 
         # ===== CORE JOB 1: WORKFLOW RUNNER =====
         # Handles: UTE execution, outbox processing, saga orchestration
-        # Frequency: Every 90 seconds (OPTIMIZED from 30s — webhook direct processing is primary path)
+        # Frequency: Every 5 minutes (OPTIMIZED from 90s — UTE processes internally, outbox rarely populated)
         self.scheduler.add_job(
             run_workflow_processing,
-            trigger=IntervalTrigger(seconds=90, start_date=datetime.now().replace(second=5, microsecond=0)),
+            trigger=IntervalTrigger(minutes=5, start_date=datetime.now().replace(second=5, microsecond=0)),
             id="core_workflow_runner", 
             name="🔄 Core Workflow Runner - UTE & Outbox Processing",
             max_instances=1,
             coalesce=True,
-            misfire_grace_time=60,
+            misfire_grace_time=120,
             replace_existing=True
         )
-        logger.info("✅ Core Workflow Runner scheduled every 90 seconds (optimized from 30s)")
+        logger.info("✅ Core Workflow Runner scheduled every 5 minutes (optimized from 90s)")
 
         # ===== CORE JOB 2: RETRY ENGINE =====
         # Handles: All retry logic, failed operations, backoff processing
@@ -120,18 +120,18 @@ class ConsolidatedScheduler:
 
         # ===== CORE JOB 3: RECONCILIATION =====
         # Handles: Balance checks, rate updates, webhook validation, escrow consistency
-        # Frequency: Every 5 minutes (balance monitoring and validation)
+        # Frequency: Every 30 minutes (OPTIMIZED from 5min — balance API calls are expensive, cache handles interim)
         self.scheduler.add_job(
             run_reconciliation,
-            trigger=IntervalTrigger(minutes=5, start_date=datetime.now().replace(second=25, microsecond=0)),
+            trigger=IntervalTrigger(minutes=30, start_date=datetime.now().replace(second=25, microsecond=0)),
             id="core_reconciliation",
             name="📊 Core Reconciliation - Balance & Webhook Validation",
             max_instances=1,
             coalesce=True, 
-            misfire_grace_time=90,
+            misfire_grace_time=120,
             replace_existing=True
         )
-        logger.info("✅ Core Reconciliation scheduled every 5 minutes")
+        logger.info("✅ Core Reconciliation scheduled every 30 minutes (optimized from 5min — saves ~250 API calls/day)")
 
         # ===== CORE JOB 4: CLEANUP & EXPIRY =====
         # Handles: Data cleanup, escrow expiry, system maintenance, distributed locks
@@ -208,10 +208,10 @@ class ConsolidatedScheduler:
 
         # ===== WEBHOOK OPTIMIZATION JOB =====
         # Handles: Background crypto rate refresh to eliminate webhook API call delays
-        # Frequency: Every 5 minutes (OPTIMIZED from 2min — matches cache TTL, cuts API calls 60%)
+        # Frequency: Every 15 minutes (OPTIMIZED from 5min — rates cached 10min-1hr, no need for aggressive refresh)
         self.scheduler.add_job(
             run_crypto_rate_background_refresh,
-            trigger=IntervalTrigger(minutes=5, start_date=datetime.now().replace(second=0, microsecond=0)),
+            trigger=IntervalTrigger(minutes=15, start_date=datetime.now().replace(second=0, microsecond=0)),
             id="webhook_rate_refresh",
             name="🚀 Webhook Rate Refresh - Background Crypto Rate Updates",
             max_instances=1,
@@ -219,7 +219,7 @@ class ConsolidatedScheduler:
             misfire_grace_time=120,
             replace_existing=True
         )
-        logger.info("✅ WEBHOOK_OPTIMIZATION: Background crypto rate refresh scheduled every 5 minutes (optimized from 2min)")
+        logger.info("✅ WEBHOOK_OPTIMIZATION: Background crypto rate refresh scheduled every 15 minutes (optimized from 5min — saves ~3500 API calls/day)")
 
         # ===== ADMIN NOTIFICATION QUEUE PROCESSOR =====
         # Handles: Admin email/telegram notifications from database queue
@@ -319,19 +319,19 @@ class ConsolidatedScheduler:
 
         # ===== PROMOTIONAL MESSAGES JOB =====
         # Sends 2 messages/day per user (morning ~10 AM + evening ~6 PM local time)
-        # Runs every 30 minutes, matches users by timezone
+        # Runs every 2 hours (OPTIMIZED from 30min — timezone windows are wide enough, saves DB queries)
         from jobs.promo_message_job import run_promo_messages
         self.scheduler.add_job(
             run_promo_messages,
-            trigger=IntervalTrigger(minutes=30, start_date=datetime.now().replace(minute=5, second=0, microsecond=0)),
+            trigger=IntervalTrigger(hours=2, start_date=datetime.now().replace(minute=5, second=0, microsecond=0)),
             id="promo_messages",
             name="Promotional Messages - Daily User Engagement (2/day)",
             max_instances=1,
             coalesce=True,
-            misfire_grace_time=300,
+            misfire_grace_time=600,
             replace_existing=True
         )
-        logger.info("Promotional Messages scheduled every 30 minutes (2 messages/day per user, timezone-aware)")
+        logger.info("Promotional Messages scheduled every 2 hours (optimized from 30min — timezone windows allow wider intervals)")
 
         # ===== UNIVERSAL WELCOME BONUS JOB (DISABLED) =====
         # DISABLED: Welcome bonus removed per user request
