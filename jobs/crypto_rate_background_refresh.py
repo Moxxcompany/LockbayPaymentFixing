@@ -16,14 +16,10 @@ logger = logging.getLogger(__name__)
 class CryptoRateBackgroundRefresh:
     """Background service to keep crypto rates fresh for webhook optimization"""
     
-    # All cryptocurrencies that need to be kept fresh for webhook performance
+    # Core cryptocurrencies that need to be kept fresh for webhook performance
+    # OPTIMIZED: Removed Kraken-specific duplicates (XETH/XXBT etc) — kraken_service maps internally
     WEBHOOK_CRITICAL_CURRENCIES = [
-        # Standard symbols frequently used in webhooks
-        "BTC", "ETH", "LTC", "DOGE", "BCH", "BSC", "TRX", 
-        "USDT-ERC20", "USDT-TRC20", "USD",
-        
-        # Kraken symbols (mapped internally but need caching)
-        "XETH", "XXBT", "XLTC", "XXDG", "XBCH", "XTRX", "XUSDT", "ZUSD"
+        "BTC", "ETH", "LTC", "USDT", "USD", "TRX"
     ]
     
     @staticmethod
