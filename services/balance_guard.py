@@ -1360,9 +1360,9 @@ class BalanceGuard:
         # Get balance snapshots from all providers with FRESH data for accurate alerts
         for provider in self.providers:
             try:
-                # CRITICAL FIX: Always force fresh balance fetch for monitoring alerts
-                # This ensures admin sees current balance, not cached/stale data
-                snapshot = await provider.get_balance_snapshot(force_fresh_for_critical=True)
+                # Use cached balance data for regular monitoring (fresh data only when cache expired)
+                # This reduces API calls from every-run-fresh to cache-TTL-based (5 min)
+                snapshot = await provider.get_balance_snapshot(force_fresh_for_critical=False)
                 if snapshot:
                     snapshots.append(snapshot)
                     
