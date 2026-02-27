@@ -45,7 +45,7 @@ class ReconciliationEngine:
             "status": "success"
         }
         
-        logger.info("📊 CORE_RECONCILIATION: Starting reconciliation cycle")
+        logger.debug("📊 CORE_RECONCILIATION: Starting reconciliation cycle")
         
         try:
             # 1. Balance reconciliation (highest priority)

@@ -54,7 +54,7 @@ class CleanupExpiryEngine:
             "status": "success"
         }
         
-        logger.info("🧹 CORE_CLEANUP_EXPIRY: Starting modular cleanup cycle")
+        logger.debug("🧹 CORE_CLEANUP_EXPIRY: Starting modular cleanup cycle")
         
         try:
             # Initialize services

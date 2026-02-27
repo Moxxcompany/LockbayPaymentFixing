@@ -45,7 +45,7 @@ class RetryEngine:
             "status": "success"
         }
         
-        logger.info("🔁 CORE_RETRY_ENGINE: Starting retry processing cycle")
+        logger.debug("🔁 CORE_RETRY_ENGINE: Starting retry processing cycle")
         
         try:
             # Process unified retries with proper session management

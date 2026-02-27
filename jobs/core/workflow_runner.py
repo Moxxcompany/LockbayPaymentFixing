@@ -43,7 +43,7 @@ class WorkflowRunner:
             "status": "success"
         }
         
-        logger.info("🔄 CORE_WORKFLOW_RUNNER: Starting workflow processing cycle")
+        logger.debug("🔄 CORE_WORKFLOW_RUNNER: Starting workflow processing cycle")
         
         try:
             # 1. Process UTE steps (highest priority)

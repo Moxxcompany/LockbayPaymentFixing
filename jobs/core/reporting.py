@@ -46,7 +46,7 @@ class ReportingEngine:
             "status": "success"
         }
         
-        logger.info("📈 CORE_REPORTING: Starting reporting cycle")
+        logger.debug("📈 CORE_REPORTING: Starting reporting cycle")
         
         try:
             # 1. Financial reports (highest priority)
