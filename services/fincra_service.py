@@ -58,7 +58,7 @@ class FincraService(APIAdapterRetry):
         # CRITICAL FIX: Shared balance cache for cross-operation reuse (mirrors Kraken optimization)
         self._balance_cache = None
         self._balance_cache_timestamp = None
-        self._balance_cache_expiry_seconds = 45  # 45-second cache for operation-scoped reuse
+        self._balance_cache_expiry_seconds = 300  # 5-minute cache (optimized from 45s to reduce API calls)
         self._balance_cache_lock = asyncio.Lock()  # Thread-safe cache access
         
         if not self.secret_key or not self.public_key:
