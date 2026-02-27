@@ -694,6 +694,16 @@ class CryptoServiceAtomic:
             await session.flush()  # CRITICAL: Flush transaction before commit
             
             logger.info(f"✅ ASYNC_CREDIT: User {user_id} credited ${credit_amount:.2f} {currency} (new balance: ${wallet.available_balance:.2f})")
+            
+            # CRITICAL FIX: Invalidate balance caches after wallet credit
+            try:
+                from utils.balance_cache_invalidation import balance_cache_invalidation_service
+                balance_cache_invalidation_service.invalidate_user_balance_caches(
+                    user_id, f"wallet_credit_{transaction_type or 'generic'}"
+                )
+            except Exception as cache_err:
+                logger.warning(f"Failed to invalidate balance caches for user {user_id} after credit: {cache_err}")
+            
             return True
             
         except Exception as e:
