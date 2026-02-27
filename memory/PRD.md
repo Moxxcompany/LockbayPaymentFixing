@@ -14,10 +14,10 @@ Lockbay is a Telegram-based escrow bot for secure trading, supporting crypto pay
 - **Frontend**: React (minimal, mostly for health/status display)
 
 ## Environment Setup (Emergent Platform)
-- **Pod URL**: `https://94234b1f-5c1f-473c-ae1f-23f5b03522cc.preview.emergentagent.com`
+- **Pod URL**: `https://readme-quickstart.preview.emergentagent.com`
 - **Backend port**: 8001, Frontend port: 3000
-- **Webhook URL**: `https://94234b1f-5c1f-473c-ae1f-23f5b03522cc.preview.emergentagent.com/api/webhook`
-- **DynoPay Webhook URL**: `https://94234b1f-5c1f-473c-ae1f-23f5b03522cc.preview.emergentagent.com/api/webhook/dynopay`
+- **Webhook URL**: `https://readme-quickstart.preview.emergentagent.com/api/webhook`
+- **DynoPay Webhook URL**: `https://readme-quickstart.preview.emergentagent.com/api/webhook/dynopay`
 - **All env vars**: stored in `/app/.env` (root level, loaded with override by server.py)
 
 ## What's Been Implemented - Feb 27, 2026
