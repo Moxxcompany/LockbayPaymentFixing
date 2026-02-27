@@ -1,61 +1,44 @@
 # Lockbay Telegram Escrow Bot - PRD
 
 ## Overview
-Lockbay is a Telegram-based escrow bot for secure trading, supporting crypto payments (BlockBee, Kraken), fiat payments (Fincra, DynoPay, Flutterwave), and features like wallet management, cashouts, disputes, ratings, and admin controls.
+Lockbay is a Telegram-based escrow bot for secure trading, supporting crypto payments (BlockBee, Kraken), fiat payments (Fincra, DynoPay, Flutterwave), and wallet management, cashouts, disputes, ratings, and admin controls.
 
 ## Architecture
 - **Runtime**: Python FastAPI + python-telegram-bot (webhook mode)
 - **Database**: PostgreSQL (Railway primary, Neon backup)
 - **Entry Point**: `/app/backend/server.py` → loads `/app/webhook_server.py`
-- **Bot Handlers**: `/app/handlers/`
-- **Services**: `/app/services/`
-- **Utils**: `/app/utils/`
-- **Jobs/Scheduler**: `/app/jobs/`
-
-## Environment Setup (Emergent Platform)
 - **Pod URL**: `https://94234b1f-5c1f-473c-ae1f-23f5b03522cc.preview.emergentagent.com`
-- **Webhook URL**: `https://94234b1f-5c1f-473c-ae1f-23f5b03522cc.preview.emergentagent.com/api/webhook`
-- **DynoPay Webhook URL**: `https://94234b1f-5c1f-473c-ae1f-23f5b03522cc.preview.emergentagent.com/api/webhook/dynopay`
-- **All env vars**: `/app/.env`
 
 ## What's Been Implemented - Feb 27, 2026
 
 ### Session 1: Initial Setup
-1. Restored codebase from git (branch: Groupmessage)
-2. Created `/app/.env` with all required environment variables
-3. Updated WEBHOOK_URL and DYNOPAY_WEBHOOK_URL to current pod URL
-4. **Bug Fix**: Event loop blocking by `DestinationCleanupMonitor` — fixed with `asyncio.to_thread()`
+- Restored codebase, created `.env`, set webhook URLs to current pod
+- Fixed event loop blocking by `DestinationCleanupMonitor` (`asyncio.to_thread()`)
 
-### Session 2: Stale Balance Bug Fix (Critical)
-**Problem**: After crypto deposit, updated balance doesn't show on main menu or wallet balance menu.
+### Session 2: Stale Balance Bug Fix
+- Root cause: 5+ caching layers with zero invalidation on wallet credits
+- Fixed across 8 files: added TTL to wallet_prefetch, cache invalidation on all credit/debit paths
 
-**Root Cause**: Multiple layers of balance caching with NO invalidation on wallet credit operations:
-1. `wallet_prefetch` in `context.user_data` — cached indefinitely with NO TTL
-2. `WALLET_DISPLAY_CACHE` in `wallet_performance.py` — 10s TTL but not invalidated on credit
-3. `PerformanceCache`, `ProductionCache`, `KeyboardCache` — not invalidated on credit
-4. `credit_user_wallet_atomic()` in `services/crypto.py` — only invalidated caches on DEBIT, not CREDIT
-5. DynoPay webhook handler — no cache invalidation after deposit credit
+### Session 3: Deposit Anomaly Fixes (P1 + P2)
 
-**Fixes Applied**:
-- `utils/wallet_prefetch.py`: Added 30-second TTL to `wallet_prefetch` cache (was infinite)
-- `handlers/dynopay_webhook.py`: Added `balance_cache_invalidation_service.invalidate_user_balance_caches()` after wallet deposit credit
-- `handlers/dynopay_exchange_webhook.py`: Added cache invalidation after exchange credit
-- `services/crypto.py`: Added cache invalidation to `credit_user_wallet_atomic()` — covers ALL credit paths (escrow release, referral rewards, etc.)
-- `handlers/start.py`: Clear `wallet_prefetch` cache when returning to main menu
-- `handlers/escrow.py`: Added `wallet_prefetch` invalidation in `invalidate_all_escrow_caches()` + cache invalidation on escrow refund
-- `handlers/wallet_direct.py`: Added cache invalidation after cashout debit
-- `handlers/admin.py`: Added cache invalidation after admin cashout completion
+**P1 — Stop zombie webhook retries (permanent failure detection)**
+- **Root cause**: `webhook_intake_service.py` was converting ALL handler errors to `{"status": "retry"}`, including permanent failures like "missing required fields". DynoPay sends 3 webhooks per deposit (2 status updates with incomplete payloads + 1 complete), and the 2 incomplete ones were retrying 3× each every 60-120s indefinitely.
+- **Fix**: `services/webhook_intake_service.py` — Added permanent failure detection: if error message contains "missing" or "invalid", return `{"status": "error"}` (no retry) instead of `{"status": "retry"}`. Applied to both wallet and payment webhook processors.
 
-## Key Integrations
-- Telegram Bot API (webhook mode) - Bot: @IVRinboundbot
-- BlockBee, Kraken, Fincra, DynoPay, Flutterwave, Brevo, Twilio
+**P2 — Round USD balance to 2 decimal places**
+- **Root cause**: Crypto → USD conversion produced 18+ decimal precision (`$225.58784484274408498286`). Balance stored without rounding.
+- **Fix**: 
+  - `handlers/dynopay_webhook.py` — Round `usd_amount` via `.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)` before crediting. Also round `new_balance` on credit assignment.
+  - `handlers/dynopay_exchange_webhook.py` — Same rounding on exchange wallet credit.
+  - `services/crypto.py` — Already had proper rounding via `quantize(precision)`.
 
 ## Known Issues
-- Fincra API authentication failing — needs key check
-- Redis/Replit KV Store unavailable — email queue in NO-OP mode
+- **P0 (deferred by user)**: Over-crediting ~30% on deposits (`actual_crypto × rate` > `base_amount`)
+- Fincra API auth failing — needs key check
+- Redis/KV Store unavailable — email queue NO-OP mode
 
 ## Backlog
-- P0: User validation of balance display fix
+- P0: Fix deposit over-crediting (use `base_amount` instead of `crypto × rate`)
 - P1: Fix Fincra API key
-- P1: Verify payment webhook processing end-to-end
-- P2: Test admin commands and notifications
+- P1: E2E payment webhook verification
+- P2: Admin commands and notification testing
