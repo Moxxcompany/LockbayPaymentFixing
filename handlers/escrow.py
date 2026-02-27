@@ -114,6 +114,9 @@ def invalidate_all_escrow_caches(context: ContextTypes.DEFAULT_TYPE) -> None:
         # Invalidate escrow prefetch cache
         invalidate_prefetch_cache(context.user_data)
         
+        # Invalidate wallet prefetch cache (balance changed)
+        context.user_data.pop("wallet_prefetch", None)
+        
         # Invalidate transaction history cache (escrow affects transaction history)
         invalidate_transaction_history_cache(context.user_data)
         logger.info("🗑️ TX_CACHE: Invalidated transaction history cache after escrow state change")
