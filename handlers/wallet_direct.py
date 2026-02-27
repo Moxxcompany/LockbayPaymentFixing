@@ -8721,6 +8721,15 @@ async def handle_process_crypto_cashout(update: Update, context: ContextTypes.DE
                 wallet.available_balance = wallet.available_balance - debit_amount
                 logger.info(f"💸 WALLET_DEBITED: User {user.id} wallet debited ${debit_amount} for crypto cashout")
                 
+                # Invalidate balance caches after cashout debit
+                try:
+                    from utils.balance_cache_invalidation import balance_cache_invalidation_service
+                    balance_cache_invalidation_service.invalidate_user_balance_caches(user.id, "cashout_debit")
+                except Exception:
+                    pass
+                if context and context.user_data:
+                    context.user_data.pop("wallet_prefetch", None)
+                
                 # 🔐 CREATE CASHOUT REQUEST WITH PROPER SECURITY CONTEXT
                 from models import Cashout, CashoutStatus, CashoutType
                 
