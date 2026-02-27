@@ -1963,6 +1963,14 @@ To: {seller_identifier}{referral_section}
                 
                 logger.info(f"✅ WALLET_DEPOSIT_SUCCESS: {reference_id}, user {user_id}, ${usd_amount:.2f} credited")
             
+            # CRITICAL FIX: Invalidate all balance caches so UI shows updated balance
+            try:
+                from utils.balance_cache_invalidation import balance_cache_invalidation_service
+                balance_cache_invalidation_service.invalidate_user_balance_caches(user_id, "wallet_deposit")
+                logger.info(f"🗑️ CACHE_INVALIDATED: Cleared balance caches for user {user_id} after deposit")
+            except Exception as cache_err:
+                logger.warning(f"⚠️ Failed to invalidate balance cache for user {user_id}: {cache_err}")
+            
             # Send notification to user
             try:
                 from services.wallet_notification_service import WalletNotificationService
