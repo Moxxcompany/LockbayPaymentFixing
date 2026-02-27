@@ -693,7 +693,7 @@ class DynoPayExchangeWebhookHandler:
                     wallet_balance = wallet.available_balance
                     final_amt = exchange_order.final_amount
                     old_balance = Decimal(str(wallet_balance if wallet_balance is not None else 0))
-                    new_balance = old_balance + Decimal(str(final_amt if final_amt is not None else 0))
+                    new_balance = (old_balance + Decimal(str(final_amt if final_amt is not None else 0))).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
                     setattr(wallet, 'available_balance', new_balance)
                     logger.info(f"💰 EXCHANGE_WALLET_CREDIT: user={user_id_sell}, old=${old_balance}, new=${new_balance}, added=${Decimal(str(final_amt if final_amt is not None else 0))}")
                     
