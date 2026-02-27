@@ -33,7 +33,7 @@ class CryptoRateBackgroundRefresh:
         This ensures webhook handlers always have fresh cached data available
         """
         start_time = datetime.now()
-        logger.info("🔄 WEBHOOK_RATE_REFRESH: Starting background crypto rate refresh...")
+        logger.debug("🔄 WEBHOOK_RATE_REFRESH: Starting background crypto rate refresh...")
         
         try:
             refresh_count = 0
