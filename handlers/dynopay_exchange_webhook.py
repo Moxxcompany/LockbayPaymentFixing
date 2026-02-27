@@ -2,7 +2,7 @@
 
 import logging
 from typing import Dict, Any, Optional
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from datetime import datetime, timezone
 from fastapi import Request, HTTPException
 from sqlalchemy.orm import Session
