@@ -696,6 +696,13 @@ class DynoPayExchangeWebhookHandler:
                     new_balance = old_balance + Decimal(str(final_amt if final_amt is not None else 0))
                     setattr(wallet, 'available_balance', new_balance)
                     logger.info(f"💰 EXCHANGE_WALLET_CREDIT: user={user_id_sell}, old=${old_balance}, new=${new_balance}, added=${Decimal(str(final_amt if final_amt is not None else 0))}")
+                    
+                    # CRITICAL FIX: Invalidate balance caches after exchange credit
+                    try:
+                        from utils.balance_cache_invalidation import balance_cache_invalidation_service
+                        balance_cache_invalidation_service.invalidate_user_balance_caches(user_id_sell, "exchange_wallet_credit")
+                    except Exception as cache_err:
+                        logger.warning(f"⚠️ Failed to invalidate balance cache for user {user_id_sell}: {cache_err}")
                 else:
                     logger.error(f"Wallet not found for user {user_id_sell}")
                 
