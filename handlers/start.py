@@ -3019,6 +3019,7 @@ async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, use
         context.user_data.pop("escrow_data", None)
         context.user_data.pop("contact_data", None)
         context.user_data.pop("wallet_data", None)
+        context.user_data.pop("wallet_prefetch", None)
         logger.debug("🧹 Main menu: Cleared all conversation states")
     
     # ENHANCED: Clear universal session manager sessions 
