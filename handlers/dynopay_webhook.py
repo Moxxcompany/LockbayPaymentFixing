@@ -1871,6 +1871,9 @@ To: {seller_identifier}{referral_section}
                 logger.error(f"❌ WALLET_AMOUNT_ERROR: Cannot determine USD amount - no crypto amount or base_amount")
                 return {"status": "error", "message": "Cannot determine deposit amount"}
             
+            # P2 FIX: Round USD to 2 decimal places to prevent precision overflow
+            usd_amount = usd_amount.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+            
             # Use async session to credit wallet
             from models import Wallet, CryptoDeposit, CryptoDepositStatus
             
