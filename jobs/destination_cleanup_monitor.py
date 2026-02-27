@@ -72,56 +72,49 @@ class DestinationCleanupMonitor:
     @staticmethod
     async def validate_auto_cashout_destinations():
         """
-        Validate and fix auto-cashout destination issues
+        Validate and fix auto-cashout destination issues.
+        Offloaded to a thread so it never blocks the async event loop.
         """
-        session = SessionLocal()
-        fixed_count = 0
-
-        try:
-            # Get users with auto-cashout enabled
-            auto_cashout_users = (
-                session.query(User).filter(User.auto_cashout_enabled).all()
-            )
-
-            logger.info(
-                f"Validating auto-cashout destinations for {len(auto_cashout_users)} users"
-            )
-
-            for user in auto_cashout_users:
-                try:
-                    # Run comprehensive validation
-                    validation_result = (
-                        DestinationValidationService.validate_user_destinations(
-                            user, session
-                        )
-                    )
-
-                    if not validation_result["auto_cashout_safe"]:
-                        # Auto-cashout destination is invalid - disable it
-                        reason = f"Invalid destination detected: {len(validation_result['crypto_issues'])} crypto issues, {len(validation_result['bank_issues'])} bank issues"
-                        success = (
-                            DestinationValidationService.safe_disable_auto_cashout(
-                                user, session, reason
+        def _validate_sync():
+            session = SessionLocal()
+            fixed_count = 0
+            try:
+                auto_cashout_users = (
+                    session.query(User).filter(User.auto_cashout_enabled).all()
+                )
+                logger.info(
+                    f"Validating auto-cashout destinations for {len(auto_cashout_users)} users"
+                )
+                for user in auto_cashout_users:
+                    try:
+                        validation_result = (
+                            DestinationValidationService.validate_user_destinations(
+                                user, session
                             )
                         )
-
-                        if success:
-                            fixed_count += 1
-                            logger.warning(
-                                f"Disabled auto-cashout for user {user.id}: {reason}"
+                        if not validation_result["auto_cashout_safe"]:
+                            reason = f"Invalid destination detected: {len(validation_result['crypto_issues'])} crypto issues, {len(validation_result['bank_issues'])} bank issues"
+                            success = (
+                                DestinationValidationService.safe_disable_auto_cashout(
+                                    user, session, reason
+                                )
                             )
+                            if success:
+                                fixed_count += 1
+                                logger.warning(
+                                    f"Disabled auto-cashout for user {user.id}: {reason}"
+                                )
+                    except Exception as e:
+                        logger.error(
+                            f"Error validating auto-cashout for user {user.id}: {e}"
+                        )
+                        continue
+                logger.info(
+                    f"Auto-cashout validation completed: {fixed_count} users had auto-cashout disabled due to invalid destinations"
+                )
+            except Exception as e:
+                logger.error(f"Error in auto-cashout destination validation: {e}")
+            finally:
+                session.close()
 
-                except Exception as e:
-                    logger.error(
-                        f"Error validating auto-cashout for user {user.id}: {e}"
-                    )
-                    continue
-
-            logger.info(
-                f"Auto-cashout validation completed: {fixed_count} users had auto-cashout disabled due to invalid destinations"
-            )
-
-        except Exception as e:
-            logger.error(f"Error in auto-cashout destination validation: {e}")
-        finally:
-            session.close()
+        return await asyncio.to_thread(_validate_sync)
