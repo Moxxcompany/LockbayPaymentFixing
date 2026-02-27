@@ -422,7 +422,7 @@ BalanceGuard Monitoring System - {Config.PLATFORM_NAME}
         return summary_result
 
     async def _generate_user_weekly_summary(self, user: User, session) -> Dict[str, Any]:
-        """Generate weekly summary for a specific user"""
+        """Generate weekly summary for a specific user using efficient SQL aggregates"""
         summary = {"has_activity": False, "transactions": 0, "volume": Decimal('0')}
         
         try:
@@ -436,15 +436,13 @@ BalanceGuard Monitoring System - {Config.PLATFORM_NAME}
             result = await session.execute(stmt)
             user_transactions = result.scalar()
             
-            # Calculate volume
-            stmt = select(Transaction.amount).where(
+            # OPTIMIZATION: Use SQL SUM instead of fetching all rows
+            stmt = select(func.coalesce(func.sum(Transaction.amount), 0)).where(
                 Transaction.user_id == user.id,
                 Transaction.created_at > cutoff_date
             )
             result = await session.execute(stmt)
-            user_volume = result.all()
-            
-            total_volume = sum(Decimal(str(tx[0])) for tx in user_volume if tx[0])
+            total_volume = Decimal(str(result.scalar() or 0))
             
             summary["transactions"] = user_transactions
             summary["volume"] = total_volume
@@ -501,12 +499,12 @@ BalanceGuard Monitoring System - {Config.PLATFORM_NAME}
         return results
 
     async def _update_platform_statistics(self) -> Dict[str, Any]:
-        """Update platform-wide statistics"""
+        """Update platform-wide statistics using efficient SQL aggregates"""
         result = {"updated": False, "metrics": 0}
         
         try:
             async with async_managed_session() as session:
-                # Calculate platform metrics
+                # Calculate platform metrics using SQL aggregates (not fetching all rows)
                 stmt = select(func.count()).select_from(User)
                 query_result = await session.execute(stmt)
                 total_users = query_result.scalar()
@@ -515,11 +513,10 @@ BalanceGuard Monitoring System - {Config.PLATFORM_NAME}
                 query_result = await session.execute(stmt)
                 total_escrows = query_result.scalar()
                 
-                stmt = select(Transaction.amount)
+                # OPTIMIZATION: Use SQL SUM instead of fetching ALL transaction rows
+                stmt = select(func.coalesce(func.sum(Transaction.amount), 0))
                 query_result = await session.execute(stmt)
-                total_volume = query_result.all()
-                
-                volume_sum = sum(Decimal(str(tx[0])) for tx in total_volume if tx[0])
+                volume_sum = query_result.scalar() or 0
                 
                 # Store metrics (implementation depends on your admin system)
                 metrics_data = {
@@ -540,21 +537,19 @@ BalanceGuard Monitoring System - {Config.PLATFORM_NAME}
         return result
 
     async def _update_financial_dashboard(self) -> Dict[str, Any]:
-        """Update financial dashboard metrics"""
+        """Update financial dashboard metrics using efficient SQL aggregates"""
         result = {"updated": False, "metrics": 0}
         
         try:
             async with async_managed_session() as session:
                 today = datetime.utcnow().date()
                 
-                # Daily financial metrics
-                stmt = select(Transaction.amount).where(
+                # OPTIMIZATION: Use SQL SUM instead of fetching ALL daily transaction rows
+                stmt = select(func.coalesce(func.sum(Transaction.amount), 0)).where(
                     Transaction.created_at >= today
                 )
                 query_result = await session.execute(stmt)
-                daily_volume = query_result.all()
-                
-                daily_sum = sum(Decimal(str(tx[0])) for tx in daily_volume if tx[0])
+                daily_sum = query_result.scalar() or 0
                 
                 # Cashout metrics
                 stmt = select(func.count()).select_from(Cashout).where(
