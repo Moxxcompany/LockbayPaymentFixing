@@ -1910,9 +1910,10 @@ To: {seller_identifier}{referral_section}
                     await session.flush()
                     logger.info(f"✅ WALLET_CREATED: Created USD wallet for user {user_id}")
                 
-                # Credit wallet balance
+                # Credit wallet balance (rounded to 2dp)
                 old_balance = wallet.available_balance
-                wallet.available_balance += Decimal(str(usd_amount))  # type: ignore[assignment]
+                new_balance = (Decimal(str(old_balance or 0)) + Decimal(str(usd_amount))).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                wallet.available_balance = new_balance  # type: ignore[assignment]
                 logger.info(f"💰 WALLET_CREDIT: user={user_id}, old=${old_balance}, new=${wallet.available_balance}, added=${usd_amount:.2f}")
                 
                 # Get current timestamp using async query
