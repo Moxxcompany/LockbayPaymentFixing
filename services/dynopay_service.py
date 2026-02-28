@@ -153,8 +153,10 @@ class DynoPayService:
                         result = data.get('data', {})
                         
                         logger.info(f"DynoPay address created for {currency}: {reference_id}")
+                        logger.info(f"🔍 DYNOPAY_RESPONSE_KEYS: {list(result.keys())}")
                         
                         # Return in BlockBee-compatible format with address field for escrow handler compatibility
+                        # Store payment_id and link_id for webhook fallback resolution
                         return {
                             'address_in': result.get('address'),
                             'address': result.get('address'),  # CRITICAL FIX: Add direct 'address' field for escrow handler
@@ -164,7 +166,9 @@ class DynoPayService:
                             'qr_code_svg': None,
                             'minimum_transaction': 0.00001,  # Default minimum
                             'fee_percent': 1.0,  # DynoPay's fee
-                            'reference_id': reference_id
+                            'reference_id': reference_id,
+                            'dynopay_payment_id': result.get('payment_id') or result.get('id'),
+                            'dynopay_link_id': result.get('link_id'),
                         }
                     else:
                         error_text = await response.text()
