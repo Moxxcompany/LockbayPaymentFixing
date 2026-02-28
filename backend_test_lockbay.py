@@ -27,8 +27,8 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Public backend URL from frontend .env
-BACKEND_URL = "https://config-init-preview.preview.emergentagent.com"
-FRONTEND_URL = "https://config-init-preview.preview.emergentagent.com" # Same domain, port 3000
+BACKEND_URL = "https://pod-deployment-setup-1.preview.emergentagent.com"
+FRONTEND_URL = "https://pod-deployment-setup-1.preview.emergentagent.com" # Same domain, port 3000
 
 class LockBaySetupTester:
     def __init__(self):
