@@ -1,151 +1,157 @@
 #!/usr/bin/env python3
 """
 Manual notification trigger for escrow ES022826BX7V payment confirmation.
-Sends notifications to: buyer, seller, admin, and group.
+Uses direct Telegram HTTP API and Brevo email API.
 """
 import asyncio
-import sys
+import aiohttp
+import json
 import os
+import sys
 
-# Add project root to path
 sys.path.insert(0, '/app')
 os.chdir('/app')
 
 from dotenv import load_dotenv
 load_dotenv('/app/.env', override=True)
 
-async def send_notifications():
-    from decimal import Decimal
-    from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup
-    from config import Config
+BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+TELEGRAM_API = f"https://api.telegram.org/bot{BOT_TOKEN}"
+BREVO_API_KEY = os.getenv("BREVO_API_KEY")
+
+async def send_telegram_message(chat_id, text, reply_markup=None):
+    """Send message via Telegram Bot API directly"""
+    payload = {
+        "chat_id": chat_id,
+        "text": text,
+    }
+    if reply_markup:
+        payload["reply_markup"] = json.dumps(reply_markup)
     
-    bot_token = Config.TELEGRAM_BOT_TOKEN
-    bot = Bot(token=bot_token)
+    async with aiohttp.ClientSession() as session:
+        async with session.post(f"{TELEGRAM_API}/sendMessage", json=payload) as resp:
+            data = await resp.json()
+            if data.get("ok"):
+                return True, "sent"
+            else:
+                return False, data.get("description", "Unknown error")
+
+async def send_brevo_email(to_email, subject, html_content):
+    """Send email via Brevo API directly"""
+    headers = {
+        "api-key": BREVO_API_KEY,
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+    }
+    payload = {
+        "sender": {"name": "Lockbay", "email": "hi@lockbay.io"},
+        "to": [{"email": to_email}],
+        "subject": subject,
+        "htmlContent": html_content
+    }
     
-    # Escrow details
+    async with aiohttp.ClientSession() as session:
+        async with session.post("https://api.brevo.com/v3/smtp/email", headers=headers, json=payload) as resp:
+            data = await resp.json()
+            if resp.status in [200, 201]:
+                return True, data.get("messageId", "sent")
+            else:
+                return False, str(data)
+
+async def main():
     escrow_id = "ES022826BX7V"
-    escrow_amount = Decimal("100.00")
-    buyer_fee = Decimal("5.00")
+    escrow_amount = 100.00
+    buyer_fee = 5.00
     total_paid = escrow_amount + buyer_fee
     
     buyer_telegram_id = 5336660667
     buyer_username = "Technine1738"
     seller_telegram_id = 1046923090
     seller_username = "Donxlane"
-    admin_ids = [1531772316]
+    admin_id = 1531772316
     
     results = []
     
-    # 1. BUYER NOTIFICATION - Payment Confirmed
-    try:
-        buyer_message = f"""✅ Payment Confirmed
-
-#{escrow_id[-8:]} • ${float(escrow_amount):.2f}
-Paid: ${float(total_paid):.2f} (inc. ${float(buyer_fee):.2f} fee)
-To: @{seller_username}
-
-⏰ Awaiting seller (24h)
-🔒 Funds secured"""
-        
-        await bot.send_message(
-            chat_id=buyer_telegram_id,
-            text=buyer_message,
-            parse_mode=None
-        )
-        results.append(f"✅ Buyer notification sent to @{buyer_username}")
-    except Exception as e:
-        results.append(f"❌ Buyer notification failed: {e}")
+    # 1. BUYER - Payment Confirmed
+    buyer_msg = (
+        f"✅ Payment Confirmed\n\n"
+        f"#{escrow_id[-8:]} • ${escrow_amount:.2f}\n"
+        f"Paid: ${total_paid:.2f} (inc. ${buyer_fee:.2f} fee)\n"
+        f"To: @{seller_username}\n\n"
+        f"⏰ Awaiting seller (24h)\n"
+        f"🔒 Funds secured"
+    )
+    ok, msg = await send_telegram_message(buyer_telegram_id, buyer_msg)
+    results.append(f"{'✅' if ok else '❌'} Buyer @{buyer_username}: {msg}")
     
-    # 2. SELLER NOTIFICATION - New escrow offer
-    try:
-        seller_message = f"""🔔 New Escrow Offer
-
-#{escrow_id[-8:]} • ${float(escrow_amount):.2f}
-From: @{buyer_username}
-⏰ 24h delivery window
-
-💰 Payment confirmed and secured in escrow.
-Tap Accept to start the trade.
-
-/start to manage your trades"""
-
-        keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("✅ Accept Trade", callback_data=f"accept_escrow_{escrow_id}")],
-            [InlineKeyboardButton("❌ Decline", callback_data=f"decline_escrow_{escrow_id}")]
-        ])
-        
-        await bot.send_message(
-            chat_id=seller_telegram_id,
-            text=seller_message,
-            reply_markup=keyboard,
-            parse_mode=None
-        )
-        results.append(f"✅ Seller notification sent to @{seller_username}")
-    except Exception as e:
-        results.append(f"❌ Seller notification failed: {e}")
+    # 2. SELLER - New escrow offer with accept/decline buttons
+    seller_msg = (
+        f"🔔 New Escrow Offer\n\n"
+        f"#{escrow_id[-8:]} • ${escrow_amount:.2f}\n"
+        f"From: @{buyer_username}\n"
+        f"⏰ 24h delivery window\n\n"
+        f"💰 Payment confirmed and secured in escrow.\n"
+        f"Tap Accept to start the trade."
+    )
+    reply_markup = {
+        "inline_keyboard": [
+            [{"text": "✅ Accept Trade", "callback_data": f"accept_escrow_{escrow_id}"}],
+            [{"text": "❌ Decline", "callback_data": f"decline_escrow_{escrow_id}"}]
+        ]
+    }
+    ok, msg = await send_telegram_message(seller_telegram_id, seller_msg, reply_markup)
+    results.append(f"{'✅' if ok else '❌'} Seller @{seller_username}: {msg}")
     
-    # 3. ADMIN NOTIFICATION - Payment confirmed
-    try:
-        admin_message = f"""💰 Payment Confirmed - Admin Alert
-
-Escrow: {escrow_id}
-Amount: ${float(escrow_amount):.2f}
-Buyer: @{buyer_username} ({buyer_telegram_id})
-Seller: @{seller_username} ({seller_telegram_id})
-Payment: USDT-TRC20
-TxHash: 7791b74e...d6cde3c9
-Status: payment_confirmed (manual update)"""
-        
-        for admin_id in admin_ids:
-            await bot.send_message(
-                chat_id=admin_id,
-                text=admin_message,
-                parse_mode=None
-            )
-        results.append(f"✅ Admin notification sent")
-    except Exception as e:
-        results.append(f"❌ Admin notification failed: {e}")
+    # 3. ADMIN - Telegram alert
+    admin_msg = (
+        f"💰 Payment Confirmed - Admin Alert\n\n"
+        f"Escrow: {escrow_id}\n"
+        f"Amount: ${escrow_amount:.2f}\n"
+        f"Buyer: @{buyer_username} ({buyer_telegram_id})\n"
+        f"Seller: @{seller_username} ({seller_telegram_id})\n"
+        f"Payment: USDT-TRC20\n"
+        f"TxHash: 7791b74e...d6cde3c9\n"
+        f"Status: payment_confirmed (manual fix)\n\n"
+        f"Note: DynoPay webhook bug fixed - reference_id fallback added."
+    )
+    ok, msg = await send_telegram_message(admin_id, admin_msg)
+    results.append(f"{'✅' if ok else '❌'} Admin Telegram: {msg}")
     
-    # 4. ADMIN EMAIL NOTIFICATION
-    try:
-        from services.email import email_service
-        email_result = await email_service.send_email(
-            to_email="moxxcompany@gmail.com",
-            subject=f"💰 Payment Confirmed - Escrow {escrow_id}",
-            html_content=f"""
-            <h2>Payment Confirmed</h2>
-            <p><strong>Escrow:</strong> {escrow_id}</p>
-            <p><strong>Amount:</strong> ${float(escrow_amount):.2f}</p>
-            <p><strong>Buyer:</strong> @{buyer_username} ({buyer_telegram_id})</p>
-            <p><strong>Seller:</strong> @{seller_username} ({seller_telegram_id})</p>
-            <p><strong>Payment:</strong> USDT-TRC20</p>
-            <p><strong>TxHash:</strong> 7791b74e765d7ae4745efba0a7b40d31c827df9d2d8a4a9c91e7e316d6cde3c9</p>
-            <p><strong>Status:</strong> payment_confirmed</p>
-            <p><em>Note: This was manually confirmed after DynoPay webhook processing bug was fixed.</em></p>
-            """
-        )
-        results.append(f"✅ Admin email sent: {email_result}")
-    except Exception as e:
-        results.append(f"❌ Admin email failed: {e}")
+    # 4. ADMIN EMAIL
+    html = f"""
+    <h2>💰 Payment Confirmed - Escrow {escrow_id}</h2>
+    <table style="border-collapse:collapse;width:100%;max-width:500px;">
+        <tr><td style="padding:8px;border:1px solid #ddd;"><strong>Escrow</strong></td><td style="padding:8px;border:1px solid #ddd;">{escrow_id}</td></tr>
+        <tr><td style="padding:8px;border:1px solid #ddd;"><strong>Amount</strong></td><td style="padding:8px;border:1px solid #ddd;">${escrow_amount:.2f}</td></tr>
+        <tr><td style="padding:8px;border:1px solid #ddd;"><strong>Buyer</strong></td><td style="padding:8px;border:1px solid #ddd;">@{buyer_username} ({buyer_telegram_id})</td></tr>
+        <tr><td style="padding:8px;border:1px solid #ddd;"><strong>Seller</strong></td><td style="padding:8px;border:1px solid #ddd;">@{seller_username} ({seller_telegram_id})</td></tr>
+        <tr><td style="padding:8px;border:1px solid #ddd;"><strong>Payment</strong></td><td style="padding:8px;border:1px solid #ddd;">USDT-TRC20</td></tr>
+        <tr><td style="padding:8px;border:1px solid #ddd;"><strong>TxHash</strong></td><td style="padding:8px;border:1px solid #ddd;font-size:12px;">7791b74e765d7ae4745efba0a7b40d31c827df9d2d8a4a9c91e7e316d6cde3c9</td></tr>
+        <tr><td style="padding:8px;border:1px solid #ddd;"><strong>Status</strong></td><td style="padding:8px;border:1px solid #ddd;">payment_confirmed</td></tr>
+    </table>
+    <p style="color:#666;margin-top:15px;"><em>Note: Manually confirmed after DynoPay webhook processing bug was fixed (missing reference_id + NoneType overpayment).</em></p>
+    """
+    ok, msg = await send_brevo_email("moxxcompany@gmail.com", f"💰 Payment Confirmed - {escrow_id}", html)
+    results.append(f"{'✅' if ok else '❌'} Admin email: {msg}")
     
-    # 5. GROUP BROADCAST - Trade funded
-    try:
-        from services.group_event_service import group_event_service
-        payment_data = {
-            'escrow_id': escrow_id,
-            'amount': float(escrow_amount),
-            'payment_method': 'crypto',
-            'buyer_info': f"@{buyer_username}",
-            'seller_info': f"@{seller_username}"
-        }
-        await group_event_service.broadcast_trade_funded(payment_data)
-        results.append(f"✅ Group broadcast sent")
-    except Exception as e:
-        results.append(f"❌ Group broadcast failed: {e}")
+    # 5. Buyer email confirmation
+    buyer_html = f"""
+    <h2>✅ Payment Confirmed</h2>
+    <p>Your payment for escrow <strong>{escrow_id}</strong> has been confirmed.</p>
+    <table style="border-collapse:collapse;width:100%;max-width:400px;">
+        <tr><td style="padding:6px;"><strong>Amount:</strong></td><td>${escrow_amount:.2f}</td></tr>
+        <tr><td style="padding:6px;"><strong>Fee:</strong></td><td>${buyer_fee:.2f}</td></tr>
+        <tr><td style="padding:6px;"><strong>Total Paid:</strong></td><td>${total_paid:.2f}</td></tr>
+        <tr><td style="padding:6px;"><strong>Seller:</strong></td><td>@{seller_username}</td></tr>
+    </table>
+    <p>⏰ Awaiting seller acceptance (24h). Your funds are secured in escrow.</p>
+    """
+    ok, msg = await send_brevo_email("stefaniemiller606@gmail.com", f"✅ Payment Confirmed - {escrow_id}", buyer_html)
+    results.append(f"{'✅' if ok else '❌'} Buyer email: {msg}")
     
     print("\n=== NOTIFICATION RESULTS ===")
     for r in results:
         print(r)
 
 if __name__ == "__main__":
-    asyncio.run(send_notifications())
+    asyncio.run(main())
