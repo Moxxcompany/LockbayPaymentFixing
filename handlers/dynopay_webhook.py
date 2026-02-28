@@ -128,6 +128,84 @@ class DynoPayWebhookHandler:
             logger.debug(f"Metric tracking failed: {e}")
 
     @staticmethod
+    async def _resolve_reference_id_fallback(webhook_data: Dict[str, Any], event_type: str) -> Optional[str]:
+        """
+        FALLBACK: Resolve escrow reference_id when DynoPay doesn't echo back meta_data/customer_reference.
+        
+        Strategy:
+        1. Try 'description' field (DynoPay may store the reference there)
+        2. Try looking up by payment_id or link_id in payment_addresses.provider_data
+        3. Last resort: Look up by deposit address in payment_addresses table
+        """
+        reference_id = None
+        
+        # Strategy 1: Check description field
+        description = webhook_data.get('description', '')
+        if description:
+            # Description might be the escrow ID directly or contain it
+            desc_stripped = str(description).strip()
+            if desc_stripped.startswith('ES') and len(desc_stripped) <= 20:
+                reference_id = desc_stripped
+                logger.info(f"🔄 DYNOPAY_FALLBACK: Resolved reference_id from description: {reference_id}")
+                return reference_id
+        
+        # Strategy 2 & 3: DB lookup by payment_id or address
+        webhook_payment_id = webhook_data.get('payment_id')
+        webhook_address = webhook_data.get('address')
+        webhook_link_id = webhook_data.get('link_id')
+        
+        if webhook_payment_id or webhook_address or webhook_link_id:
+            try:
+                from database import SessionLocal
+                from models import PaymentAddress
+                
+                with SessionLocal() as db:
+                    # Try payment_id match in provider_data first
+                    if webhook_payment_id:
+                        pa = db.query(PaymentAddress).filter(
+                            PaymentAddress.provider == 'dynopay',
+                            PaymentAddress.provider_data['dynopay_payment_id'].astext == str(webhook_payment_id)
+                        ).first()
+                        if pa and pa.provider_data and pa.provider_data.get('reference_id'):
+                            reference_id = pa.provider_data['reference_id']
+                            logger.info(f"🔄 DYNOPAY_FALLBACK: Resolved reference_id via payment_id {webhook_payment_id}: {reference_id}")
+                            return reference_id
+                    
+                    # Try link_id match in provider_data
+                    if webhook_link_id:
+                        pa = db.query(PaymentAddress).filter(
+                            PaymentAddress.provider == 'dynopay',
+                            PaymentAddress.provider_data['dynopay_link_id'].astext == str(webhook_link_id)
+                        ).first()
+                        if pa and pa.provider_data and pa.provider_data.get('reference_id'):
+                            reference_id = pa.provider_data['reference_id']
+                            logger.info(f"🔄 DYNOPAY_FALLBACK: Resolved reference_id via link_id {webhook_link_id}: {reference_id}")
+                            return reference_id
+                    
+                    # Last resort: address lookup (unique constraint in DB)
+                    if webhook_address:
+                        pa = db.query(PaymentAddress).filter(
+                            PaymentAddress.address == webhook_address,
+                            PaymentAddress.provider == 'dynopay'
+                        ).first()
+                        if pa and pa.provider_data and pa.provider_data.get('reference_id'):
+                            reference_id = pa.provider_data['reference_id']
+                            logger.info(f"🔄 DYNOPAY_FALLBACK: Resolved reference_id via address lookup: {reference_id}")
+                            return reference_id
+                        elif pa and pa.utid:
+                            reference_id = pa.utid
+                            logger.info(f"🔄 DYNOPAY_FALLBACK: Resolved reference_id via address->utid: {reference_id}")
+                            return reference_id
+                            
+            except Exception as e:
+                logger.error(f"❌ DYNOPAY_FALLBACK: Error during DB lookup: {e}")
+        
+        if not reference_id:
+            logger.warning(f"⚠️ DYNOPAY_FALLBACK: Could not resolve reference_id (event: {event_type}, payment_id: {webhook_payment_id}, address: {webhook_address})")
+        
+        return reference_id
+
+    @staticmethod
     async def handle_escrow_deposit_webhook(webhook_data: Dict[str, Any]) -> Dict[str, Any]:
         """Process DynoPay webhook for escrow deposit confirmation with comprehensive idempotency protection"""
         
