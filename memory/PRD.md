@@ -14,8 +14,8 @@ Analyze and setup the Lockbay Telegram Escrow Bot codebase. Update .env with all
 
 ## What's Been Implemented (Feb 28, 2026)
 - Created root `/app/.env` with all 80+ environment variables
-- Updated `WEBHOOK_URL` from Railway URL to current pod URL: `https://onboarding-flow-51.preview.emergentagent.com/api/webhook`
-- Updated `DYNOPAY_WEBHOOK_URL` to pod URL: `https://onboarding-flow-51.preview.emergentagent.com/api/webhook/dynopay`
+- Updated `WEBHOOK_URL` from Railway URL to current pod URL: `https://webhook-config-prep.preview.emergentagent.com/api/webhook`
+- Updated `DYNOPAY_WEBHOOK_URL` to pod URL: `https://webhook-config-prep.preview.emergentagent.com/api/webhook/dynopay`
 - Installed all Python dependencies from requirements.txt
 - Installed frontend node_modules
 - Verified Telegram webhook registered successfully via Telegram API
