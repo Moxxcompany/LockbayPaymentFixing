@@ -56,17 +56,31 @@ class EscrowExpiryService:
         
         try:
             from datetime import timezone
+            from sqlalchemy import or_
             cutoff_time = datetime.now(timezone.utc)
             
-            # PHASE 1: Process escrows that need to be marked as expired
+            # PHASE 1: Process escrows that need to be marked as expired/cancelled
+            # FIX: For PAYMENT_PENDING/PARTIAL_PAYMENT → check expires_at (payment window)
+            #      For PAYMENT_CONFIRMED → check delivery_deadline (delivery window)
+            #      This prevents confirmed escrows from being expired by the short payment window
             logger.info("🔍 PHASE_1: Processing escrows that need expiry status update")
             stmt = select(Escrow).where(
-                Escrow.expires_at < cutoff_time,
-                Escrow.status.in_([
-                    EscrowStatus.PAYMENT_PENDING.value,
-                    EscrowStatus.PARTIAL_PAYMENT.value,
-                    EscrowStatus.PAYMENT_CONFIRMED.value
-                ])
+                or_(
+                    # Unpaid escrows: expire based on payment window (expires_at)
+                    (
+                        (Escrow.expires_at < cutoff_time) &
+                        Escrow.status.in_([
+                            EscrowStatus.PAYMENT_PENDING.value,
+                            EscrowStatus.PARTIAL_PAYMENT.value,
+                        ])
+                    ),
+                    # Paid escrows: expire based on delivery deadline, NOT payment window
+                    (
+                        (Escrow.delivery_deadline < cutoff_time) &
+                        (Escrow.delivery_deadline != None) &
+                        (Escrow.status == EscrowStatus.PAYMENT_CONFIRMED.value)
+                    ),
+                )
             ).limit(self.batch_size)
             
             result = await session.execute(stmt)
