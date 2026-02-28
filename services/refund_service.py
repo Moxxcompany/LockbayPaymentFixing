@@ -277,6 +277,17 @@ class RefundService:
             net_refund_needed = refund_target_amount - total_existing_refunds
 
             # Validation logic
+            # FIX: If payment_confirmed_at is set (manual DB confirm or webhook confirm)
+            # but no transaction records exist, treat the escrow total_amount as funding.
+            # This handles edge cases where payment was confirmed outside the normal flow
+            # (e.g., manual DB update after DynoPay webhook went to wrong URL).
+            if total_funding <= 0 and escrow.payment_confirmed_at is not None:
+                total_funding = float(str(escrow.total_amount)) if escrow.total_amount else 0.0
+                logger.warning(
+                    f"⚠️ MANUAL_CONFIRM_FALLBACK: Escrow {escrow.escrow_id} has payment_confirmed_at "
+                    f"but no transaction records. Using total_amount ${total_funding:.2f} as funding basis."
+                )
+            
             if total_funding <= 0:
                 return {
                     "eligible": False,
