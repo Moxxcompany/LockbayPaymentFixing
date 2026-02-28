@@ -143,8 +143,13 @@ class DynoPayWebhookHandler:
                 return {"status": "success", "message": "Pending event acknowledged"}
             
             # Extract webhook data with field mapping (DynoPay actual format → expected format)
-            meta_data = webhook_data.get('meta_data', {})
+            meta_data = webhook_data.get('meta_data') or {}
             reference_id = meta_data.get('refId') or webhook_data.get('customer_reference')
+            
+            # FALLBACK: If DynoPay doesn't echo back meta_data/customer_reference,
+            # resolve reference_id via payment_id or description field
+            if not reference_id:
+                reference_id = await DynoPayWebhookHandler._resolve_reference_id_fallback(webhook_data, event_type)
             
             # DynoPay field mapping:
             # - 'amount' = crypto amount (e.g., 0.01331 ETH) 
@@ -158,7 +163,7 @@ class DynoPayWebhookHandler:
             # Use base_amount (USD) from DynoPay when available - this is the authoritative value
             dynopay_base_amount = webhook_data.get('base_amount')
             dynopay_base_currency = webhook_data.get('base_currency', 'USD')
-            dynopay_overpayment = webhook_data.get('overpayment', {})
+            dynopay_overpayment = webhook_data.get('overpayment') or {}
             
             if dynopay_base_amount and dynopay_base_currency == 'USD':
                 paid_amount = dynopay_base_amount
@@ -169,7 +174,7 @@ class DynoPayWebhookHandler:
                 paid_amount = crypto_amount
             
             if not reference_id:
-                logger.error(f"DynoPay webhook missing reference_id (event: {event_type}, keys: {list(webhook_data.keys())})")
+                logger.error(f"DynoPay webhook missing reference_id after all fallbacks (event: {event_type}, keys: {list(webhook_data.keys())})")
                 return {"status": "error", "message": "Missing reference ID"}
             
             if not paid_amount or not paid_currency:
