@@ -6950,19 +6950,31 @@ async def handle_cancel_escrow(update: TelegramUpdate, context: ContextTypes.DEF
                     logger.error(f"Failed to update/preserve cancelled trade record: {e}")
                     await session.rollback()
     
-    # Simple cancellation message and return to main menu
+    # Cancellation message - show refund info if a funded escrow was cancelled
     keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("💰 View Wallet", callback_data="wallet_menu")] if refund_amount_for_message else [],
         [InlineKeyboardButton("🛡️ Create New Trade", callback_data="menu_create")],
         [InlineKeyboardButton("🏠 Main Menu", callback_data="main_menu")]
     ])
+    # Remove empty rows from keyboard
+    keyboard = InlineKeyboardMarkup([row for row in keyboard.inline_keyboard if row])
     
-    await safe_edit_message_text(
-        query,
-        f"""❌ Trade Cancelled
+    if refund_amount_for_message:
+        cancel_text = f"""✅ Trade Cancelled & Refunded
+
+💰 ${refund_amount_for_message:.2f} USD has been refunded to your wallet balance.
+
+Your funds are now available in your wallet."""
+    else:
+        cancel_text = """❌ Trade Cancelled
 
 Your trade has been cancelled.
 
-⚡ Create a new trade anytime.""",
+⚡ Create a new trade anytime."""
+    
+    await safe_edit_message_text(
+        query,
+        cancel_text,
         reply_markup=keyboard
     )
 
