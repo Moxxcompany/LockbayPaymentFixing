@@ -6763,6 +6763,7 @@ async def handle_cancel_escrow(update: TelegramUpdate, context: ContextTypes.DEF
                             )
                             session.add(refund_tx)
                             existing_escrow.refund_processed = True
+                            refund_amount_for_message = refund_amount
                         
                         # Note: cancelled_reason stored in admin_notes
                         # Note: updated_at handled by SQLAlchemy onupdate
