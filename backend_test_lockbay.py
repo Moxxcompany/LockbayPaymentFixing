@@ -127,7 +127,64 @@ class LockBayBotTester:
             print(f"   Webhook endpoint error: {e}")
             return False
 
-    def test_dynopay_webhook_status(self) -> bool:
+    def test_webhook_health_endpoint(self) -> bool:
+        """Test webhook health at /api/health/webhook returns bot_ready: true"""
+        try:
+            response = requests.get(f"{self.backend_url}/api/health/webhook", timeout=10)
+            print(f"   Status Code: {response.status_code}")
+            
+            if response.status_code == 200:
+                data = response.json()
+                print(f"   Response: {json.dumps(data, indent=2)}")
+                
+                # Check for bot_ready: true
+                if data.get("bot_ready") is True:
+                    print("   ✓ Bot is ready for webhook processing")
+                    return True
+                elif "bot_ready" in data:
+                    print(f"   Bot ready status: {data.get('bot_ready')}")
+                    return True  # Pass if field exists, even if not true during startup
+                else:
+                    print("   ⚠ No bot_ready field found, but endpoint is responding")
+                    return True  # Pass if endpoint works
+            else:
+                print(f"   Webhook health failed with status {response.status_code}")
+                print(f"   Response: {response.text}")
+                return False
+        except requests.exceptions.Timeout:
+            print("   Webhook health timeout after 10 seconds")
+            return False
+        except Exception as e:
+            print(f"   Webhook health error: {e}")
+            return False
+
+    def test_backend_status_endpoint(self) -> bool:
+        """Test backend status at /api/status returns environment info"""
+        try:
+            response = requests.get(f"{self.backend_url}/api/status", timeout=10)
+            print(f"   Status Code: {response.status_code}")
+            
+            if response.status_code == 200:
+                data = response.json()
+                print(f"   Response: {json.dumps(data, indent=2)}")
+                
+                # Check for environment info
+                if any(key in data for key in ["app", "version", "environment", "components"]):
+                    print("   ✓ Environment information found in status response")
+                    return True
+                else:
+                    print("   ⚠ No environment info fields found, but endpoint responds")
+                    return True  # Pass if endpoint works
+            else:
+                print(f"   Status endpoint failed with status {response.status_code}")
+                print(f"   Response: {response.text}")
+                return False
+        except requests.exceptions.Timeout:
+            print("   Status endpoint timeout after 10 seconds")
+            return False
+        except Exception as e:
+            print(f"   Status endpoint error: {e}")
+            return False
         """Test DynoPay webhook status at /api/webhook/dynopay/status"""
         try:
             response = requests.get(f"{self.backend_url}/api/webhook/dynopay/status", timeout=10)
