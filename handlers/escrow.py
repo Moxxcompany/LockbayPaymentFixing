@@ -10818,8 +10818,9 @@ async def handle_buyer_cancel_confirmed(update: TelegramUpdate, context: Context
                 
                 # CRITICAL: Release frozen_balance when refunding
                 current_frozen = Decimal(str(usd_wallet.frozen_balance or 0))  # type: ignore
-                usd_wallet.frozen_balance = max(current_frozen - amount_decimal, Decimal("0"))  # type: ignore
-                logger.info(f"💰 BUYER_CANCEL_REFUND: Released ${amount_decimal} from frozen to available for user {user.id}")
+                # Release full frozen amount (trade + fee) from frozen_balance
+                usd_wallet.frozen_balance = max(current_frozen - frozen_release_amount, Decimal("0"))  # type: ignore
+                logger.info(f"💰 BUYER_CANCEL_REFUND: Refunded ${amount_decimal} to available, released ${frozen_release_amount} from frozen for user {user.id}")
                 
                 # Release escrow holdings
                 from models import EscrowHolding
