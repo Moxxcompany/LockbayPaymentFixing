@@ -7,7 +7,7 @@ Comprehensive test suite for the LockBay Telegram bot backend system.
 Tests health endpoints, webhook endpoints, database connectivity, and service status.
 
 The bot is a Python-based Telegram escrow bot using FastAPI, PostgreSQL, and python-telegram-bot library.
-External URL: https://bot-webhook-setup.preview.emergentagent.com
+External URL: https://pod-config-deploy.preview.emergentagent.com
 """
 
 import sys
@@ -26,7 +26,7 @@ class LockBayBotTester:
     
     def __init__(self):
         # Use the UUID-based pod URL from the review request
-        self.backend_url = "https://124aa911-8098-4651-a3bd-5672b3dd3647.preview.emergentagent.com"
+        self.backend_url = "https://pod-config-deploy.preview.emergentagent.com"
         self.tests_run = 0
         self.tests_passed = 0
         self.test_results = []

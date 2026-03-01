@@ -39,7 +39,7 @@ class OTPEliminationTester:
     """Comprehensive tester for OTP elimination from all flows"""
     
     def __init__(self):
-        self.backend_url = os.environ.get('REACT_APP_BACKEND_URL', 'https://bot-webhook-setup.preview.emergentagent.com')
+        self.backend_url = os.environ.get('REACT_APP_BACKEND_URL', 'https://pod-config-deploy.preview.emergentagent.com')
         self.tests_run = 0
         self.tests_passed = 0
         self.test_results = []

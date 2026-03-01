@@ -11,7 +11,7 @@
     "design_issues": []
   },
   "passed_tests": [
-    "Backend health endpoint returns status: ok at https://d5fe348b-6fb4-4105-8ef0-1b231c21f29f.preview.emergentagent.com/api/health",
+    "Backend health endpoint returns status: ok at https://pod-config-deploy.preview.emergentagent.com/api/health",
     "Webhook endpoint properly rejects invalid data with error message 'Invalid webhook data'",
     "DynoPay webhook status endpoint returns active status with failover enabled",
     "Backend server starts without critical errors - all endpoints responding correctly",
