@@ -6714,8 +6714,18 @@ async def handle_cancel_escrow(update: TelegramUpdate, context: ContextTypes.DEF
                         # CRITICAL: Release frozen_balance and refund to available_balance if payment was confirmed
                         if existing_escrow.payment_confirmed_at is not None:
                             from models import Wallet, EscrowHolding
-                            # Refund only the trade amount, NOT the fee (platform keeps the fee)
-                            refund_amount = Decimal(str(existing_escrow.amount or 0))
+                            # BUSINESS RULE: On cancellation, canceller pays FULL platform fee
+                            # For split: buyer also absorbs seller's fee portion
+                            fee_split_option = getattr(existing_escrow, 'fee_split_option', 'buyer_pays')
+                            seller_fee = Decimal(str(getattr(existing_escrow, 'seller_fee_amount', 0) or 0))
+                            
+                            if fee_split_option == "split" and seller_fee > 0:
+                                # Buyer pays full fee: refund = trade amount - seller's fee portion
+                                refund_amount = Decimal(str(existing_escrow.amount or 0)) - seller_fee
+                                logger.info(f"💰 SPLIT_FEE_CANCEL: Buyer absorbs seller fee ${seller_fee}, refund=${refund_amount}")
+                            else:
+                                # Refund only the trade amount, NOT the fee (platform keeps the fee)
+                                refund_amount = Decimal(str(existing_escrow.amount or 0))
                             # Full frozen amount includes fee
                             frozen_release_amount = Decimal(str(existing_escrow.total_amount or existing_escrow.amount or 0))
                             
