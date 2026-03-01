@@ -1,48 +1,51 @@
 # LockBay Telegram Escrow Bot - PRD
 
 ## Original Problem Statement
-1. Setup LockBay Telegram bot environment with all env variables and configure webhook URL to current pod
-2. Analyze database for recent disputed escrow by @technine1738 and fix fee calculation bugs
+1. Setup environment and webhook for Telegram bot on Emergent pod
+2. Fix fee calculation bugs (minimum fee threshold, split fee cancellation)
+3. Update ES030126Y77S to $10 fee, enforce full fee on ALL cancel/dispute scenarios with warnings
 
 ## Architecture
-- **Backend**: FastAPI (Python) running on port 8001 via uvicorn/supervisor
+- **Backend**: FastAPI (Python) on port 8001 via uvicorn/supervisor
 - **Database**: PostgreSQL (Railway + Neon)
 - **Bot Framework**: python-telegram-bot (webhook mode)
 - **Payment Providers**: DynoPay, BlockBee, Fincra, Kraken
-- **Email**: Brevo (SendinBlue)
-- **SMS**: Twilio
 
 ## What's Been Implemented
 
 ### Session 1 (2026-03-01): Environment Setup
 - All 80+ env variables configured in `/app/backend/.env`
-- Webhook URL set to pod URL with `/api/` prefix
-- `/api/` strip middleware added to `server.py` for Emergent ingress routing
-- Dependencies installed, bot fully initialized
+- Webhook URL configured for pod, `/api/` strip middleware added
 
-### Session 2 (2026-03-01): Fee Calculation Bug Fixes
-**Database Analysis:**
-- Escrow ES030126Y77S (disputed): $100, fee=$5, fee_split=buyer_pays
-- Escrow ES022826BX7V (cancelled): $100, fee=$5, fee_split=buyer_pays
-- Both escrows had $5 fee instead of $10 minimum
+### Session 2 (2026-03-01): Fee Threshold Fix
+- Changed `<` to `<=` in `fee_calculator.py` so $10 min fee applies at exactly $100
+- Fixed split-fee cancellation to deduct seller's portion from refund
 
-**Bug 1: Minimum fee threshold comparison (< vs <=)**
-- Files: `utils/fee_calculator.py` (2 methods), `handlers/escrow.py` (2 display functions)
-- `MIN_ESCROW_FEE_THRESHOLD=100` used strict `<`, so $100 escrows didn't get $10 min fee
-- Fixed: Changed `escrow_decimal < threshold` to `escrow_decimal <= threshold`
+### Session 3 (2026-03-01): Full Fee Enforcement + Warnings
+**Database Update:**
+- ES030126Y77S: fee_amount $5→$10, buyer_fee_amount $5→$10, total_amount $105→$110
 
-**Bug 2: Split fee cancellation - buyer should pay full fee**
-- Files: `utils/fee_calculator.py` (breakdown method + refundable_amount), `handlers/escrow.py` (2 cancel handlers)
-- When buyer chose "split" and cancelled, they only lost their half of the fee
-- Fixed: On cancellation with split, refund = escrow_amount - seller_fee_amount
-- Buyer now effectively pays the full platform fee ($10 not $5)
+**Fee Policy: Buyer always pays full fee on cancel/dispute (all 3 scenarios):**
+- `buyer_pays`: buyer already paid fee on top → refund = escrow_amount (net loss = fee)
+- `seller_pays` (NEW): full fee deducted from escrow refund → refund = escrow - total_fee
+- `split` (FIXED): seller's portion deducted from escrow → refund = escrow - seller_fee
 
-## Core Requirements
-- Telegram escrow bot for secure P2P trading
-- Minimum $10 platform fee for escrows at or below $100
-- On cancellation: canceller pays the full platform fee regardless of fee split option
+**Files changed:**
+- `utils/fee_calculator.py`: refundable_amount + cancellation breakdown for seller_pays & split
+- `handlers/escrow.py`: handle_cancel_escrow, handle_buyer_cancel_trade (warning), handle_buyer_cancel_confirmed (refund)
+- `handlers/messages_hub.py`: handle_dispute_trade (fee warning)
+
+**Buyer Warnings Added:**
+- Dispute flow: "The full platform fee of $X will be deducted regardless of the original fee arrangement"
+- Cancel confirmation: "This applies regardless of the original fee arrangement (buyer pays, seller pays, or split)"
+- Fee split selection: "On cancellation or dispute, the full fee applies regardless of split option"
+
+## Core Business Rules
+1. Minimum $10 platform fee for escrows at or below $100
+2. On cancellation/dispute, buyer ALWAYS pays full platform fee (all split options)
+3. Seller decline (never accepted): buyer gets full refund including buyer_fee
 
 ## Backlog
-- P0: Monitor fee calculation correctness on new escrows
-- P1: Redis integration (currently using DB_BACKED fallback)
-- P2: Retroactive correction for the two affected escrows (ES030126Y77S, ES022826BX7V)
+- P0: Monitor new escrows for correct $10 fee + warning display
+- P1: Redis integration (currently DB_BACKED fallback)
+- P2: Admin dashboard for fee audit trail
