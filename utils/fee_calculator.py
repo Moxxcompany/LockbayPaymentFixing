@@ -622,24 +622,27 @@ class FeeCalculator:
             # Calculate what buyer originally paid
             buyer_total_paid = escrow_decimal + buyer_fee_decimal
 
-            # BUSINESS RULE: On cancellation, canceller pays FULL platform fee
-            # For split: buyer already paid buyer_fee, now also absorbs seller_fee
-            if fee_split_option == "split":
-                # Buyer pays the full fee: deduct seller's portion from escrow refund
-                # (buyer_fee was already paid separately, seller_fee deducted from escrow amount)
+            # BUSINESS RULE: On cancellation, buyer ALWAYS pays FULL platform fee
+            total_fee = buyer_fee_decimal + seller_fee_decimal
+            if fee_split_option == "seller_pays":
+                # Buyer pays full fee on cancel: deduct full fee from escrow refund
+                refund_amount = escrow_decimal - total_fee
+                platform_keeps = total_fee
+            elif fee_split_option == "split":
+                # Buyer absorbs seller's portion: deduct seller_fee from escrow refund
                 refund_amount = escrow_decimal - seller_fee_decimal
-                platform_keeps = buyer_fee_decimal + seller_fee_decimal
-            else:
-                # buyer_pays or seller_pays: standard refund (escrow minus buyer's fee)
-                refund_amount = escrow_decimal - buyer_fee_decimal
+                platform_keeps = total_fee
+            else:  # buyer_pays
+                # Buyer already paid full fee on top: refund escrow amount
+                refund_amount = escrow_decimal
                 platform_keeps = buyer_fee_decimal
 
             # Ensure refund is never negative
             if refund_amount < 0:
                 refund_amount = Decimal("0")
 
-            # Seller fee is not collected on cancellation (since trade didn't complete)
-            seller_fee_not_collected = seller_fee_decimal
+            # Fee is always fully collected on cancellation
+            seller_fee_not_collected = Decimal("0")
 
             return {
                 "total_paid_by_buyer": Decimal(str(buyer_total_paid)),
