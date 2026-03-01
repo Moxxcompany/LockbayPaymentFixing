@@ -10825,6 +10825,28 @@ async def handle_buyer_cancel_confirmed(update: TelegramUpdate, context: Context
                 new_balance = current_balance + amount_decimal
                 usd_wallet.available_balance = new_balance  # type: ignore
                 
+                # CRITICAL: Release frozen_balance when refunding
+                current_frozen = Decimal(str(usd_wallet.frozen_balance or 0))  # type: ignore
+                usd_wallet.frozen_balance = max(current_frozen - amount_decimal, Decimal("0"))  # type: ignore
+                logger.info(f"💰 BUYER_CANCEL_REFUND: Released ${amount_decimal} from frozen to available for user {user.id}")
+                
+                # Release escrow holdings
+                from models import EscrowHolding
+                escrow_holding = session.query(EscrowHolding).filter(
+                    EscrowHolding.escrow_id == escrow.escrow_id,
+                    EscrowHolding.status == "held"
+                ).first()
+                if escrow_holding:
+                    escrow_holding.status = "released"
+                    escrow_holding.released_at = datetime.now(timezone.utc)
+                    escrow_holding.released_to_user_id = user.id
+                    escrow_holding.total_released = escrow_holding.amount_held
+                    escrow_holding.remaining_amount = Decimal("0")
+                    logger.info(f"🔓 BUYER_CANCEL_RELEASE: Escrow holding released for {escrow.escrow_id}")
+                
+                # Mark escrow refund as processed
+                escrow.refund_processed = True  # type: ignore
+                
                 # Invalidate balance caches after escrow refund
                 try:
                     from utils.balance_cache_invalidation import balance_cache_invalidation_service
