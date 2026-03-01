@@ -10785,8 +10785,17 @@ async def handle_buyer_cancel_confirmed(update: TelegramUpdate, context: Context
                     total_fee_decimal, fee_split_option
                 )
                 
-                # Refund only the trade amount - platform keeps the fee
-                amount_decimal = trade_amount_decimal
+                # Refund based on fee_split_option:
+                # BUSINESS RULE: On buyer cancellation, buyer pays FULL platform fee
+                # For split: buyer also absorbs seller's fee portion
+                if fee_split_option == "split" and seller_fee_decimal > 0:
+                    # Buyer pays full fee: refund = trade amount - seller's fee portion
+                    amount_decimal = trade_amount_decimal - seller_fee_decimal
+                    logger.info(f"💰 SPLIT_FEE_CANCEL: Buyer absorbs seller fee ${seller_fee_decimal}, refund=${amount_decimal}")
+                else:
+                    # buyer_pays: refund trade amount (buyer already lost buyer_fee from frozen)
+                    # seller_pays: refund trade amount (no fee was charged to buyer)
+                    amount_decimal = trade_amount_decimal
                 # Track the full frozen amount for releasing frozen_balance
                 frozen_release_amount = trade_amount_decimal + total_fee_decimal
                 
