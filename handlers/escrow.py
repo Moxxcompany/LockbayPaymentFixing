@@ -10790,23 +10790,10 @@ async def handle_buyer_cancel_confirmed(update: TelegramUpdate, context: Context
                     total_fee_decimal, fee_split_option
                 )
                 
-                # Refund only what the buyer actually paid
-                if fee_split_option == 'seller_pays':
-                    # Buyer didn't pay any fee, refund only trade amount
-                    amount_decimal = trade_amount_decimal
-                elif fee_split_option == 'buyer_pays':
-                    # Buyer paid the full fee, refund trade amount + full fee
-                    amount_decimal = trade_amount_decimal + total_fee_decimal
-                elif fee_split_option == 'split':
-                    # Buyer paid their portion of the fee, refund trade amount + buyer's fee portion
-                    amount_decimal = trade_amount_decimal + buyer_fee_decimal
-                else:
-                    # Default: assume buyer pays (backward compatibility)
-                    # Use 5% default fee rate for legacy escrows without fee_split_option
-                    default_fee_decimal = (trade_amount_decimal * Decimal('0.05')).quantize(
-                        Decimal('0.01'), rounding=ROUND_HALF_UP
-                    )
-                    amount_decimal = trade_amount_decimal + default_fee_decimal
+                # Refund only the trade amount - platform keeps the fee
+                amount_decimal = trade_amount_decimal
+                # Track the full frozen amount for releasing frozen_balance
+                frozen_release_amount = trade_amount_decimal + total_fee_decimal
                 
                 # Convert back to float for wallet operations
                 amount = Decimal(str(amount_decimal))
