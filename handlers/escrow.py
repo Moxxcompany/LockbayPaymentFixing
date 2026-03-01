@@ -6657,6 +6657,7 @@ async def handle_cancel_escrow(update: TelegramUpdate, context: ContextTypes.DEF
         ) if escrow_data else None
     
     # Use unified cleanup function to clear all state
+    refund_amount_for_message = None  # Track if a funded escrow was cancelled
     if user:
         from utils.conversation_cleanup import clear_user_conversation_state
         await clear_user_conversation_state(
