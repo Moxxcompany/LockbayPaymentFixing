@@ -25,8 +25,8 @@ class LockBayBotTester:
     """Comprehensive tester for the LockBay Telegram Bot backend"""
     
     def __init__(self):
-        # Use the external pod URL from the review request
-        self.backend_url = "https://bot-webhook-setup.preview.emergentagent.com"
+        # Use the UUID-based pod URL from the review request
+        self.backend_url = "https://124aa911-8098-4651-a3bd-5672b3dd3647.preview.emergentagent.com"
         self.tests_run = 0
         self.tests_passed = 0
         self.test_results = []
