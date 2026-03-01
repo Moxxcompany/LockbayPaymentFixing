@@ -10094,7 +10094,7 @@ This will simply cancel the trade.
 
 Are you sure you want to cancel?"""
             else:
-                # PAYMENT CONFIRMED - Payment made, show refund information
+                # PAYMENT CONFIRMED - Payment made, show refund information with FEE WARNING
                 fee_amount_raw = getattr(escrow, 'fee_amount', None)
                 fee_amount = Decimal(str(fee_amount_raw)) if fee_amount_raw is not None else Decimal("0.0")
                 fee_split_option = getattr(escrow, 'fee_split_option', 'buyer_pays')
@@ -10106,18 +10106,23 @@ Are you sure you want to cancel?"""
                 amount_decimal = Decimal(str(amount))
                 total_fee_decimal = Decimal(str(fee_amount))
                 
-                # Calculate fee split to determine what buyer paid
-                buyer_fee_decimal, seller_fee_decimal = FeeCalculator._calculate_fee_split(
-                    total_fee_decimal, fee_split_option
+                # BUSINESS RULE: On cancellation, buyer ALWAYS pays FULL platform fee
+                # regardless of original fee split option
+                total_refund_decimal = amount_decimal - total_fee_decimal
+                
+                # Show fee warning for all scenarios
+                fee_warning = (
+                    f"⚠️ Fee Policy: The full platform fee of "
+                    f"{format_money(total_fee_decimal, 'USD')} will be deducted.\n"
+                    f"This applies regardless of the original fee arrangement "
+                    f"(buyer pays, seller pays, or split).\n\n"
                 )
                 
-                # Refund is trade amount only - platform keeps the fee
-                total_refund_decimal = amount_decimal
                 refund_text = f"{format_money(total_refund_decimal, 'USD')} will be refunded to your wallet"
                 
                 confirmation_text = f"""❌ Cancel Trade #{escrow.escrow_id}
 
-{refund_text} to your wallet.
+{fee_warning}{refund_text}.
 
 Are you sure you want to cancel?"""
 
