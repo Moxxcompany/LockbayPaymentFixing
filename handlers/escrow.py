@@ -6730,9 +6730,11 @@ async def handle_cancel_escrow(update: TelegramUpdate, context: ContextTypes.DEF
                             if buyer_wallet and refund_amount > 0:
                                 current_frozen = Decimal(str(buyer_wallet.frozen_balance or 0))
                                 current_available = Decimal(str(buyer_wallet.available_balance or 0))
-                                buyer_wallet.frozen_balance = max(current_frozen - refund_amount, Decimal("0"))
+                                # Release full frozen amount (trade + fee) from frozen_balance
+                                buyer_wallet.frozen_balance = max(current_frozen - frozen_release_amount, Decimal("0"))
+                                # Credit only the trade amount (platform keeps the fee)
                                 buyer_wallet.available_balance = current_available + refund_amount
-                                logger.info(f"💰 CANCEL_REFUND: Released ${refund_amount} from frozen to available for user {existing_escrow.buyer_id}")
+                                logger.info(f"💰 CANCEL_REFUND: Refunded ${refund_amount} to available, released ${frozen_release_amount} from frozen for user {existing_escrow.buyer_id}")
                             
                             # Release escrow holdings
                             holding_stmt = select(EscrowHolding).where(
