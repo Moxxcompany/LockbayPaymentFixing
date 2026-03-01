@@ -6709,6 +6709,59 @@ async def handle_cancel_escrow(update: TelegramUpdate, context: ContextTypes.DEF
                             logger.warning(f"⚠️ FORCED_CANCELLATION: {e} - allowing cancellation anyway")
                             # Allow cancellations even if transition is normally invalid  # type: ignore
                             existing_escrow.status = EscrowStatus.CANCELLED.value  # type: ignore
+                        
+                        # CRITICAL: Release frozen_balance and refund to available_balance if payment was confirmed
+                        if existing_escrow.payment_confirmed_at is not None:
+                            from models import Wallet, EscrowHolding
+                            refund_amount = Decimal(str(existing_escrow.total_amount or existing_escrow.amount or 0))
+                            
+                            # Release frozen balance and credit available balance
+                            wallet_stmt = select(Wallet).where(
+                                Wallet.user_id == existing_escrow.buyer_id,
+                                Wallet.currency == (existing_escrow.currency or "USD")
+                            )
+                            wallet_result = await session.execute(wallet_stmt)
+                            buyer_wallet = wallet_result.scalar_one_or_none()
+                            
+                            if buyer_wallet and refund_amount > 0:
+                                current_frozen = Decimal(str(buyer_wallet.frozen_balance or 0))
+                                current_available = Decimal(str(buyer_wallet.available_balance or 0))
+                                buyer_wallet.frozen_balance = max(current_frozen - refund_amount, Decimal("0"))
+                                buyer_wallet.available_balance = current_available + refund_amount
+                                logger.info(f"💰 CANCEL_REFUND: Released ${refund_amount} from frozen to available for user {existing_escrow.buyer_id}")
+                            
+                            # Release escrow holdings
+                            holding_stmt = select(EscrowHolding).where(
+                                EscrowHolding.escrow_id == early_escrow_id,
+                                EscrowHolding.status == "held"
+                            )
+                            holding_result = await session.execute(holding_stmt)
+                            holding = holding_result.scalar_one_or_none()
+                            if holding:
+                                holding.status = "released"
+                                holding.released_at = datetime.now(timezone.utc)
+                                holding.released_to_user_id = existing_escrow.buyer_id
+                                holding.total_released = holding.amount_held
+                                holding.remaining_amount = Decimal("0")
+                                logger.info(f"🔓 CANCEL_RELEASE: Escrow holding released for {early_escrow_id}")
+                            
+                            # Create refund transaction record
+                            from models import Transaction
+                            from utils.id_generator import UniversalIDGenerator
+                            refund_tx = Transaction(
+                                transaction_id=UniversalIDGenerator.generate_transaction_id(),
+                                user_id=existing_escrow.buyer_id,
+                                escrow_id=existing_escrow.id,
+                                transaction_type="escrow_refund",
+                                amount=refund_amount,
+                                currency=existing_escrow.currency or "USD",
+                                status="completed",
+                                description=f"Refund for cancelled trade #{early_escrow_id} (buyer cancel, seller never accepted)",
+                                created_at=datetime.now(timezone.utc)
+                            )
+                            session.add(refund_tx)
+                            existing_escrow.refund_processed = True
+                        
                         # Note: cancelled_reason stored in admin_notes
                         # Note: updated_at handled by SQLAlchemy onupdate
                         await session.commit()
