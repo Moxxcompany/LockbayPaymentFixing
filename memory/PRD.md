@@ -1,54 +1,32 @@
 # LockBay Telegram Escrow Bot - PRD
 
 ## Original Problem Statement
-1. Setup and configure the LockBay Telegram Escrow Bot with all environment variables
-2. Update webhook URLs to use current pod URL
-3. Investigate and fix: buyer cancelled escrow (not accepted by seller) but funds showing as "processing" instead of being immediately available
+Analyze and setup the LockBay Telegram bot environment. Update .env with all required configuration variables and ensure the current pod URL is used for the Telegram webhook.
 
 ## Architecture
-- **Backend**: FastAPI (Python) webhook server on port 8001
+- **Backend**: FastAPI (Python) running on port 8001 via uvicorn/supervisor
 - **Database**: PostgreSQL (Railway + Neon)
 - **Bot Framework**: python-telegram-bot (webhook mode)
-- **Payment Integrations**: DynoPay, Fincra, Flutterwave, BlockBee, Kraken
-- **Notifications**: Brevo (email), Twilio (SMS)
-- **State Management**: In-memory KV store (Railway fallback for Redis)
+- **Payment Providers**: DynoPay, BlockBee, Fincra, Kraken
+- **Email**: Brevo (SendinBlue)
+- **SMS**: Twilio
 
-## What's Been Implemented
+## What's Been Implemented (2026-03-01)
+1. **Environment Setup**: All 80+ env variables configured in `/app/backend/.env`
+2. **Webhook URL Updated**: `WEBHOOK_URL` and `DYNOPAY_WEBHOOK_URL` set to use the pod UUID URL (`124aa911-8098-4651-a3bd-5672b3dd3647.preview.emergentagent.com/api/webhook`)
+3. **API Prefix Middleware**: Added `/api/` strip middleware to `server.py` for proper Emergent ingress routing
+4. **Dependencies Installed**: All Python packages from `requirements.txt` installed
+5. **Bot Initialized**: Telegram bot fully started, webhook registered with Telegram, all handlers loaded
+6. **Scheduler Running**: ConsolidatedScheduler with 11 background jobs active
 
-### Session 1 (2026-03-01) - Initial Setup
-- Created `/app/.env` with all 80+ environment variables
-- Updated WEBHOOK_URL to current pod URL
-- Installed all Python dependencies
-- Backend fully initialized: 67 DB tables, bot registered with Telegram
-
-### Session 2 (2026-03-01) - Escrow Cancel Bug Fix
-**Root Cause Analysis:**
-- Escrow ES022826BX7V (buyer: 5336660667, $105) stuck in `payment_confirmed` with `frozen_balance`
-- Seller never accepted (`seller_accepted_at` = NULL)
-- Buyer clicked `cancel_escrow` but handler relied on `context.user_data` which was already cleared
-- Result: "Trade Cancelled" shown but escrow NOT actually cancelled, funds stayed frozen
-
-**Two bugs fixed:**
-1. **`handle_cancel_escrow`** (line ~6637): Added fallback to query DB for active cancellable escrows when context is empty. Also added proper frozen_balance release, escrow_holdings release, and refund transaction creation.
-2. **`handle_buyer_cancel_confirmed`** (line ~10630): Added frozen_balance release, escrow_holdings release, and `refund_processed` flag when processing cancellation refunds.
-
-**Immediate data fix applied:**
-- Escrow ES022826BX7V: status → cancelled, refund_processed → true
-- Wallet: frozen_balance $105 → $0, available_balance $0 → $105
-- Escrow holding: status → released
-- Refund transaction created
-
-## Files Modified
-- `/app/handlers/escrow.py` - Two bug fixes in cancel handlers
-- `/app/.env` - Created with all environment variables
-- `/app/backend/.env` - Updated with core variables
-
-## Known Limitations
-- Fincra API authentication failed (may need credential refresh)
-- Redis not available (using DB_BACKED fallback mode)
+## Core Requirements
+- Telegram escrow bot for secure P2P trading
+- Multi-currency crypto support (BTC, ETH, LTC, USDT-ERC20, USDT-TRC20)
+- NGN bank transfer support (via Fincra)
+- Admin dashboard and monitoring
+- Webhook-based architecture for all payment providers
 
 ## Backlog
-- P0: None
-- P1: Verify cancel flow works end-to-end on production deployment
-- P2: Add logging for all escrow status transitions for better debugging
-- P2: Fincra integration debugging
+- P0: Monitor webhook reliability in production
+- P1: Redis integration (currently using DB_BACKED fallback)
+- P2: Deep monitoring system (ENABLE_DEEP_MONITORING=true)
