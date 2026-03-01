@@ -10101,24 +10101,9 @@ Are you sure you want to cancel?"""
                     total_fee_decimal, fee_split_option
                 )
                 
-                # Calculate refund based on what buyer actually paid
-                if fee_split_option == "seller_pays":
-                    # Buyer didn't pay any fee, refund only trade amount
-                    total_refund_decimal = amount_decimal
-                    refund_text = f"{format_money(total_refund_decimal, 'USD')} will be refunded"
-                elif fee_split_option == "buyer_pays":
-                    # Buyer paid the full fee, refund trade amount + full fee
-                    total_refund_decimal = safe_add(amount_decimal, total_fee_decimal)
-                    refund_text = f"{format_money(total_refund_decimal, 'USD')} will be refunded ({format_money(amount_decimal, 'USD')} + {format_money(total_fee_decimal, 'USD')} fee)"
-                elif fee_split_option == "split":
-                    # Buyer paid their portion, refund trade amount + buyer's fee portion
-                    total_refund_decimal = safe_add(amount_decimal, buyer_fee_decimal)
-                    refund_text = f"{format_money(total_refund_decimal, 'USD')} will be refunded ({format_money(amount_decimal, 'USD')} + {format_money(buyer_fee_decimal, 'USD')} fee)"
-                else:  # default case for legacy escrows
-                    # Use 5% default fee rate for consistency
-                    default_fee_decimal = calculate_percentage(amount_decimal, Decimal('5'))
-                    total_refund_decimal = safe_add(amount_decimal, default_fee_decimal)
-                    refund_text = f"{format_money(total_refund_decimal, 'USD')} will be refunded ({format_money(amount_decimal, 'USD')} + {format_money(default_fee_decimal, 'USD')} fee)"
+                # Refund is trade amount only - platform keeps the fee
+                total_refund_decimal = amount_decimal
+                refund_text = f"{format_money(total_refund_decimal, 'USD')} will be refunded to your wallet"
                 
                 confirmation_text = f"""❌ Cancel Trade #{escrow.escrow_id}
 
