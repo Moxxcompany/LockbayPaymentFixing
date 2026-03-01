@@ -185,7 +185,8 @@ class LockBayBotTester:
         except Exception as e:
             print(f"   Status endpoint error: {e}")
             return False
-        """Test DynoPay webhook status at /api/webhook/dynopay/status"""
+
+    def test_dynopay_webhook_status(self) -> bool:
         try:
             response = requests.get(f"{self.backend_url}/api/webhook/dynopay/status", timeout=10)
             print(f"   Status Code: {response.status_code}")
