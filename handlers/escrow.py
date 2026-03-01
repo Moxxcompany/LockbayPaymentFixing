@@ -6667,8 +6667,6 @@ async def handle_cancel_escrow(update: TelegramUpdate, context: ContextTypes.DEF
         )
         logger.info(f"✅ Cleared all conversation state for user {user.id} on escrow cancellation")
         
-        refund_amount_for_message = None  # Track if a funded escrow was cancelled
-        
         if not early_escrow_id and user:
             # FALLBACK: If no escrow_id in context, find active cancellable escrows for this user
             # This handles the case where user clicks cancel_escrow after the creation flow is complete
