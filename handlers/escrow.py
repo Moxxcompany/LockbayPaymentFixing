@@ -2019,7 +2019,7 @@ async def show_fee_split_options_from_message(
         
         # Add subtle minimum fee note only when applicable
         if show_min_fee_note:
-            text += f"\nℹ️ Minimum ${min_fee_amount:.0f} fee applies to escrows under ${min_fee_threshold:.0f}"
+            text += f"\nℹ️ Minimum ${min_fee_amount:.0f} fee applies to escrows at or under ${min_fee_threshold:.0f}"
 
     keyboard = InlineKeyboardMarkup(
         [
