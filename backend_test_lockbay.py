@@ -390,19 +390,29 @@ class LockBayBotTester:
         print(f"Testing backend: {self.backend_url}")
         print(f"Test time: {datetime.now().isoformat()}")
         
-        # Core health and status tests
+        # Test endpoints specifically mentioned in review request
         self.run_test(
             "Backend health endpoint returns status: ok", 
             self.test_health_endpoint
         )
         
         self.run_test(
-            "Webhook endpoint rejects invalid data with error message", 
+            "Webhook health returns bot_ready status", 
+            self.test_webhook_health_endpoint
+        )
+        
+        self.run_test(
+            "Backend status endpoint returns environment info", 
+            self.test_backend_status_endpoint
+        )
+        
+        self.run_test(
+            "Webhook endpoint accepts POST requests (not 404)", 
             self.test_webhook_endpoint_security
         )
         
         self.run_test(
-            "DynoPay webhook status endpoint is reachable", 
+            "DynoPay webhook status endpoint is accessible", 
             self.test_dynopay_webhook_status
         )
         
