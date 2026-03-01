@@ -2277,11 +2277,18 @@ async def handle_dispute_trade(update: Update, context: ContextTypes.DEFAULT_TYP
             )
             return
         
-        # Show dispute reason selection
+        # Show dispute reason selection with FEE WARNING
+        fee_amount = float(trade.fee_amount or 0)
+        trade_amount = float(trade.amount or 0)
+        fee_split = getattr(trade, 'fee_split_option', 'buyer_pays')
+        refund_after_fee = trade_amount - fee_amount
+        
         message = f"⚖️ Report Issue with Trade\n\n"
         message += f"Trade ID: #{trade.escrow_id[:12]}\n"
-        message += f"Amount: ${float(trade.amount):.2f}\n"
+        message += f"Amount: ${trade_amount:.2f}\n"
         message += f"Status: {trade.status.replace('_', ' ').title()}\n\n"
+        message += f"⚠️ *Fee Policy:* The full platform fee of *${fee_amount:.2f}* will be deducted regardless of the original fee arrangement. "
+        message += f"If resolved in your favour, you will receive *${refund_after_fee:.2f}*.\n\n"
         message += "Please select the type of issue:\n"
         
         keyboard = [
