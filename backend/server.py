@@ -104,6 +104,23 @@ except Exception as import_err:
             }
         }
 
+# Add /api/ prefix stripping middleware for Emergent platform ingress routing
+# The Kubernetes ingress routes /api/* to port 8001 but keeps the /api prefix in the path
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request as StarletteRequest
+
+class StripApiPrefixMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: StarletteRequest, call_next):
+        path = request.scope["path"]
+        if path.startswith("/api/"):
+            request.scope["path"] = path[4:]  # Strip /api prefix
+        elif path == "/api":
+            request.scope["path"] = "/"
+        return await call_next(request)
+
+app.add_middleware(StripApiPrefixMiddleware)
+logger.info("Added /api/ prefix stripping middleware for Emergent ingress routing")
+
 # Track if bot has been initialized
 _bot_initialized = False
 
