@@ -1949,7 +1949,7 @@ async def show_fee_split_options_from_message(
         min_fee_threshold = Decimal(str(Config.MIN_ESCROW_FEE_THRESHOLD))
         min_fee_amount = Decimal(str(Config.MIN_ESCROW_FEE_AMOUNT))
         
-        if amount < min_fee_threshold and calculated_fee < min_fee_amount:
+        if amount <= min_fee_threshold and calculated_fee < min_fee_amount:
             normal_fee = min_fee_amount  # They would have paid minimum fee
         else:
             normal_fee = calculated_fee  # They would have paid configured %
@@ -1996,9 +1996,9 @@ async def show_fee_split_options_from_message(
         fee_percentage = Decimal(str(Config.ESCROW_FEE_PERCENTAGE)) / Decimal("100")
         calculated_fee = (amount * fee_percentage).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
         
-        # Show tooltip if: escrow under threshold AND minimum fee was applied
+        # Show tooltip if: escrow at or under threshold AND minimum fee was applied
         show_min_fee_note = (
-            amount < min_fee_threshold and 
+            amount <= min_fee_threshold and 
             min_fee_amount > 0 and 
             calculated_fee < min_fee_amount and
             total_fee >= min_fee_amount
