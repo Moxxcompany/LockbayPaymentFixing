@@ -626,11 +626,12 @@ class FeeCalculator:
             # BUSINESS RULE: On cancellation, canceller pays FULL platform fee
             # For split: buyer already paid buyer_fee, now also absorbs seller_fee
             if fee_split_option == "split":
-                # Buyer pays the full fee: deduct both buyer's and seller's portions
-                refund_amount = escrow_decimal - buyer_fee_decimal - seller_fee_decimal
+                # Buyer pays the full fee: deduct seller's portion from escrow refund
+                # (buyer_fee was already paid separately, seller_fee deducted from escrow amount)
+                refund_amount = escrow_decimal - seller_fee_decimal
                 platform_keeps = buyer_fee_decimal + seller_fee_decimal
             else:
-                # buyer_pays or seller_pays: buyer gets escrow minus their fee
+                # buyer_pays or seller_pays: standard refund (escrow minus buyer's fee)
                 refund_amount = escrow_decimal - buyer_fee_decimal
                 platform_keeps = buyer_fee_decimal
 
