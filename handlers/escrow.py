@@ -6666,6 +6666,27 @@ async def handle_cancel_escrow(update: TelegramUpdate, context: ContextTypes.DEF
         )
         logger.info(f"✅ Cleared all conversation state for user {user.id} on escrow cancellation")
         
+        if not early_escrow_id and user:
+            # FALLBACK: If no escrow_id in context, find active cancellable escrows for this user
+            # This handles the case where user clicks cancel_escrow after the creation flow is complete
+            try:
+                async with async_managed_session() as session:
+                    from sqlalchemy import and_
+                    active_stmt = select(Escrow).where(
+                        and_(
+                            Escrow.buyer_id == user.id,
+                            Escrow.status.in_(["pending", "awaiting_payment", "payment_confirmed"]),
+                            Escrow.seller_accepted_at.is_(None)
+                        )
+                    ).order_by(Escrow.id.desc()).limit(1)
+                    active_result = await session.execute(active_stmt)
+                    active_escrow = active_result.scalar_one_or_none()
+                    if active_escrow:
+                        early_escrow_id = active_escrow.escrow_id
+                        logger.info(f"🔍 CANCEL_FALLBACK: Found active escrow {early_escrow_id} for user {user.id} (status: {active_escrow.status})")
+            except Exception as e:
+                logger.error(f"Error finding active escrow for cancellation fallback: {e}")
+
         if early_escrow_id:
             # CRITICAL FIX: UPDATE existing escrow instead of creating duplicate
             async with async_managed_session() as session:
