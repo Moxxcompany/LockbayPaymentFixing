@@ -1844,7 +1844,7 @@ async def show_fee_split_options(query, context: ContextTypes.DEFAULT_TYPE) -> O
         
         # Add subtle minimum fee note only when applicable
         if show_min_fee_note:
-            text += f"\nℹ️ Minimum ${min_fee_amount:.0f} fee applies to escrows under ${min_fee_threshold:.0f}"
+            text += f"\nℹ️ Minimum ${min_fee_amount:.0f} fee applies to escrows at or under ${min_fee_threshold:.0f}"
 
     # Context-aware back button: if editing from trade review, go back to review
     # Otherwise, go back to delivery time (previous step in flow)
