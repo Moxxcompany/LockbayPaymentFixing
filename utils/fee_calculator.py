@@ -454,8 +454,8 @@ class FeeCalculator:
                 min_fee = Config.MIN_ESCROW_FEE_AMOUNT
                 threshold = getattr(Config, 'MIN_ESCROW_FEE_THRESHOLD', Decimal("100.0"))
                 
-                # Apply minimum fee if enabled (min_fee > 0) AND escrow below threshold AND calculated fee below minimum
-                if min_fee > 0 and escrow_decimal < threshold and total_platform_fee < min_fee:
+                # Apply minimum fee if enabled (min_fee > 0) AND escrow at or below threshold AND calculated fee below minimum
+                if min_fee > 0 and escrow_decimal <= threshold and total_platform_fee < min_fee:
                     original_fee = total_platform_fee
                     total_platform_fee = min_fee
                     logger.info(
@@ -478,12 +478,14 @@ class FeeCalculator:
             seller_net_amount = escrow_decimal - seller_fee_amount
 
             # Amount available for refund depends on fee split option
+            # BUSINESS RULE: On cancellation, canceller pays full platform fee
             if fee_split_option == "seller_pays":
                 # Buyer paid no fee, gets full escrow amount back
                 refundable_amount = escrow_decimal
             elif fee_split_option == "split":
-                # Buyer loses only their portion of the fee
-                refundable_amount = escrow_decimal
+                # Buyer cancellation with split fee: deduct seller's portion too
+                # So buyer effectively pays the full platform fee
+                refundable_amount = escrow_decimal - seller_fee_amount
             else:  # buyer_pays
                 # Buyer loses the full platform fee
                 refundable_amount = escrow_decimal
