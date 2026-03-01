@@ -478,16 +478,15 @@ class FeeCalculator:
             seller_net_amount = escrow_decimal - seller_fee_amount
 
             # Amount available for refund depends on fee split option
-            # BUSINESS RULE: On cancellation, canceller pays full platform fee
+            # BUSINESS RULE: On cancellation, buyer ALWAYS pays full platform fee
             if fee_split_option == "seller_pays":
-                # Buyer paid no fee, gets full escrow amount back
-                refundable_amount = escrow_decimal
+                # Buyer pays full fee on cancel: deduct full fee from escrow refund
+                refundable_amount = escrow_decimal - total_platform_fee
             elif fee_split_option == "split":
-                # Buyer cancellation with split fee: deduct seller's portion too
-                # So buyer effectively pays the full platform fee
+                # Buyer absorbs seller's portion too: deduct seller_fee from escrow
                 refundable_amount = escrow_decimal - seller_fee_amount
             else:  # buyer_pays
-                # Buyer loses the full platform fee
+                # Buyer already paid full fee on top: refund escrow amount
                 refundable_amount = escrow_decimal
 
             return {
